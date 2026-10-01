@@ -1,0 +1,60 @@
+{
+  "download_date": "2026-10-01",
+  "sources": [
+    {
+      "competition": "t20i",
+      "url": "https://cricsheet.org/downloads/t20s_male_json.zip"
+    },
+    {
+      "competition": "ipl",
+      "url": "https://cricsheet.org/downloads/ipl_male_json.zip"
+    },
+    {
+      "competition": "bbl",
+      "url": "https://cricsheet.org/downloads/bbl_male_json.zip"
+    }
+  ],
+  "counts": {
+    "t20i": {
+      "matches_read": 3558,
+      "excluded": {
+        "women": 0,
+        "no_result": 77,
+        "dls": 127,
+        "reduced_overs": 11,
+        "super_over": 0,
+        "ended_before_10_overs": 26,
+        "no_first_innings": 0
+      },
+      "innings_kept": 3317
+    },
+    "ipl": {
+      "matches_read": 1243,
+      "excluded": {
+        "women": 0,
+        "no_result": 9,
+        "dls": 23,
+        "reduced_overs": 0,
+        "super_over": 0,
+        "ended_before_10_overs": 1,
+        "no_first_innings": 0
+      },
+      "innings_kept": 1210
+    },
+    "bbl": {
+      "matches_read": 662,
+      "excluded": {
+        "women": 0,
+        "no_result": 11,
+        "dls": 32,
+        "reduced_overs": 0,
+        "super_over": 0,
+        "ended_before_10_overs": 0,
+        "no_first_innings": 0
+      },
+      "innings_kept": 619
+    },
+    "total_innings": 5146
+  },
+  "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License."
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StepEvent",
+  "description": "Payload of each `step` SSE event on GET /run: one per completed node.",
+  "type": "object",
+  "required": ["step", "node", "summary", "changes"],
+  "additionalProperties": false,
+  "properties": {
+    "step": { "type": "integer", "minimum": 1, "description": "1-based order of completion." },
+    "node": { "type": "string", "description": "Node id as it appears in /structure." },
+    "summary": { "type": "string", "description": "Plain-language description of what the node did." },
+    "changes": {
+      "type": "object",
+      "description": "State keys this node changed, with their new full values. Append-reduced keys carry the full accumulated list. Plain JSON only (no NaN/Infinity)."
+    }
+  }
+}

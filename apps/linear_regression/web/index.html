@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linear Regression Agent</title>
+  <meta name="description" content="Watch an agent predict a T20 first-innings total from the score at 10 overs, and see whether it beats the TV projected score." />
+  <style>
+    :root {
+      --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
+      --accent: #1d6fe0; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
+        --accent: #6ea8ff; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+    h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+    h3 { font-size: 1rem; margin: 16px 0 6px; }
+    .lead { color: var(--muted); max-width: 70ch; }
+    section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .muted { color: var(--muted); }
+    .error { color: var(--lose); font-weight: 600; }
+    table.attempts { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+    table.attempts caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
+    table.attempts th, table.attempts td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+    table.attempts td { text-align: right; font-variant-numeric: tabular-nums; }
+    table.attempts tr.baseline th { color: var(--muted); font-weight: 600; }
+    .compare { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); }
+    .compare.win { border-color: var(--win); background: var(--win-bg); }
+    .compare.lose { border-color: var(--lose); background: var(--lose-bg); }
+    .compare .big { display: block; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+    .compare .cap { color: var(--muted); font-size: .85rem; }
+    .compare .verdict { flex-basis: 100%; margin: 0; font-weight: 600; }
+    ul.explanation { padding-left: 1.2em; max-width: 75ch; }
+    ul.explanation li { margin-bottom: 6px; }
+    form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    form label { display: flex; flex-direction: column; font-size: .9rem; color: var(--muted); gap: 4px; }
+    form input { font: inherit; width: 9.5em; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+    form button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+    form button:disabled { opacity: .5; cursor: default; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
+    .attribution { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Can an agent beat the TV projected score?</h1>
+    <p class="lead">
+      After 10 overs of a T20 first innings, the broadcaster projects a final total by multiplying the current run rate
+      by 20 overs. Watch an agent try something smarter, one step at a time: it learns from past innings how runs and
+      wickets at the halfway mark turn into a final total, then tests itself on a year it has never seen.
+    </p>
+
+    <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
+
+    <h2>What the agent found</h2>
+    <section class="card" data-testid="results-card" aria-live="polite">
+      <div data-testid="results"></div>
+      <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
+    </section>
+
+    <h2>Try your own innings</h2>
+    <section class="card" data-testid="tryit">
+      <p class="muted" data-testid="tryit-hint">Run the agent first, then use its model on an innings of your own.</p>
+      <form novalidate>
+        <label>Runs at 10 overs <input name="runs_at_10" type="number" inputmode="numeric" min="0" /></label>
+        <label>Wickets at 10 overs <input name="wickets_at_10" type="number" inputmode="numeric" min="0" max="9" /></label>
+        <label>Powerplay runs (overs 1–6) <input name="powerplay_runs" type="number" inputmode="numeric" min="0" /></label>
+        <button type="submit" disabled>Predict</button>
+      </form>
+      <p class="error" role="alert" data-testid="tryit-error"></p>
+      <div data-testid="tryit-result" hidden></div>
+      <p class="attribution" data-testid="attribution">The model was trained on ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>.</p>
+    </section>
+
+    <footer data-testid="footer-attribution">
+      Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> (men's T20 internationals, IPL and BBL),
+      used under the Open Data Commons Attribution License.
+    </footer>
+  </main>
+  <script type="module" src="/src/page/main.ts"></script>
+</body>
+</html>

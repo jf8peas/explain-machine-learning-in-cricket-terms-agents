@@ -1,0 +1,20 @@
+{
+  "nodes": [
+    { "id": "__start__", "kind": "start" },
+    { "id": "fetch", "kind": "node" },
+    { "id": "parse", "kind": "node" },
+    { "id": "validate", "kind": "node" },
+    { "id": "retry", "kind": "node" },
+    { "id": "store", "kind": "node" },
+    { "id": "__end__", "kind": "end" }
+  ],
+  "edges": [
+    { "source": "__start__", "target": "fetch", "conditional": false, "branch": null },
+    { "source": "fetch", "target": "parse", "conditional": false, "branch": null },
+    { "source": "parse", "target": "validate", "conditional": false, "branch": null },
+    { "source": "validate", "target": "store", "conditional": true, "branch": "valid" },
+    { "source": "validate", "target": "retry", "conditional": true, "branch": "invalid" },
+    { "source": "retry", "target": "fetch", "conditional": false, "branch": null },
+    { "source": "store", "target": "__end__", "conditional": false, "branch": null }
+  ]
+}

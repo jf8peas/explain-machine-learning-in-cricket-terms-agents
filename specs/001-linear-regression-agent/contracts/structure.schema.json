@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GraphStructure",
+  "description": "Response of GET /structure. Generic: contains nothing app-specific.",
+  "type": "object",
+  "required": ["nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["start", "end", "node"] }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "conditional", "branch"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "conditional": { "type": "boolean" },
+          "branch": {
+            "type": ["string", "null"],
+            "description": "Branch name for conditional edges (falls back to the target node name when the framework omits a label); null for plain edges."
+          }
+        }
+      }
+    }
+  }
+}
