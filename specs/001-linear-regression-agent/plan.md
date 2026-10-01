@@ -10,7 +10,7 @@ A deterministic LangGraph agent (no LLM) predicts a T20 first innings' final tot
 ## Technical Context
 
 **Language/Version**: Python 3.12 (backend, data prep); TypeScript (visualiser and page)
-**Primary Dependencies**: LangGraph, FastAPI, pandas, scikit-learn, numpy; Vite, `@dagrejs/dagre` (web). Dev only: pytest, Vitest, Playwright, `requests` for data prep
+**Primary Dependencies**: LangGraph, FastAPI, pandas, numpy (least squares solved with numpy; scikit-learn is test-only); Vite, `@dagrejs/dagre` (web). Dev only: pytest, Vitest, Playwright, `requests` for data prep
 **Storage**: Committed files only: `data/innings.csv`, `data/manifest.json`. No database, no server state
 **Testing**: pytest, Vitest, Playwright (see Testing Strategy)
 **Target Platform**: Vercel (static assets plus Python function) for the app; modern evergreen browsers for the page

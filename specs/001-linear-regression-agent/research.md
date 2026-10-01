@@ -28,7 +28,7 @@ All technical decisions were supplied with the plan request, so no `NEEDS CLARIF
 
 ## Model and metric
 
-- **Decision**: scikit-learn `LinearRegression`; error = mean absolute error in runs; also R². Baseline `(runs_at_10 / 10) × 20`.
+- **Decision**: ordinary least squares with an intercept, solved with numpy (originally scikit-learn `LinearRegression`; replaced on 2026-10-01 because scikit-learn and scipy pushed the Vercel function to 564 MB, over the 500 MB limit; a test checks the coefficients match scikit-learn's); error = mean absolute error in runs; also R². Baseline `(runs_at_10 / 10) × 20`.
 - **Rationale**: MAE is in runs, which a cricket fan can read directly. Ordinary least squares gives coefficients that translate into sentences ("each wicket costs N runs").
 - **Alternatives**: RMSE (penalises outliers, harder to say in cricket terms); statsmodels (richer stats, unneeded dependency weight in the function).
 

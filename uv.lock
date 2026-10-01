@@ -435,7 +435,6 @@ dependencies = [
     { name = "langgraph" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "scikit-learn" },
 ]
 
 [package.dev-dependencies]
@@ -444,6 +443,7 @@ dev = [
     { name = "jsonschema" },
     { name = "pytest" },
     { name = "requests" },
+    { name = "scikit-learn" },
     { name = "uvicorn" },
 ]
 
@@ -453,7 +453,6 @@ requires-dist = [
     { name = "langgraph", specifier = ">=0.2" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", specifier = ">=2.2" },
-    { name = "scikit-learn", specifier = ">=1.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -462,6 +461,7 @@ dev = [
     { name = "jsonschema", specifier = ">=4" },
     { name = "pytest", specifier = ">=8" },
     { name = "requests", specifier = ">=2.31" },
+    { name = "scikit-learn", specifier = ">=1.5" },
     { name = "uvicorn", specifier = ">=0.30" },
 ]
 
