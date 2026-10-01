@@ -14,7 +14,7 @@
       ]
     }
   ],
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/linear_regression/",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . || exit 1",
   "buildCommand": "cd web && npm install && npm run build",
   "outputDirectory": "web/dist"
 }
