@@ -24,7 +24,7 @@ Validation: `key`s unique; at most one filter per column; a `year` filter requir
 | Field | Type | Meaning |
 |---|---|---|
 | `headline` | `{label, value}[]` | Key figures (total innings, date range, downloaded on) |
-| `sections` | `{title, rows: {label, value}[]}[]` | Titled lists (innings per competition; excluded matches and why) |
+| `sections` | `{title, note?, rows: {label, value}[]}[]` | Titled lists (innings per competition; excluded matches and why). The optional `note` explains the section; the exclusions note says they were decided before the agent runs, by `scripts/prepare_data.py` |
 | `attribution` | string | Source and licence note, shown beside the download button and on the tab |
 | `attribution_url` | string (optional) | Link for the source name |
 | `file_stem` | string | File name prefix (`t20-first-innings`) |

@@ -91,6 +91,13 @@ def test_exclusions_match_manifest_with_zero_counts_omitted():
     assert excluded["No result"] == summed["no_result"]
 
 
+def test_exclusions_say_they_were_decided_before_the_agent_runs():
+    sections = {s["title"]: s for s in get_data()["summary"]["sections"]}
+    note = sections["Excluded, and why"]["note"]
+    assert "scripts/prepare_data.py" in note and "before the agent runs" in note
+    assert (DEFAULT_PATH.parent.parent / "scripts" / "prepare_data.py").exists()  # the script it names is real
+
+
 def test_summary_dates_and_file_name_parts():
     summary = get_data()["summary"]
     assert summary["file_date"] == MANIFEST["download_date"]

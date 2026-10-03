@@ -26,6 +26,7 @@ export const styles = /* css */ `
 .dg-root .dg-headline dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dg-root .dg-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 24px; }
 .dg-root .dg-sections h3 { margin: 0 0 4px; font-size: .9rem; }
+.dg-root .dg-note { margin: 0 0 6px; color: var(--_muted); font-size: .8rem; max-width: 60ch; }
 .dg-root .dg-sections ul { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
 .dg-root .dg-sections li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--_border); padding: 2px 0; }
 .dg-root .dg-sections li span:last-child { font-variant-numeric: tabular-nums; }

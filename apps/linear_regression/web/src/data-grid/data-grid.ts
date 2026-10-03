@@ -127,7 +127,9 @@ export class DataGrid extends HTMLElement {
         li.append(el("span", {}, r.label), el("span", {}, r.value));
         list.append(li);
       }
-      box.append(el("h3", {}, s.title), list);
+      box.append(el("h3", {}, s.title));
+      if (s.note) box.append(el("p", { class: "dg-note", "data-testid": "section-note" }, s.note));
+      box.append(list);
       sections.append(box);
     }
     summary.append(headline, sections);

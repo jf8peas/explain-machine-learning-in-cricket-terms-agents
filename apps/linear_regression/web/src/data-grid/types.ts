@@ -20,7 +20,8 @@ export interface SummaryItem {
 
 export interface DataSummary {
   headline: SummaryItem[];
-  sections: { title: string; rows: SummaryItem[] }[];
+  /** `note` is optional explanatory text shown under the section's title. */
+  sections: { title: string; note?: string; rows: SummaryItem[] }[];
   attribution: string;
   attribution_url?: string;
   file_stem: string;

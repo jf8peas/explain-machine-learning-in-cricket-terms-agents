@@ -13,6 +13,11 @@ from .season_split import split_by_year
 
 DEFAULT_MANIFEST = DEFAULT_PATH.parent / "manifest.json"
 COMPETITION_NAMES = {"t20i": "T20 International", "ipl": "IPL", "bbl": "BBL"}
+EXCLUSIONS_NOTE = (
+    "These choices were made before the agent runs, when the data was prepared by the script "
+    "scripts/prepare_data.py. The agent does not decide what to exclude: it only ever sees the innings "
+    "that were kept."
+)
 EXCLUSION_LABELS = {
     "women": "Women's matches",
     "no_result": "No result",
@@ -71,7 +76,7 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
         "sections": [
             {"title": "Innings per competition",
              "rows": [{"label": COMPETITION_NAMES.get(k, k), "value": f"{int(v['innings_kept']):,}"} for k, v in comps]},
-            {"title": "Excluded, and why",
+            {"title": "Excluded, and why", "note": EXCLUSIONS_NOTE,
              "rows": [{"label": EXCLUSION_LABELS.get(r, r.replace("_", " ").capitalize()), "value": f"{n:,}"}
                       for r, n in excluded.items() if n]},
         ],

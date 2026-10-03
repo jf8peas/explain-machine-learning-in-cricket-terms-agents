@@ -25,7 +25,7 @@ Returns the prepared innings table, its column definitions and its summary in on
     ],
     "sections": [
       {"title": "Innings per competition", "rows": [{"label": "T20 International", "value": "3,317"}]},
-      {"title": "Excluded, and why", "rows": [{"label": "No result", "value": "97"}]}
+      {"title": "Excluded, and why", "note": "These choices were made before the agent runs, when the data was prepared by the script scripts/prepare_data.py. The agent does not decide what to exclude.", "rows": [{"label": "No result", "value": "97"}]}
     ],
     "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License.",
     "attribution_url": "https://cricsheet.org",
@@ -42,6 +42,7 @@ Returns the prepared innings table, its column definitions and its summary in on
 - `rows[i]` has exactly `len(columns)` values, in column order; values are raw (the `labels` map is applied by the client).
 - Row order equals `data/innings.csv`. Dates are `YYYY-MM-DD`.
 - `used_for` is computed by the backend with `season_split.split_by_year`. Clients must not recompute it.
+- A section's optional `note` is plain explanatory text shown under its title. This app uses it to say the exclusions were decided by `scripts/prepare_data.py` before the agent runs.
 - Headline and section values are preformatted display strings; their counts come from `data/manifest.json`.
 - `summary.file_date` is the manifest's `download_date`.
 

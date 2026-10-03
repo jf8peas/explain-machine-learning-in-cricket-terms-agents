@@ -307,6 +307,8 @@ test.describe("summary", () => {
     await expect(summary).toContainText("Downloaded from Cricsheet");
     await expect(summary).toContainText("Excluded, and why");
     await expect(summary).toContainText("No result");
+    await expect(summary.getByTestId("section-note")).toContainText("prepare_data.py");
+    await expect(summary.getByTestId("section-note")).toContainText("before the agent runs");
     await expect(summary).toContainText("Innings per competition");
     await expect(page.getByTestId("attribution-foot")).toContainText("Open Data Commons Attribution License");
     await expect(page.getByTestId("attribution-download")).toContainText("Cricsheet");
