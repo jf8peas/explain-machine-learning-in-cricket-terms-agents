@@ -45,6 +45,10 @@ Show the final explanation to at least 10 people (SC-004's minimum) with no ML b
 
 Measured locally (warm): all 13 steps in about 0.09 s.
 
+## Changing the main-site link
+
+The link above the headline comes from `VITE_SITE_URL` in `apps/linear_regression/web/.env`. To change it without a code edit (for example after buying a domain), set `VITE_SITE_URL` in the Vercel project's Environment Variables and redeploy; the Vercel value overrides the file. The Playwright check reads the same value.
+
 ## 7. Deploy
 
 Vercel project: Root Directory `apps/linear_regression`; Ignored Build Step limits rebuilds to that directory. Regenerate `requirements.txt` from the lockfile when dependencies change. After deploying a preview, confirm `/api/run` streams incrementally (not all at once) and that the Cricsheet attribution shows on the page.

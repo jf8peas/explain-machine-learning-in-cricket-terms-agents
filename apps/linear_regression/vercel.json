@@ -10,8 +10,20 @@
   ],
   "headers": [
     {
+      "source": "/api/data",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
       "source": "/api/run",
       "headers": [
+    {
+      "source": "/api/data",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
         { "key": "Cache-Control", "value": "no-cache" },
         { "key": "X-Accel-Buffering", "value": "no" }
       ]

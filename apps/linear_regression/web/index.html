@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Linear Regression Agent</title>
-  <meta name="description" content="Watch an agent predict a T20 first-innings total from the score at 10 overs, and see whether it beats the TV projected score." />
+  <title>Linear Regression Agent: Can It Beat the TV Score?</title>
+  <meta name="description" content="App 1 of 8 in Explain Machine Learning in Cricket Terms. Watch a LangGraph agent predict a T20 first-innings total from the score at 10 overs and try to beat the broadcaster's projected score." />
   <style>
     :root {
       --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
@@ -19,10 +19,16 @@
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
     main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
-    h1 { font-size: 1.6rem; margin: 0 0 6px; }
+    h1 { font-size: 1.6rem; margin: 0 0 8px; }
     h2 { font-size: 1.15rem; margin: 28px 0 8px; }
     h3 { font-size: 1rem; margin: 16px 0 6px; }
-    .lead { color: var(--muted); max-width: 70ch; }
+    .intro { margin-bottom: 16px; }
+    .eyebrow { color: var(--muted); font-size: .85rem; margin: 0 0 4px; }
+    .intro-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; color: var(--muted); }
+    .intro-body p { margin: 0 0 8px; max-width: 62ch; }
+    .intro-body strong { color: var(--text); }
+    .goal { margin: 8px 0 0; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--surface); }
+    @media (max-width: 760px) { .intro-body { grid-template-columns: 1fr; } }
     section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
     .muted { color: var(--muted); }
     .error { color: var(--lose); font-weight: 600; }
@@ -48,17 +54,39 @@
     footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
     .attribution { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
     a { color: var(--accent); }
+    .data-intro { max-width: 75ch; margin-top: 0; }
+    .data-intro strong { color: var(--text); }
   </style>
 </head>
 <body>
   <main>
-    <h1>Can an agent beat the TV projected score?</h1>
-    <p class="lead">
-      After 10 overs of a T20 first innings, the broadcaster projects a final total by multiplying the current run rate
-      by 20 overs. Watch an agent try something smarter, one step at a time: it learns from past innings how runs and
-      wickets at the halfway mark turn into a final total, then tests itself on a year it has never seen.
-    </p>
+    <section class="intro" data-testid="intro" aria-labelledby="intro-title">
+      <nav class="eyebrow" aria-label="Where this app fits">
+        Part of <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a> · App 1 of 8: linear regression
+      </nav>
+      <h1 id="intro-title">Can an agent beat the TV projected score?</h1>
+      <div class="intro-body">
+        <p>
+          This app uses LangGraph to build an <strong>agent</strong>: a <strong>graph</strong> of steps, each doing one
+          job and passing its results on. Press Play to watch it work one step at a time, including when it decides to
+          add more information and try again, or stop and explain. It follows a fixed graph and decides from the
+          numbers, with no AI language model.
+        </p>
+        <p>
+          The problem: predict a T20 first innings' final total after 10 overs, from runs, wickets lost and powerplay
+          runs (overs 1–6) in past men's T20 internationals, IPL and BBL innings. <strong>Linear regression</strong>
+          fits a straight line, so each input gets a simple "runs per unit" effect we can explain in cricket terms.
+          The benchmark is the broadcaster's projected score: current run rate × 20 overs.
+        </p>
+      </div>
+      <p class="goal" data-testid="goal">
+        <strong>The goal:</strong> beat the broadcaster's projection by at least 3 runs of average error, on the latest
+        calendar year, which the model never saw in training.
+      </p>
+    </section>
 
+    <tab-set default-tab="working" aria-label="Page sections">
+    <div data-tab="working" data-label="Working">
     <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
 
     <h2>What the agent found</h2>
@@ -80,6 +108,18 @@
       <div data-testid="tryit-result" hidden></div>
       <p class="attribution" data-testid="attribution">The model was trained on ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>.</p>
     </section>
+
+    </div>
+    <div data-tab="data" data-label="Data" data-testid="data-panel">
+      <h2>The innings the agent works from</h2>
+      <p class="muted data-intro">
+        Every row is one real first innings. The agent reads these rows, learns from the earlier years
+        (<strong>Training</strong>) and is marked on the latest year (<strong>Test</strong>). Sort, search and filter
+        them, copy cells into a spreadsheet, or download the lot.
+      </p>
+      <data-grid noun="innings"></data-grid>
+    </div>
+    </tab-set>
 
     <footer data-testid="footer-attribution">
       Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> (men's T20 internationals, IPL and BBL),

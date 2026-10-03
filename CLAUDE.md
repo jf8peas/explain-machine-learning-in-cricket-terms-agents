@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/001-linear-regression-agent/plan.md](specs/001-linear-regression-agent/plan.md)
+Current feature plan: [specs/002-data-tab/plan.md](specs/002-data-tab/plan.md)
 <!-- SPECKIT END -->

@@ -1,5 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { loadEnv } from "vite";
 import { open } from "./helpers";
+
+test("the intro is visible and links back to the main site in the same tab", async ({ page }) => {
+  await open(page);
+  const intro = page.getByTestId("intro");
+  await expect(intro).toBeVisible();
+  const siteUrl = loadEnv("development", process.cwd(), "VITE_").VITE_SITE_URL;
+  const link = intro.getByRole("link", { name: "Explain Machine Learning in Cricket Terms" });
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute("href", siteUrl);
+  await expect(link).not.toHaveAttribute("target", /.+/);
+  await expect(page.getByTestId("goal")).toContainText("at least 3 runs");
+});
 
 test("the whole graph is drawn before anything runs", async ({ page }) => {
   await open(page);

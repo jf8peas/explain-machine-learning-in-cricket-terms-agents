@@ -1,0 +1,23 @@
+{
+  "columns": [
+    { "key": "name", "label": "Name", "description": "Who the person is.", "type": "text" },
+    { "key": "country", "label": "Country", "description": "Where they live.", "type": "text", "filter": "select", "labels": { "nz": "New Zealand", "in": "India" } },
+    { "key": "joined", "label": "Joined", "description": "The day they joined.", "type": "date", "filter": "year" },
+    { "key": "score", "label": "Score", "description": "Points scored.", "type": "integer" },
+    { "key": "note", "label": "Note", "description": "Free text.", "type": "text" }
+  ],
+  "rows": [
+    ["Asha", "in", "2023-02-01", 40, "likes, commas"],
+    ["Ben", "nz", "2024-03-02", 95, "says \"hello\""],
+    ["Chloé", "nz", "2024-04-03", 12, "plain"],
+    ["Dev", "in", "2022-05-04", 77, "plain"],
+    ["Elena", "nz", "2023-06-05", 63, "plain"]
+  ],
+  "summary": {
+    "headline": [{ "label": "People", "value": "5" }],
+    "sections": [{ "title": "By country", "rows": [{ "label": "New Zealand", "value": "3" }, { "label": "India", "value": "2" }] }],
+    "attribution": "Made-up people for a test.",
+    "file_stem": "people",
+    "file_date": "2025-01-31"
+  }
+}

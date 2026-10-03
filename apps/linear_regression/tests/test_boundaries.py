@@ -9,7 +9,7 @@ import pytest
 
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
-SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api"]
+SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api"]
 APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression"}
 
 
@@ -32,8 +32,11 @@ def test_shared_python_module_has_no_app_specific_imports(module):
     assert not bad, f"{module}.py imports app-specific modules: {sorted(bad)}"
 
 
-def test_visualiser_does_not_import_page_code_or_know_the_app():
-    for ts in (APP / "web" / "src" / "graph-replay").glob("*.ts"):
+@pytest.mark.parametrize("folder", ["graph-replay", "tab-set", "data-grid"])
+def test_reusable_web_module_does_not_import_page_code_or_know_the_app(folder):
+    files = list((APP / "web" / "src" / folder).glob("*.ts"))
+    assert files
+    for ts in files:
         text = ts.read_text(encoding="utf-8")
         assert not re.search(r"from\s+['\"]\.\./page", text), f"{ts.name} imports page code"
         for word in ("cricket", "regression", "innings", "wicket", "powerplay"):

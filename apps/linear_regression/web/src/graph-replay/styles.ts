@@ -7,7 +7,7 @@ export const styles = /* css */ `
   display: block; color: var(--gr-text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark) {
-  :host:not([data-theme="light"]) {
+  :host(:not([data-theme="light"])) {
     --gr-bg: #12161d; --gr-surface: #1b212b; --gr-border: #333c4a; --gr-text: #e6eaf0;
     --gr-muted: #98a3b5; --gr-accent: #6ea8ff; --gr-accent-soft: #1f3555; --gr-visited: #1b3326;
     --gr-visited-border: #5fbf86; --gr-changed: #4a3d10; --gr-changed-border: #e0b030; --gr-error: #ff8a80;

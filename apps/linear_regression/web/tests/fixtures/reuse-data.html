@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reuse fixture: tabs and data grid with an unrelated table</title>
+  <style>body { font: 16px system-ui, sans-serif; margin: 16px; }</style>
+</head>
+<body>
+  <tab-set default-tab="intro" aria-label="Fixture sections">
+    <div data-tab="intro" data-label="Intro"><p data-testid="fixture-intro">Nothing here knows about the data.</p></div>
+    <div data-tab="table" data-label="Table"><data-grid noun="people"></data-grid></div>
+  </tab-set>
+  <script type="module">
+    import "/src/tab-set/tab-set.ts";
+    import "/src/data-grid/data-grid.ts";
+    const table = await (await fetch("/tests/fixtures/other-table.json")).json();
+    document.querySelector("data-grid").table = table;
+  </script>
+</body>
+</html>

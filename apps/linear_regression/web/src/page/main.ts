@@ -1,4 +1,6 @@
 import "../graph-replay/graph-replay";
+import "../tab-set/tab-set";
+import type { TabSet } from "../tab-set/tab-set";
 import type { ReplayChangeDetail } from "../graph-replay/graph-replay";
 import type { Model } from "./predict";
 import { renderResults } from "./results";
@@ -26,3 +28,17 @@ replay.addEventListener("replaychange", (ev) => {
   setModel(modelFrom(d.finalState)); // the completed run's coefficients, whichever step is on display
 });
 renderResults(results, {});
+
+// The Data tab loads the first time it is shown (or straight away at #data); the Working tab never waits on it.
+const tabs = document.querySelector("tab-set") as TabSet;
+let dataStarted = false;
+function startData() {
+  if (dataStarted) return;
+  dataStarted = true;
+  const grid = document.querySelector("data-grid") as import("../data-grid/data-grid").DataGrid;
+  void import("./data-tab").then((m) => m.init(grid));
+}
+if (tabs.active === "data") startData();
+tabs.addEventListener("tab-show", (ev) => {
+  if ((ev as CustomEvent<{ id: string }>).detail.id === "data") startData();
+});
