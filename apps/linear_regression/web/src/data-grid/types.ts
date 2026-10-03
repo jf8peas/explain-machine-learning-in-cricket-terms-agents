@@ -29,11 +29,20 @@ export interface DataSummary {
   file_date: string;
 }
 
+/** A titled explanation shown as a collapsible section, with an optional small example table. */
+export interface Note {
+  title: string;
+  paragraphs: string[];
+  example?: { caption?: string; columns: string[]; rows: string[][] };
+}
+
 export interface DataTable {
   columns: ColumnDef[];
   /** One value per column, in column order, in the original order. */
   rows: Value[][];
   summary: DataSummary;
+  /** Optional notes, shown as closed collapsible sections beside the column guide. */
+  notes?: Note[];
 }
 
 export type SortState = { key: string; dir: "asc" | "desc" } | null;

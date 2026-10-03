@@ -14,7 +14,8 @@ class DataError(Exception):
     """The prepared data is missing, empty or malformed."""
 
 
-def load_innings(path: str | Path | None = None) -> pd.DataFrame:
+def load_innings(path: str | Path | None = None, required: list[str] | None = None) -> pd.DataFrame:
+    """Read and validate the table. `required` (default REQUIRED_COLUMNS) lists the columns that must exist."""
     p = Path(path) if path else DEFAULT_PATH
     if not p.exists():
         raise DataError(f"The innings data file was not found ({p.name}).")
@@ -24,7 +25,7 @@ def load_innings(path: str | Path | None = None) -> pd.DataFrame:
         raise DataError("The innings data file is empty.") from None
     except (ValueError, KeyError) as exc:
         raise DataError(f"The innings data file could not be read: {exc}") from None
-    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    missing = [c for c in (REQUIRED_COLUMNS if required is None else required) if c not in df.columns]
     if missing:
         raise DataError("The innings data file is missing columns: " + ", ".join(missing) + ".")
     if df.empty:

@@ -31,7 +31,15 @@ export const styles = /* css */ `
 .dg-root .dg-sections li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--_border); padding: 2px 0; }
 .dg-root .dg-sections li span:last-child { font-variant-numeric: tabular-nums; }
 
-.dg-root .dg-guide { margin-bottom: 12px; font-size: .9rem; }
+.dg-root .dg-help-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 28px; margin-bottom: 12px; }
+.dg-root .dg-help-row details[open] { flex-basis: 100%; }
+.dg-root .dg-guide { font-size: .9rem; }
+.dg-root .dg-note-section p { margin: 8px 0 0; max-width: 75ch; }
+.dg-root .dg-note-section .dg-caption { color: var(--_muted); font-size: .85rem; margin-top: 12px; }
+.dg-root .dg-example { border-collapse: collapse; margin-top: 4px; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.dg-root .dg-example th, .dg-root .dg-example td { border: 1px solid var(--_grid); padding: 3px 12px; text-align: right; }
+.dg-root .dg-example th:first-child, .dg-root .dg-example td:first-child { text-align: left; }
+.dg-root .dg-example th { background: var(--_surface); }
 .dg-root .dg-guide summary { cursor: pointer; color: var(--_accent); }
 .dg-root .dg-guide dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; margin: 8px 0 0; }
 .dg-root .dg-guide dt { font-weight: 600; }

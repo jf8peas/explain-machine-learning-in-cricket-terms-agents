@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from linreg.competition_dummies import add_dummies
 from linreg.graph import build_graph
 from linreg.state import RECURSION_LIMIT
 
@@ -29,7 +30,7 @@ def make_table(years=(2020, 2021, 2022, 2023), per_year=150, mode="noisy", seed=
                          "season": str(y), "competition": ["ipl", "bbl", "t20i"][n % 3],
                          "venue": "Ground", "runs_at_10": runs, "wickets_at_10": wk,
                          "powerplay_runs": pp, "final_total": final})
-    return pd.DataFrame(rows)
+    return add_dummies(pd.DataFrame(rows))
 
 
 @pytest.fixture

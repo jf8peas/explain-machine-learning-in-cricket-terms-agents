@@ -6,7 +6,7 @@ import { csvFileName, downloadCsv, toCsv } from "./csv";
 import { createGrid, type GridAdapter } from "./grid-adapter";
 import { styles } from "./styles";
 import { filterOptions, isFiltered, isViewActive, nextSort, visibleRows } from "./table-view";
-import { emptyView, type ColumnDef, type DataTable, type Value, type ViewState } from "./types";
+import { emptyView, type ColumnDef, type DataTable, type Note, type Value, type ViewState } from "./types";
 
 const STYLE_ID = "data-grid-styles";
 const fmt = (n: number) => n.toLocaleString("en");
@@ -140,6 +140,8 @@ export class DataGrid extends HTMLElement {
     const dl = el("dl");
     for (const c of data.columns) dl.append(el("dt", {}, c.label), el("dd", {}, c.description));
     guide.append(dl);
+    const helpRow = el("div", { class: "dg-help-row" });
+    helpRow.append(guide, ...(data.notes ?? []).map((n, i) => this.noteSection(n, i)));
 
     // Toolbar
     const toolbar = el("div", { class: "dg-toolbar", role: "search" });
@@ -188,7 +190,7 @@ export class DataGrid extends HTMLElement {
     wrap.append(gridBox, empty);
     const help = el("p", { class: "dg-help", "aria-live": "polite", "data-testid": "heading-help" });
 
-    this.body.append(summary, guide, toolbar, download, wrap, help, this.attribution("dg-attribution", "attribution-foot"));
+    this.body.append(summary, helpRow, toolbar, download, wrap, help, this.attribution("dg-attribution", "attribution-foot"));
     this.adapter = createGrid(gridBox, data.columns, {
       onHeaderActivate: (key) => {
         this.view = { ...this.view, sort: nextSort(this.view.sort, key) };
@@ -199,6 +201,32 @@ export class DataGrid extends HTMLElement {
         help.textContent = col ? `${col.label}: ${col.description}` : "";
       },
     });
+  }
+
+  /** A note as a closed collapsible section; text is set with textContent, never as HTML. */
+  private noteSection(note: Note, index: number): HTMLElement {
+    const box = el("details", { class: "dg-guide dg-note-section", "data-testid": `note-${index}` });
+    box.append(el("summary", {}, note.title));
+    for (const text of note.paragraphs) box.append(el("p", {}, text));
+    if (note.example) {
+      const { caption, columns, rows } = note.example;
+      if (caption) box.append(el("p", { class: "dg-caption" }, caption));
+      const table = el("table", { class: "dg-example" });
+      const head = el("tr");
+      for (const c of columns) head.append(el("th", { scope: "col" }, c));
+      const thead = el("thead");
+      thead.append(head);
+      table.append(thead);
+      const body = el("tbody");
+      for (const r of rows) {
+        const tr = el("tr");
+        for (const v of r) tr.append(el("td", {}, v));
+        body.append(tr);
+      }
+      table.append(body);
+      box.append(table);
+    }
+    return box;
   }
 
   private attribution(cls: string, testid: string) {

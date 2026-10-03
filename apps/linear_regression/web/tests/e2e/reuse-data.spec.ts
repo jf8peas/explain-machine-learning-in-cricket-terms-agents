@@ -34,6 +34,14 @@ test("tabs and grid work for an unrelated table", async ({ page }) => {
   const csv = readFileSync((await shown.path())!, "utf8").replace(/^﻿/, "").split("\r\n").filter(Boolean);
   expect(csv).toEqual(["Name,Country,Joined,Score,Note", 'Ben,New Zealand,2024-03-02,95,"says ""hello"""', "Chloé,New Zealand,2024-04-03,12,plain"]);
 
+  // a generic note: closed by default, opens to show its text and example table
+  const note = page.getByTestId("note-0");
+  expect(await note.evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+  await expect(note.getByText("They were made up for a test.")).toBeHidden();
+  await note.locator("summary").click();
+  await expect(note.getByText("They were made up for a test.")).toBeVisible();
+  await expect(note.locator("table tbody tr")).toHaveCount(1);
+
   // nothing in the page is about cricket or regression
   const text = (await page.locator("body").innerText()).toLowerCase();
   expect(text).not.toMatch(/cricket|regression|innings|runs at/);

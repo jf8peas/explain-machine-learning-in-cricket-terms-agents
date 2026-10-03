@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api.index import app
+from linreg.competition_dummies import add_dummies
 from linreg.data_api import create_router
 from linreg.data_loading import DEFAULT_PATH, DataError, load_innings
 from linreg.data_table import COLUMN_KEYS, build_table
@@ -114,12 +115,12 @@ def test_cache_header_set():
 def test_tricky_venue_values_survive_json(tmp_path):
     csv = tmp_path / "innings.csv"
     manifest = tmp_path / "manifest.json"
-    pd.DataFrame([
+    add_dummies(pd.DataFrame([
         {"match_id": 1, "match_date": "2023-04-01", "season": "2023", "competition": "ipl",
          "venue": 'Ground, "North" End', "runs_at_10": 70, "wickets_at_10": 1, "powerplay_runs": 50, "final_total": 170},
         {"match_id": 2, "match_date": "2024-04-01", "season": "2024", "competition": "ipl",
          "venue": "Köln Ground", "runs_at_10": 80, "wickets_at_10": 2, "powerplay_runs": 55, "final_total": 180},
-    ]).to_csv(csv, index=False)
+    ])).to_csv(csv, index=False)
     manifest.write_text(json.dumps({**MANIFEST, "counts": {**MANIFEST["counts"], "total_innings": 2}}), encoding="utf-8")
     test_app = FastAPI()
     test_app.include_router(create_router(lambda: build_table(csv, manifest)), prefix="/api")
@@ -138,3 +139,69 @@ def test_missing_data_file_returns_500_with_message(tmp_path):
 
 def test_data_error_type_is_reused():
     assert issubclass(DataError, Exception) and Path(DEFAULT_PATH).exists()
+
+
+# --- competition dummy columns (feature 003) ---
+
+def test_dummy_columns_follow_competition_in_the_column_list_and_every_row():
+    body = get_data()
+    keys = [c["key"] for c in body["columns"]]
+    i = keys.index("competition")
+    assert keys[i + 1:i + 3] == ["is_ipl", "is_bbl"]
+    assert keys[i + 3] == "venue"
+    for row in body["rows"]:
+        assert len(row) == len(keys)
+
+
+def test_dummy_column_definitions():
+    cols = {c["key"]: c for c in get_data()["columns"]}
+    for key, label in (("is_ipl", "IPL (0/1)"), ("is_bbl", "BBL (0/1)")):
+        assert cols[key]["label"] == label
+        assert cols[key]["type"] == "integer"
+        assert cols[key]["filter"] == "select"
+        assert cols[key]["description"]
+    assert cols["is_ipl"]["description"] != cols["is_bbl"]["description"]
+
+
+def test_every_row_dummies_agree_with_competition_in_the_response():
+    body = get_data()
+    keys = [c["key"] for c in body["columns"]]
+    c, a, b = (keys.index(k) for k in ("competition", "is_ipl", "is_bbl"))
+    expected = {"ipl": (1, 0), "bbl": (0, 1), "t20i": (0, 0)}
+    assert all((r[a], r[b]) == expected[r[c]] for r in body["rows"])
+
+
+def test_dummy_counts_equal_the_summary_counts_the_visitor_sees():
+    body = get_data()
+    keys = [c["key"] for c in body["columns"]]
+    a, b = keys.index("is_ipl"), keys.index("is_bbl")
+    section = next(s for s in body["summary"]["sections"] if s["title"] == "Innings per competition")
+    shown = {r["label"]: int(r["value"].replace(",", "")) for r in section["rows"]}
+    assert sum(r[a] for r in body["rows"]) == shown["IPL"]
+    assert sum(r[b] for r in body["rows"]) == shown["BBL"]
+    assert sum(1 for r in body["rows"] if r[a] == 0 and r[b] == 0) == shown["T20 International"]
+
+
+def _api_for(csv_path, manifest_path):
+    test_app = FastAPI()
+    test_app.include_router(create_router(lambda: build_table(csv_path, manifest_path)), prefix="/api")
+    return TestClient(test_app)
+
+
+def test_a_file_with_wrong_dummies_returns_500_with_the_count(tmp_path):
+    df = pd.read_csv(DEFAULT_PATH)
+    df.loc[df.index[df["competition"] == "ipl"][:2], "is_ipl"] = 0
+    path = tmp_path / "innings.csv"
+    df.to_csv(path, index=False)
+    r = _api_for(path, DEFAULT_PATH.parent / "manifest.json").get("/api/data")
+    assert r.status_code == 500
+    assert "2 rows have" in r.json()["detail"]
+
+
+def test_an_older_file_without_the_dummies_returns_500_naming_the_missing_columns(tmp_path):
+    df = pd.read_csv(DEFAULT_PATH).drop(columns=["is_ipl", "is_bbl"])
+    path = tmp_path / "innings.csv"
+    df.to_csv(path, index=False)
+    r = _api_for(path, DEFAULT_PATH.parent / "manifest.json").get("/api/data")
+    assert r.status_code == 500
+    assert "missing columns" in r.json()["detail"] and "is_ipl" in r.json()["detail"]

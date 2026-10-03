@@ -100,3 +100,46 @@ describe("isViewActive", () => {
     expect(isViewActive(view({ sort: { key: "id", dir: "asc" } }))).toBe(true);
   });
 });
+
+describe("select filter on a numeric 0/1 column", () => {
+  const dummies: DataTable = {
+    columns: [
+      { key: "id", label: "ID", description: "", type: "integer" },
+      { key: "comp", label: "Competition", description: "", type: "text", filter: "select", labels: { t20i: "T20 International", ipl: "IPL", bbl: "BBL" } },
+      { key: "is_ipl", label: "IPL (0/1)", description: "", type: "integer", filter: "select" },
+      { key: "is_bbl", label: "BBL (0/1)", description: "", type: "integer", filter: "select" },
+    ],
+    rows: [
+      [1, "t20i", 0, 0],
+      [2, "ipl", 1, 0],
+      [3, "bbl", 0, 1],
+      [4, "ipl", 1, 0],
+      [5, "t20i", 0, 0],
+    ],
+    summary: { headline: [], sections: [], attribution: "", file_stem: "x", file_date: "2026-01-01" },
+  };
+
+  it("picks rows by the number's value", () => {
+    expect(ids(visibleRows(dummies, view({ filters: { is_ipl: "1" } })))).toEqual([2, 4]);
+    expect(ids(visibleRows(dummies, view({ filters: { is_ipl: "0" } })))).toEqual([1, 3, 5]);
+    expect(ids(visibleRows(dummies, view({ filters: { is_bbl: "1" } })))).toEqual([3]);
+  });
+
+  it("offers the distinct values 0 and 1, in ascending order", () => {
+    expect(filterOptions(dummies, dummies.columns[2])).toEqual([{ value: "0", label: "0" }, { value: "1", label: "1" }]);
+  });
+
+  it("combines with the competition filter: a row must satisfy both", () => {
+    expect(ids(visibleRows(dummies, view({ filters: { comp: "ipl", is_ipl: "1" } })))).toEqual([2, 4]);
+    expect(ids(visibleRows(dummies, view({ filters: { comp: "t20i", is_ipl: "0", is_bbl: "0" } })))).toEqual([1, 5]);
+  });
+
+  it("returns no rows for a contradictory pair", () => {
+    expect(visibleRows(dummies, view({ filters: { comp: "ipl", is_bbl: "1" } }))).toEqual([]);
+    expect(visibleRows(dummies, view({ filters: { comp: "bbl", is_ipl: "1" } }))).toEqual([]);
+  });
+
+  it("does not make the digits 0 and 1 match a search for IPL", () => {
+    expect(ids(visibleRows(dummies, view({ search: "ipl" })))).toEqual([2, 4]);
+  });
+});

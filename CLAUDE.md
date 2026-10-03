@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/002-data-tab/plan.md](specs/002-data-tab/plan.md)
+Current feature plan: [specs/003-competition-dummies/plan.md](specs/003-competition-dummies/plan.md)
 <!-- SPECKIT END -->

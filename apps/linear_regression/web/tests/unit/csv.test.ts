@@ -41,6 +41,20 @@ describe("toCsv", () => {
   });
 });
 
+describe("dummy columns", () => {
+  const withDummies: ColumnDef[] = [
+    { key: "comp", label: "Competition", description: "", type: "text", labels: { t20i: "T20 International", ipl: "IPL", bbl: "BBL" } },
+    { key: "is_ipl", label: "IPL (0/1)", description: "", type: "integer", filter: "select" },
+    { key: "is_bbl", label: "BBL (0/1)", description: "", type: "integer", filter: "select" },
+    { key: "venue", label: "Venue", description: "", type: "text" },
+  ];
+  it("come out in the grid's position with the grid's headings", () => {
+    const csv = toCsv(withDummies, [["t20i", 0, 0, "Eden Park"], ["ipl", 1, 0, "Wankhede"], ["bbl", 0, 1, "Gabba"]]).split("\r\n");
+    expect(csv[0].replace("\uFEFF", "")).toBe("Competition,IPL (0/1),BBL (0/1),Venue");
+    expect(csv.slice(1, 4)).toEqual(["T20 International,0,0,Eden Park", "IPL,1,0,Wankhede", "BBL,0,1,Gabba"]);
+  });
+});
+
 describe("csvFileName", () => {
   it("joins the stem and the data's download date", () => {
     expect(csvFileName({ file_stem: "t20-first-innings", file_date: "2026-10-01" })).toBe("t20-first-innings-2026-10-01.csv");

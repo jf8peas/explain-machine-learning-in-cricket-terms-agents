@@ -1,23 +1,37 @@
 """Offline data preparation: Cricsheet ball-by-ball JSON -> one row per first innings.
 
 Run manually (never at request time):
-    uv run python apps/linear_regression/scripts/prepare_data.py
+    uv run python apps/linear_regression/scripts/prepare_data.py                  # download fresh data
+    uv run python apps/linear_regression/scripts/prepare_data.py --from-existing  # no download
+
+--from-existing reads the current data/innings.csv and data/manifest.json, adds or refreshes the competition
+dummy columns and the manifest's "dummies" entry, and keeps the same innings, order and download date.
+
+Every row carries the competition dummies (is_ipl, is_bbl), defined once in backend/linreg/competition_dummies.py.
+An unrecognised competition stops the run before anything is written. Both output files are written to
+temporary files and only replace the real ones after everything has succeeded.
 
 Data: https://cricsheet.org (Open Data Commons Attribution License).
 """
 from __future__ import annotations
 
+import argparse
 import csv
 import io
 import json
+import os
 import sys
 import zipfile
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from typing import Callable
 
 APP_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = APP_DIR / "data"
+sys.path.insert(0, str(APP_DIR / "backend"))
+
+from linreg.competition_dummies import PREPARED_COLUMNS, dummy_values, manifest_entry  # noqa: E402
 
 SOURCES = {
     "t20i": "https://cricsheet.org/downloads/t20s_male_json.zip",
@@ -26,15 +40,18 @@ SOURCES = {
 }
 ATTRIBUTION = ("Ball-by-ball data from Cricsheet (https://cricsheet.org), "
                "used under the Open Data Commons Attribution License.")
-COLUMNS = ["match_id", "match_date", "season", "competition", "venue",
-           "runs_at_10", "wickets_at_10", "powerplay_runs", "final_total"]
+COLUMNS = PREPARED_COLUMNS  # the nine original columns with the dummies right after `competition`
 NOT_A_DISMISSAL = {"retired hurt", "retired not out"}
 EXCLUSIONS = ["women", "no_result", "dls", "reduced_overs", "super_over",
               "ended_before_10_overs", "no_first_innings"]
 
 
 def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | None, str | None]:
-    """Return (row, None) for a kept first innings or (None, reason) when excluded."""
+    """Return (row, None) for a kept first innings or (None, reason) when excluded.
+
+    An unrecognised competition raises UnknownCompetition, even if the match would be excluded.
+    """
+    dummies = dummy_values(competition)
     info = match.get("info", {})
     if info.get("gender") != "male":
         return None, "women"
@@ -74,6 +91,7 @@ def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | N
         "match_date": info["dates"][0],
         "season": str(info.get("season", "")),
         "competition": competition,
+        **dummies,
         "venue": info.get("venue", ""),
         "runs_at_10": runs_10,
         "wickets_at_10": wickets_10,
@@ -99,18 +117,42 @@ def process_zip(zf: zipfile.ZipFile, competition: str) -> tuple[list[dict], Coun
     return rows, excluded, read
 
 
-def main() -> None:
+def fetch_zip(url: str) -> bytes:
     import requests
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    resp = requests.get(url, timeout=120)
+    resp.raise_for_status()
+    return resp.content
+
+
+def write_outputs(rows: list[dict], manifest: dict, data_dir: Path) -> None:
+    """Write innings.csv and manifest.json via temporary files; the real files change only after both are ready."""
+    data_dir.mkdir(parents=True, exist_ok=True)
+    csv_final, manifest_final = data_dir / "innings.csv", data_dir / "manifest.json"
+    csv_tmp, manifest_tmp = data_dir / "innings.csv.tmp", data_dir / "manifest.json.tmp"
+    try:
+        with open(csv_tmp, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=COLUMNS)
+            w.writeheader()
+            w.writerows(rows)
+        manifest_tmp.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        os.replace(csv_tmp, csv_final)
+        os.replace(manifest_tmp, manifest_final)
+    finally:
+        for tmp in (csv_tmp, manifest_tmp):
+            tmp.unlink(missing_ok=True)
+
+
+def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
+                 fetch: Callable[[str], bytes] = fetch_zip, today: str | None = None) -> None:
+    """Download every source, roll up the matches and write the data files."""
     all_rows: list[dict] = []
-    manifest: dict = {"download_date": date.today().isoformat(), "sources": [], "counts": {},
+    manifest: dict = {"download_date": today or date.today().isoformat(), "sources": [], "counts": {},
                       "attribution": ATTRIBUTION}
-    for comp, url in SOURCES.items():
+    for comp, url in sources.items():
+        dummy_values(comp)  # an unrecognised competition stops the run before anything is downloaded
         print(f"Downloading {url}")
-        resp = requests.get(url, timeout=120)
-        resp.raise_for_status()
-        with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+        with zipfile.ZipFile(io.BytesIO(fetch(url))) as zf:
             rows, excluded, read = process_zip(zf, comp)
         all_rows += rows
         manifest["sources"].append({"competition": comp, "url": url})
@@ -121,13 +163,36 @@ def main() -> None:
         }
         print(f"  {comp}: read {read}, kept {len(rows)}, excluded {dict(excluded)}")
     all_rows.sort(key=lambda r: (r["match_date"], r["match_id"]))
-    with open(DATA_DIR / "innings.csv", "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNS)
-        w.writeheader()
-        w.writerows(all_rows)
     manifest["counts"]["total_innings"] = len(all_rows)
-    (DATA_DIR / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    manifest["dummies"] = manifest_entry()
+    write_outputs(all_rows, manifest, data_dir)
     print(f"Wrote {len(all_rows)} innings")
+
+
+def run_from_existing(data_dir: Path = DATA_DIR) -> None:
+    """Add or refresh the dummy columns and the manifest entry on the existing files, without downloading.
+
+    Every original value, the row order and the download date are kept exactly as they are.
+    """
+    with open(data_dir / "innings.csv", newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    for row in rows:
+        row.update(dummy_values(row["competition"]))  # an unrecognised competition stops here, before any write
+    manifest = json.loads((data_dir / "manifest.json").read_text(encoding="utf-8"))
+    manifest["dummies"] = manifest_entry()
+    write_outputs(rows, manifest, data_dir)
+    print(f"Updated {len(rows)} innings with the competition dummy columns (no download)")
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Prepare data/innings.csv and data/manifest.json.")
+    parser.add_argument("--from-existing", action="store_true",
+                        help="rebuild from the current innings.csv without downloading (adds or refreshes the dummies)")
+    args = parser.parse_args(argv)
+    if args.from_existing:
+        run_from_existing(DATA_DIR)
+    else:
+        run_download(DATA_DIR)
 
 
 if __name__ == "__main__":

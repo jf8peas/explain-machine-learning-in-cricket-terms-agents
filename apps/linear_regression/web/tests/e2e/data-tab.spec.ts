@@ -136,7 +136,7 @@ test.describe("grid", () => {
     await expect(page.getByTestId("heading-help")).toContainText("Runs at 10 overs");
     await expect(page.getByTestId("heading-help")).toContainText("after 10 overs");
     await page.getByTestId("column-guide").locator("summary").click();
-    await expect(page.getByTestId("column-guide").locator("dt")).toHaveCount(10);
+    await expect(page.getByTestId("column-guide").locator("dt")).toHaveCount(12);
     await expect(page.getByTestId("column-guide")).toContainText("Used for");
   });
 
@@ -198,9 +198,10 @@ test.describe("grid", () => {
   test("copying a range of cells gives tab-separated text without the row numbers", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await openData(page);
+    const fields = ["competition", "is_ipl", "is_bbl", "venue"];
     const expected = [
-      [await cell(page, 0, "competition").innerText(), await cell(page, 0, "venue").innerText()],
-      [await cell(page, 1, "competition").innerText(), await cell(page, 1, "venue").innerText()],
+      await Promise.all(fields.map((f) => cell(page, 0, f).innerText())),
+      await Promise.all(fields.map((f) => cell(page, 1, f).innerText())),
     ];
     await cell(page, 0, "competition").click();
     await cell(page, 1, "venue").click({ modifiers: ["Shift"] });
@@ -220,6 +221,130 @@ test("arrow keys move the selected cell and copy follows it", async ({ page, con
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Control+c");
   expect((await page.evaluate(() => navigator.clipboard.readText())).trim()).toBe(await cell(page, 2, "venue").innerText());
+});
+
+test.describe("competition dummy columns", () => {
+  const dummyHeadings = ["IPL (0/1)", "BBL (0/1)"];
+
+  test("the two columns follow Competition, with descriptions on focus and in the guide", async ({ page }) => {
+    await openData(page);
+    const labels = await page.locator(".dg-grid .tabulator-col[tabulator-field]").evaluateAll((els) =>
+      els.map((e) => e.getAttribute("tabulator-field")));
+    const at = labels.indexOf("competition");
+    expect(labels.slice(at, at + 4)).toEqual(["competition", "is_ipl", "is_bbl", "venue"]);
+    await expect(heading(page, "is_ipl")).toContainText(dummyHeadings[0]);
+    await expect(heading(page, "is_bbl")).toContainText(dummyHeadings[1]);
+    await heading(page, "is_ipl").focus();
+    await expect(page.getByTestId("heading-help")).toContainText("IPL (0/1)");
+    await expect(page.getByTestId("heading-help")).toContainText("1 if it was played in the IPL");
+    await page.getByTestId("column-guide").locator("summary").click();
+    await expect(page.getByTestId("column-guide")).toContainText("BBL (0/1)");
+    await expect(page.getByTestId("column-guide")).toContainText("otherwise 0");
+  });
+
+  test("each competition shows the right dummy values", async ({ page }) => {
+    await openData(page);
+    const expected: Record<string, [string, string]> = { ipl: ["1", "0"], bbl: ["0", "1"], t20i: ["0", "0"] };
+    for (const [competition, [ipl, bbl]] of Object.entries(expected)) {
+      await page.getByTestId("filter-competition").selectOption(competition);
+      await expect(count(page)).not.toContainText("Showing 0 of");
+      for (const row of [0, 1, 2, 3]) {
+        await expect(cell(page, row, "is_ipl")).toHaveText(ipl);
+        await expect(cell(page, row, "is_bbl")).toHaveText(bbl);
+      }
+    }
+  });
+
+  test("the dummy filters offer All, 0 and 1 and combine with the Competition filter", async ({ page }) => {
+    await openData(page);
+    const ipl = page.getByTestId("filter-is_ipl");
+    await expect(ipl.locator("option")).toHaveText(["All", "0", "1"]);
+    await page.getByTestId("filter-competition").selectOption("ipl");
+    const ipls = await count(page).innerText();
+    await ipl.selectOption("1");
+    await expect(count(page)).toHaveText(ipls); // IPL with IPL (0/1) = 1 is all the IPL rows
+    await page.getByTestId("filter-is_bbl").selectOption("0");
+    await expect(count(page)).toHaveText(ipls);
+    await ipl.selectOption("");
+    await page.getByTestId("filter-is_bbl").selectOption("1"); // contradicts Competition = IPL
+    await expect(count(page)).toContainText("Showing 0 of");
+    await expect(page.getByTestId("data-empty")).toBeVisible();
+    await page.getByTestId("empty-clear").click();
+    await expect(page.getByTestId("data-empty")).toBeHidden();
+    await expect(count(page)).toContainText(`Showing ${TOTAL.toLocaleString("en")} of`);
+  });
+
+  test("a dummy filter on its own matches the competition's row count", async ({ page }) => {
+    await openData(page);
+    await page.getByTestId("filter-is_bbl").selectOption("1");
+    const bbl = await count(page).innerText();
+    await page.getByTestId("filter-is_bbl").selectOption("");
+    await page.getByTestId("filter-competition").selectOption("bbl");
+    await expect(count(page)).toHaveText(bbl);
+  });
+
+  test("searching IPL returns only IPL rows", async ({ page }) => {
+    await openData(page);
+    await page.getByTestId("data-search").fill("IPL");
+    await expect(count(page)).not.toHaveText(`Showing ${TOTAL.toLocaleString("en")} of ${TOTAL.toLocaleString("en")} innings`);
+    for (const row of [0, 1, 2, 3, 4]) await expect(cell(page, row, "competition")).toHaveText("IPL");
+    await expect(count(page)).toContainText("Showing 1,210 of");
+  });
+
+  test("a dummy column sorts like a number column", async ({ page }) => {
+    await openData(page);
+    await heading(page, "is_ipl").click();
+    await expect(cell(page, 0, "is_ipl")).toHaveText("0");
+    await heading(page, "is_ipl").click();
+    await expect(cell(page, 0, "is_ipl")).toHaveText("1");
+  });
+});
+
+test.describe("dummy variables explanation", () => {
+  const note = (page: Page) => page.getByTestId("note-0");
+
+  test("the section sits beside the column guide, closed by default, without pushing the grid down", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openData(page);
+    await expect(note(page)).toBeVisible();
+    await expect(note(page).locator("summary")).toHaveText("What are dummy variables?");
+    expect(await note(page).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+    const guide = (await page.getByTestId("column-guide").boundingBox())!;
+    const box = (await note(page).boundingBox())!;
+    expect(Math.abs(guide.y - box.y)).toBeLessThan(4); // same row as the column guide
+    expect(box.height).toBeLessThan(40); // closed: just a heading line
+    await expect(note(page).getByText("yes/no question")).toBeHidden(); // but its text is not shown
+    await expect(page.getByTestId("data-grid-area")).toBeVisible();
+  });
+
+  test("opening it shows the explanation, the three-row example and the not-used-yet statement", async ({ page }) => {
+    await openData(page);
+    await note(page).locator("summary").click();
+    expect(await note(page).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+    await expect(note(page)).toContainText("yes/no question about an innings");
+    await expect(note(page)).toContainText("not with the word");
+    await expect(note(page)).toContainText("Why two columns for three competitions?");
+    await expect(note(page)).toContainText("how many more or fewer runs than a T20 International innings from the same position");
+    await expect(note(page)).toContainText("does not use these columns yet");
+    const rows = note(page).locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    await expect(note(page).locator("table thead th")).toHaveText(["Competition", "IPL (0/1)", "BBL (0/1)"]);
+    const text = await rows.evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent)));
+    expect(text).toEqual([["T20 International", "0", "0"], ["IPL", "1", "0"], ["BBL", "0", "1"]]);
+    // the example agrees with the grid: filtering to each competition shows the same values
+    await page.getByTestId("filter-competition").selectOption("ipl");
+    await expect(cell(page, 0, "is_ipl")).toHaveText("1");
+    await expect(cell(page, 0, "is_bbl")).toHaveText("0");
+  });
+
+  test("it can be opened and closed from the keyboard", async ({ page }) => {
+    await openData(page);
+    await note(page).locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(note(page)).toContainText("does not use these columns yet");
+    await page.keyboard.press("Enter");
+    await expect(note(page).getByText("does not use these columns yet")).toBeHidden();
+  });
 });
 
 test.describe("sort, search and filter", () => {
@@ -392,5 +517,29 @@ test.describe("load failure", () => {
     fail = false;
     await page.getByTestId("data-retry").click();
     await expect(count(page)).toContainText(`${TOTAL.toLocaleString("en")} of`);
+  });
+});
+
+test.describe("download includes the dummy columns", () => {
+  const csvLines = (text: string) => text.replace(/^﻿/, "").split("\r\n").filter(Boolean);
+
+  test("the all-rows file has IPL (0/1) and BBL (0/1) after Competition, agreeing with each competition", async ({ page }) => {
+    await openData(page);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-csv").click()]);
+    const rows = csvLines(readFileSync((await download.path())!, "utf8"));
+    expect(rows[0]).toContain("Competition,IPL (0/1),BBL (0/1),Venue");
+    expect(rows).toHaveLength(TOTAL + 1);
+    const agree = /,(T20 International,0,0|IPL,1,0|BBL,0,1),/;
+    expect(rows.slice(1).every((r) => agree.test(r))).toBe(true);
+  });
+
+  test("the rows-shown file with Competition = IPL has only IPL rows with 1 and 0", async ({ page }) => {
+    await openData(page);
+    await page.getByTestId("filter-competition").selectOption("ipl");
+    await page.getByTestId("download-csv").click();
+    const [shown] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-shown").click()]);
+    const rows = csvLines(readFileSync((await shown.path())!, "utf8"));
+    expect(rows).toHaveLength(1210 + 1);
+    expect(rows.slice(1).every((r) => r.includes(",IPL,1,0,"))).toBe(true);
   });
 });

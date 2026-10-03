@@ -13,6 +13,13 @@
     ["Dev", "in", "2022-05-04", 77, "plain"],
     ["Elena", "nz", "2023-06-05", 63, "plain"]
   ],
+  "notes": [
+    {
+      "title": "About these people",
+      "paragraphs": ["They were made up for a test.", "Scores are points."],
+      "example": { "caption": "One sample row", "columns": ["Name", "Score"], "rows": [["Asha", "40"]] }
+    }
+  ],
   "summary": {
     "headline": [{ "label": "People", "value": "5" }],
     "sections": [{ "title": "By country", "rows": [{ "label": "New Zealand", "value": "3" }, { "label": "India", "value": "2" }] }],

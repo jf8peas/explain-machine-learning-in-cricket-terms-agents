@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 
 from . import cricket_explanation, features as feature_registry, regression
+from .competition_dummies import PREPARED_COLUMNS, check_dummies
 from .data_loading import DataError, load_innings
 from .evaluation import broadcaster_projection, mae, r2
 from .season_split import split_by_year
@@ -17,12 +18,13 @@ def _r(x: float, n: int = 2) -> float:
 
 
 def _load(state: RunState):
-    return load_innings(state.get("data_path"))
+    return load_innings(state.get("data_path"), required=PREPARED_COLUMNS)
 
 
 def load_data(state: RunState) -> dict[str, Any]:
     try:
         df = _load(state)
+        check_dummies(df)  # every row's competition dummies must be 0/1 and agree with its competition
         train, test, test_year = split_by_year(df)
         if len(train) == 0:
             raise DataError("The data covers only one calendar year, so there is nothing to train on.")

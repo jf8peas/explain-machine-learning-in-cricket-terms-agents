@@ -7,7 +7,9 @@ from typing import Any
 
 import pandas as pd
 
+from .competition_dummies import DUMMIES, PREPARED_COLUMNS, REFERENCE, check_dummies
 from .data_loading import DEFAULT_PATH, DataError, load_innings
+from .data_notes import build_notes
 from .graph_api import to_jsonable
 from .season_split import split_by_year
 
@@ -28,7 +30,16 @@ EXCLUSION_LABELS = {
     "no_first_innings": "No first innings",
 }
 
-COLUMNS: list[dict[str, Any]] = [
+
+def _dummy_column(key: str, competition: str) -> dict[str, Any]:
+    name = COMPETITION_NAMES[competition]
+    return {"key": key, "label": f"{name} (0/1)", "type": "integer", "filter": "select",
+            "description": f"A yes/no question about the innings, as a number: 1 if it was played in the {name}, "
+                           f"otherwise 0. A {COMPETITION_NAMES[REFERENCE]} innings has 0 in both of the (0/1) "
+                           "competition columns."}
+
+
+_BASE_COLUMNS: list[dict[str, Any]] = [
     {"key": "match_id", "label": "Match ID", "type": "integer",
      "description": "Cricsheet's identifier for the match."},
     {"key": "match_date", "label": "Match date", "type": "date", "filter": "year",
@@ -52,6 +63,11 @@ COLUMNS: list[dict[str, Any]] = [
      "description": "Whether the agent learns from this innings (Training) or is marked on it (Test). "
                     "The latest calendar year is the test set; earlier years are training."},
 ]
+# The two dummy columns sit immediately after `competition`, built from the one definition of the mapping.
+_at = next(i for i, c in enumerate(_BASE_COLUMNS) if c["key"] == "competition") + 1
+COLUMNS: list[dict[str, Any]] = (_BASE_COLUMNS[:_at]
+                                 + [_dummy_column(key, comp) for key, comp in DUMMIES.items()]
+                                 + _BASE_COLUMNS[_at:])
 COLUMN_KEYS = [c["key"] for c in COLUMNS]
 
 
@@ -88,7 +104,8 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_table(data_path: str | Path | None = None, manifest_path: str | Path | None = None) -> dict[str, Any]:
-    df = load_innings(data_path)
+    df = load_innings(data_path, required=PREPARED_COLUMNS)
+    check_dummies(df)  # the Data tab never shows a file whose dummies are wrong
     mpath = Path(manifest_path) if manifest_path else DEFAULT_MANIFEST
     try:
         manifest = json.loads(mpath.read_text(encoding="utf-8"))
@@ -103,4 +120,4 @@ def build_table(data_path: str | Path | None = None, manifest_path: str | Path |
         values[COLUMN_KEYS.index("match_date")] = values[COLUMN_KEYS.index("match_date")].strftime("%Y-%m-%d")
         values.append("test" if idx in test_index else "training")
         rows.append(to_jsonable(values))
-    return {"columns": COLUMNS, "rows": rows, "summary": summary}
+    return {"columns": COLUMNS, "rows": rows, "summary": summary, "notes": build_notes(df, COMPETITION_NAMES)}

@@ -16,7 +16,8 @@ A framework-free web component that shows any table as a read-only, spreadsheet-
 
 - **columns**: `key`, `label` (heading), `description` (hover, focus and the column guide), `type` (`text`, `integer`, `number`, `date`), optional `labels` (display text for raw values) and `filter` (`select`, or `year` for a `date` column).
 - **rows**: arrays of raw values in column order; their order is the "original order".
-- **summary**: headline figures, titled sections, an attribution note, and the file name stem and date for downloads.
+- **summary**: headline figures, titled sections (each with an optional `note`), an attribution note, and the file name stem and date for downloads.
+- **notes** (optional): `{ title, paragraphs, example? }[]`. Each is shown as a collapsible section, closed by default, beside the column guide. `example` is a small table `{ caption?, columns, rows }`. Text is set as text, never as HTML.
 
 ## Attributes, methods, events
 

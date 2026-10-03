@@ -10,7 +10,7 @@ import pytest
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
 SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api"]
-APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression"}
+APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table"}
 
 
 def imported_modules(path: Path) -> set[str]:
@@ -53,3 +53,27 @@ def test_requirements_txt_matches_the_lockfile():
     strip = lambda t: [l for l in t.splitlines() if l and not l.startswith("#")]  # noqa: E731
     assert strip(out) == strip((APP / "requirements.txt").read_text(encoding="utf-8")), \
         "requirements.txt is out of date: run `uv export` (see quickstart)"
+
+
+def _string_constants(path: Path) -> set[str]:
+    return {n.value for n in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+
+
+def test_the_dummy_mapping_is_defined_in_exactly_one_place():
+    """is_ipl / is_bbl are spelled out only in competition_dummies.py; the script, loader, nodes and Data tab import them."""
+    files = list(PKG.glob("*.py")) + [APP / "scripts" / "prepare_data.py", APP / "api" / "index.py"]
+    owners = sorted(f.name for f in files if {"is_ipl", "is_bbl"} & _string_constants(f))
+    assert owners == ["competition_dummies.py"]
+
+
+def test_the_script_uses_the_shared_definition():
+    assert "competition_dummies" in imported_modules(APP / "scripts" / "prepare_data.py")
+    for module in ("nodes", "data_table", "data_notes"):
+        assert "competition_dummies" in imported_modules(PKG / f"{module}.py")
+
+
+def test_model_code_does_not_know_the_dummies():
+    for module in ("features", "regression", "evaluation", "cricket_explanation", "state"):
+        assert "competition_dummies" not in imported_modules(PKG / f"{module}.py")
+        assert not {"is_ipl", "is_bbl"} & _string_constants(PKG / f"{module}.py")

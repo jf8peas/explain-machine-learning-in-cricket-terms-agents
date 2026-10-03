@@ -56,5 +56,12 @@
     },
     "total_innings": 5146
   },
-  "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License."
+  "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License.",
+  "dummies": {
+    "reference": "t20i",
+    "columns": {
+      "is_ipl": "ipl",
+      "is_bbl": "bbl"
+    }
+  }
 }
