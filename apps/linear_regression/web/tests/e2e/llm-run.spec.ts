@@ -181,14 +181,16 @@ test("a model the server no longer lists is refused with a clear message and the
 
 // --- one run at a time, and the limits ---
 
-test("Play is disabled while a run is in progress and comes back when it ends", async ({ page }) => {
+test("Play and Reset are disabled while a run is in progress and come back when it ends", async ({ page }) => {
   await open(page, 100);
   await picker(page).selectOption({ label: "Thorough" });          // the slow scripted model keeps the stream open a while
   await page.getByTestId("play").click();
   await expect(page.getByTestId("play")).toBeDisabled();
+  await expect(page.getByTestId("reset")).toBeDisabled();
   await expect(page.locator("graph-replay")).toHaveAttribute("data-running", "true");
   await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });
   await expect(page.getByTestId("play")).toBeEnabled();
+  await expect(page.getByTestId("reset")).toBeEnabled();
   await expect(page.locator("graph-replay")).toHaveAttribute("data-running", "false");
   await expect(page.getByTestId("model-used")).toContainText("Thorough");
 });

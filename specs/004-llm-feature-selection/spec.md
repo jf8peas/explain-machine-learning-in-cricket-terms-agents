@@ -19,7 +19,7 @@ Runs are live: each press of Play calls a language model through the site owner'
 
 - Q: How should proposals with redundant features be handled (for example wickets in hand alongside wickets lost)? → A: Code rejects a proposal if any feature is an exact combination of the others in the set; it is shown as a rejected step with the reason and counts towards the cap, and forward selection skips such additions.
 - Q: Is there a limit on how many features a proposal can contain? → A: A fixed cap of 8 features per set; a larger proposal is rejected by code with the reason and counts towards the round cap, and forward selection also stops at 8.
-- Q: What happens if the visitor presses Play again during a run? → A: Play is disabled while a run is in progress, so no second run can start; a request that gets through anyway (a second tab, an altered request) is refused with a clear message; Back, Step and Reset still replay the steps received. (This replaces the old "Play again starts clean" behaviour.)
+- Q: What happens if the visitor presses Play again during a run? → A: Play is disabled while a run is in progress, so no second run can start; a request that gets through anyway (a second tab, an altered request) is refused with a clear message; Reset is disabled too, until the run ends, because it would abandon a run the server is still working on; Back and Step still replay the steps received. (This replaces the old "Play again starts clean" behaviour.)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -132,7 +132,7 @@ Runs call a paid service, so the app limits how often one visitor can start a ru
 
 1. **Given** a visitor who starts runs too often, **Then** the next start is refused with a message saying when they can try again.
 2. **Given** the daily total is reached, **Then** every new start is refused with a message saying when to try again, and no model is called.
-3. **Given** a run in progress, **Then** the Play control is disabled until it ends (Back, Step and Reset still replay what was received); **given** a run already in progress for the same visitor, **when** another start arrives anyway (for example from a second tab or an altered request), **then** it is refused with a clear message.
+3. **Given** a run in progress, **Then** the Play and Reset controls are disabled until it ends (Back and Step still replay what was received); **given** a run already in progress for the same visitor, **when** another start arrives anyway (for example from a second tab or an altered request), **then** it is refused with a clear message.
 4. **Given** one run, **Then** the number of language-model calls does not exceed the per-run cap and each reply is cut off at the length cap.
 5. **Given** a refused start, **Then** no language-model call is made and no earlier results on the page are lost.
 
@@ -185,7 +185,7 @@ The "Try your own innings" form asks for the inputs the winning model needs, and
 - The daily cap is reached while a run is in progress: that run completes; new starts are refused.
 - Two tabs from the same visitor press Play at once: one is refused (one run at a time). Pressing Play during a run is not possible (the control is disabled), so "Play again starts clean" from feature 001 no longer applies.
 - The selected model list entry is removed by the owner between page load and Play: the visitor is told and offered the default.
-- The visitor tries to press Play during a run: Play is disabled while a run is in progress; a second start that gets through anyway (another tab, an altered request) is refused with a clear message and no model is called. Back, Step and Reset still replay the steps received.
+- The visitor tries to press Play during a run: Play and Reset are disabled while a run is in progress; a second start that gets through anyway (another tab, an altered request) is refused with a clear message and no model is called. Back and Step still replay the steps received.
 
 ## Requirements *(mandatory)*
 

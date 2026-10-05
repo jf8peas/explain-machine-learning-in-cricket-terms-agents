@@ -301,7 +301,8 @@ export class GraphReplay extends HTMLElement {
     (this.$('[data-act="pause"]') as HTMLButtonElement).disabled = !hasEvents && !b.playing || b.atEnd;
     (this.$('[data-act="back"]') as HTMLButtonElement).disabled = b.cursor < 0;
     (this.$('[data-act="step"]') as HTMLButtonElement).disabled = !hasEvents || b.cursor >= b.events.length - 1;
-    (this.$('[data-act="reset"]') as HTMLButtonElement).disabled = !hasEvents && !b.playing && !this.message;
+    // Reset would abandon a run the server is still working on, so it waits for the run to end like Play does
+    (this.$('[data-act="reset"]') as HTMLButtonElement).disabled = this.running || (!hasEvents && !b.playing && !this.message);
     const speed = this.$('[data-act="speed"]') as HTMLSelectElement;
     if (Number(speed.value) !== b.intervalMs) speed.value = String(b.intervalMs);
 

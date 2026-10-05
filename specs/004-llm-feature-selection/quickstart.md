@@ -18,7 +18,7 @@ Review the diff: the download date and counts change, and the committed table ga
 | Variable | Purpose | Local default |
 |---|---|---|
 | `OPENROUTER_API_KEY` | The owner's key; server only | none (the language-model step then fails safely) |
-| `MODEL_OPTIONS` | JSON list of `{id, name, note, default}` | the checked-in fallback list (4 models) |
+| `MODEL_OPTIONS` | JSON list of `{id, name, note, default}` | the checked-in fallback list (5 models) |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Shared limit store | none |
 | `RATE_LIMIT_STORE` | `memory` to use an in-process store (development and tests only) | unset |
 | `VISITOR_ID_SECRET` | Server secret used to hash visitor addresses for the limits | random per process (weaker; set it in production) |
@@ -50,7 +50,7 @@ Set `OPENROUTER_API_KEY`, `MODEL_OPTIONS`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_RE
 ## Manual walkthrough
 
 1. The intro says the agent uses a language model to decide what to try and that numbers come from code; a note says runs can differ.
-2. The picker lists four models with a note each; one is selected. Changing it mid-run does nothing to the run.
+2. The picker lists five models with a note each; one is selected. Changing it mid-run does nothing to the run.
 3. Press Play: Play and Reset are disabled until the run ends.
 4. Each proposal shows the chosen features and the model's reason, labelled as the model's reasoning; the next step shows the code's check (accepted or rejected with the reason).
 5. The leaderboard lists every attempt, its features, its validation error and who proposed it.
