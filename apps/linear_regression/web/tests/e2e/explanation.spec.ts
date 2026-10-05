@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { open, playToEnd } from "./helpers";
 
 test("the run ends with a cricket explanation and a clear comparison", async ({ page }) => {
@@ -9,12 +9,12 @@ test("the run ends with a cricket explanation and a clear comparison", async ({ 
   await expect(page.getByTestId("verdict")).toContainText(/beat the TV projection/);
 
   // the numbers shown match the final state panel
-  const modelMae = Number(await page.locator('[data-key="model_mae"] pre').textContent());
-  const baseMae = Number(await page.locator('[data-key="baseline_mae"] pre').textContent());
+  const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
   const compare = await page.getByTestId("comparison").textContent();
-  expect(compare).toContain(modelMae.toFixed(1));
-  expect(compare).toContain(baseMae.toFixed(1));
-  await expect(page.getByTestId("explanation")).toContainText(`${modelMae.toFixed(1)} runs`);
+  expect(compare).toContain(final.test_mae.forward.toFixed(1));
+  expect(compare).toContain(final.test_mae.llm.toFixed(1));
+  expect(compare).toContain(final.test_mae.tv.toFixed(1));
+  await expect(page.getByTestId("explanation")).toContainText(`${final.winner_mae.toFixed(1)} runs`);
 });
 
 test("the Cricsheet attribution is visible in the results area", async ({ page }) => {

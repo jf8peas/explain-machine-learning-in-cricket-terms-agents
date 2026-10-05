@@ -4,11 +4,11 @@ import * as dagreNS from "@dagrejs/dagre";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const dagre: typeof dagreNS = (dagreNS as any).default ?? dagreNS;
 
-export interface StructureNode { id: string; kind: "start" | "end" | "node" }
+export interface StructureNode { id: string; kind: "start" | "end" | "node"; /** Optional: who does the step. */ actor?: "llm" | "code" }
 export interface StructureEdge { source: string; target: string; conditional: boolean; branch: string | null }
 export interface Structure { nodes: StructureNode[]; edges: StructureEdge[] }
 
-export interface LaidNode { id: string; kind: StructureNode["kind"]; x: number; y: number; w: number; h: number }
+export interface LaidNode { id: string; kind: StructureNode["kind"]; actor?: StructureNode["actor"]; x: number; y: number; w: number; h: number }
 export interface Point { x: number; y: number }
 export interface LaidEdge extends StructureEdge { points: Point[]; label: Point | null }
 export interface Layout { nodes: LaidNode[]; edges: LaidEdge[]; width: number; height: number }
@@ -38,7 +38,7 @@ export function layoutGraph(structure: Structure): Layout {
 
   const nodes: LaidNode[] = structure.nodes.map((n) => {
     const p = g.node(n.id);
-    return { id: n.id, kind: n.kind, x: p.x, y: p.y, w: p.width, h: p.height };
+    return { id: n.id, kind: n.kind, actor: n.actor, x: p.x, y: p.y, w: p.width, h: p.height };
   });
   const edges: LaidEdge[] = structure.edges.map((e, i) => {
     const d = g.edge(e.source, e.target, String(i)) as { points: Point[]; x?: number; y?: number };

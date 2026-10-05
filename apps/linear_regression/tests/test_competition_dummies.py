@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import pytest
 
-from linreg.competition_dummies import (DUMMY_COLUMNS, PREPARED_COLUMNS, REFERENCE, UnknownCompetition,
+from linreg.competition_dummies import (DUMMY_COLUMNS, REFERENCE, UnknownCompetition,
                                         add_dummies, check_dummies, dummy_values, manifest_entry)
 from linreg.data_loading import DataError
 
@@ -37,12 +37,6 @@ def test_unknown_competition_raises_naming_the_value():
 
 def test_manifest_entry_describes_the_columns_and_the_reference():
     assert manifest_entry() == {"reference": "t20i", "columns": {"is_ipl": "ipl", "is_bbl": "bbl"}}
-
-
-def test_prepared_columns_put_the_dummies_right_after_competition():
-    i = PREPARED_COLUMNS.index("competition")
-    assert PREPARED_COLUMNS[i + 1:i + 3] == ["is_ipl", "is_bbl"] == DUMMY_COLUMNS
-    assert "venue" in PREPARED_COLUMNS[i + 3:]
 
 
 def test_add_dummies_adds_and_refreshes_in_place():

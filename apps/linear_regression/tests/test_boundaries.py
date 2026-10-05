@@ -10,7 +10,10 @@ import pytest
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
 SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api"]
-APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table"}
+APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table",
+                # feature 004: the language-model step, its rules, its limits and its fake
+                "selection", "redundancy", "recipes", "llm_client", "llm_reply", "llm_fake", "prompts", "model_options",
+                "run_gate", "limit_store", "run_budget", "catalogue_api"}
 
 
 def imported_modules(path: Path) -> set[str]:
@@ -74,6 +77,29 @@ def test_the_script_uses_the_shared_definition():
 
 
 def test_model_code_does_not_know_the_dummies():
-    for module in ("features", "regression", "evaluation", "cricket_explanation", "state"):
+    for module in ("regression", "evaluation", "cricket_explanation", "state"):
         assert "competition_dummies" not in imported_modules(PKG / f"{module}.py")
         assert not {"is_ipl", "is_bbl"} & _string_constants(PKG / f"{module}.py")
+
+
+def test_the_reusable_web_modules_know_nothing_about_a_model_provider_or_a_key():
+    for folder in ("graph-replay", "tab-set", "data-grid"):
+        for ts in (APP / "web" / "src" / folder).glob("*.ts"):
+            code = re.sub(r"//.*|/\*.*?\*/", "", ts.read_text(encoding="utf-8"), flags=re.S).lower()
+            for word in ("openrouter", "api_key", "apikey", "bearer"):
+                assert word not in code, f"{ts.name} mentions {word!r}"
+
+
+def test_the_shared_graph_api_has_no_model_or_limit_knowledge():
+    code = (PKG / "graph_api.py").read_text(encoding="utf-8").lower()
+    for word in ("openrouter", "api_key", "upstash", "model_options", "x-forwarded-for"):
+        assert word not in code, f"graph_api.py mentions {word!r}"
+
+
+def test_the_key_is_read_in_exactly_one_place():
+    """OPENROUTER_API_KEY appears in code only in llm_client.py (and in the scripts and docs that mention it)."""
+    def code_lines(f):
+        return "\n".join(l for l in f.read_text(encoding="utf-8").splitlines() if not l.lstrip().startswith("#"))
+
+    owners = sorted(f.name for f in PKG.glob("*.py") if "OPENROUTER_API_KEY" in code_lines(f))
+    assert owners == ["llm_client.py"]

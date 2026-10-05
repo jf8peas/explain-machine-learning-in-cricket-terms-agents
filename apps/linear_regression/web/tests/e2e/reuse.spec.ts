@@ -1,7 +1,7 @@
 // SC-007: the same <graph-replay>, given an unrelated graph and event stream, renders it
 // with no changes to the component.
 import { readFileSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { serveRun, serveStructure, sse, timelineItems } from "./helpers";
 
 const structure = JSON.parse(readFileSync("tests/fixtures/other-structure.json", "utf8"));

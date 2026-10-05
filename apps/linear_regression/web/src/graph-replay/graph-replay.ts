@@ -2,7 +2,7 @@
 // Generic: knows only a graph structure and a stream of step events. Nothing about the app.
 import { ReplayBuffer, realClock, type StepEvent } from "./buffer";
 import { layoutGraph, pathData, type LaidEdge, type Layout } from "./layout";
-import { streamRun } from "./sse";
+import { streamRun, type Refusal } from "./sse";
 import { styles } from "./styles";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -35,6 +35,9 @@ export class GraphReplay extends HTMLElement {
   private buf = new ReplayBuffer(realClock, () => this.update());
   private layout: Layout | null = null;
   private abort: AbortController | null = null;
+  /** True from pressing Play until the stream ends (or is refused): Play is disabled meanwhile. */
+  private running = false;
+  private starting = false;
   private message = "";
   private messageIsError = false;
   private markerCursor = -1;
@@ -43,6 +46,7 @@ export class GraphReplay extends HTMLElement {
   private marker!: SVGCircleElement;
   private edgeEls = new Map<string, SVGGElement>();
   private nodeEls = new Map<string, SVGGElement>();
+  private actors = new Map<string, "llm" | "code">();
   private $ = (sel: string) => this.shadowRoot!.querySelector(sel) as HTMLElement;
 
   constructor() {
@@ -134,6 +138,7 @@ export class GraphReplay extends HTMLElement {
     root.append(edgesG, nodesG);
     this.edgeEls.clear();
     this.nodeEls.clear();
+    this.actors.clear();
 
     for (const e of L.edges) {
       const g = svg("g", { class: `edge${e.conditional ? " conditional" : ""}`, "data-edge": `${e.source}->${e.target}` });
@@ -150,7 +155,8 @@ export class GraphReplay extends HTMLElement {
     defs.innerHTML = `<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--gr-muted)"/></marker>`;
 
     for (const n of L.nodes) {
-      const g = svg("g", { class: `node ${n.kind}`, "data-node": n.id, transform: `translate(${n.x},${n.y})` });
+      const g = svg("g", { class: `node ${n.kind}${n.actor ? ` actor-${n.actor}` : ""}`, "data-node": n.id, "data-actor": n.actor ?? "", transform: `translate(${n.x},${n.y})` });
+      if (n.actor) this.actors.set(n.id, n.actor);
       if (n.kind === "node") {
         g.appendChild(svg("rect", { x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: 8 }));
         const t = svg("text", { x: 0, y: 0 });
@@ -162,6 +168,15 @@ export class GraphReplay extends HTMLElement {
         g.appendChild(svg("circle", { class: "count-bg", cx: -n.w / 2 + 2, cy: -n.h / 2 + 2, r: 10, hidden: "" }));
         const c = svg("text", { class: "count", x: -n.w / 2 + 2, y: -n.h / 2 + 3, hidden: "" });
         g.appendChild(c);
+        if (n.actor === "llm") { // a small tag so a language-model step is plain to see, whatever the colours
+          g.appendChild(svg("rect", { class: "actor-tag-bg", x: n.w / 2 - 30, y: -n.h / 2 - 8, width: 34, height: 15, rx: 7 }));
+          const tag = svg("text", { class: "actor-tag", x: n.w / 2 - 13, y: -n.h / 2 - 0.5 });
+          tag.textContent = "LLM";
+          g.appendChild(tag);
+          const tip = svg("title");
+          tip.textContent = "A language model does this step";
+          g.appendChild(tip);
+        }
       } else {
         g.appendChild(svg("circle", { r: n.w / 2 }));
         const t = svg("title");
@@ -180,29 +195,48 @@ export class GraphReplay extends HTMLElement {
   private startRun() {
     const url = this.getAttribute("run-url");
     if (!url) return;
-    this.abort?.abort(); // Play again: drop the current fetch and start clean
+    if (this.running) return; // one run at a time: Play is disabled while a run is in progress
     this.abort = new AbortController();
     const signal = this.abort.signal;
-    this.message = "";
-    this.messageIsError = false;
-    this.markerCursor = -1;
-    this.buf.reset();
-    this.buf.play();
+    this.running = true;
+    this.starting = true;
+    // Whatever is on screen stays until the server accepts the start; a refused start must not disturb it.
     void streamRun(url, signal, {
+      onOpen: () => {
+        if (signal.aborted) return;
+        this.starting = false;
+        this.message = "";
+        this.messageIsError = false;
+        this.markerCursor = -1;
+        this.buf.reset();
+        this.buf.play();
+      },
+      onRefused: (info: Refusal) => {
+        if (signal.aborted) return;
+        this.running = false;
+        this.starting = false;
+        this.setMessage(info.message, true);
+        this.dispatchEvent(new CustomEvent<Refusal>("refused", { detail: info, bubbles: true, composed: true }));
+      },
       onStep: (e: StepEvent) => { if (!signal.aborted) this.buf.push(e); },
-      onDone: () => { if (!signal.aborted) this.buf.finish(); },
-      onError: (m) => { if (signal.aborted) return; this.setMessage(m, true); this.buf.finish(); },
+      onDone: () => { if (signal.aborted) return; this.running = false; this.buf.finish(); },
+      onError: (m) => { if (signal.aborted) return; this.running = false; this.setMessage(m, true); this.buf.finish(); },
       onDisconnect: () => {
         if (signal.aborted) return;
+        this.running = false;
+        this.starting = false;
         this.setMessage("The connection was lost before the run finished. The steps already received are still here to explore.", true);
         this.buf.finish();
       },
     });
+    this.update();
   }
 
   private resetAll() {
     this.abort?.abort();
     this.abort = null;
+    this.running = false;
+    this.starting = false;
     this.message = "";
     this.messageIsError = false;
     this.markerCursor = -1;
@@ -261,6 +295,8 @@ export class GraphReplay extends HTMLElement {
 
     // buttons
     const hasEvents = b.events.length > 0;
+    (this.$('[data-act="play"]') as HTMLButtonElement).disabled = this.running; // no second run while one is going
+    this.setAttribute("data-running", String(this.running));
     (this.$('[data-act="pause"]') as HTMLButtonElement).textContent = b.playing ? "Pause" : "Resume";
     (this.$('[data-act="pause"]') as HTMLButtonElement).disabled = !hasEvents && !b.playing || b.atEnd;
     (this.$('[data-act="back"]') as HTMLButtonElement).disabled = b.cursor < 0;
@@ -272,7 +308,7 @@ export class GraphReplay extends HTMLElement {
     // status
     const status = this.$(".status");
     status.textContent = this.message ||
-      (b.playing && !hasEvents ? "Starting the run…" :
+      ((b.playing || this.starting) && !hasEvents ? "Starting the run…" :
         !hasEvents ? "Press Play to watch the agent work through the problem." : "");
     status.classList.toggle("error", this.messageIsError);
 
@@ -366,7 +402,7 @@ export class GraphReplay extends HTMLElement {
       return;
     }
     const e = b.events[b.cursor];
-    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> <span>· step ${e.step} of ${b.finished ? b.events.length : "…"}</span></p><p data-testid="event-summary">${esc(e.summary)}</p>`;
+    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> ${this.actors.get(e.node) === "llm" ? '<span class="actor-pill" data-testid="event-actor">language model step</span>' : this.actors.get(e.node) === "code" ? '<span class="actor-pill code" data-testid="event-actor">code step</span>' : ""} <span>· step ${e.step} of ${b.finished ? b.events.length : "…"}</span></p><p data-testid="event-summary">${esc(e.summary)}</p>`;
     const state = b.stateAt();
     const changed = new Set(b.changedKeysAt());
     this.$("#state").innerHTML = Object.entries(state).map(([k, v]) => {

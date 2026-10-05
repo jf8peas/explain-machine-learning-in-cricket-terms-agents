@@ -31,7 +31,8 @@ APP_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = APP_DIR / "data"
 sys.path.insert(0, str(APP_DIR / "backend"))
 
-from linreg.competition_dummies import PREPARED_COLUMNS, dummy_values, manifest_entry  # noqa: E402
+from linreg import features  # noqa: E402
+from linreg.competition_dummies import dummy_values, manifest_entry  # noqa: E402
 
 SOURCES = {
     "t20i": "https://cricsheet.org/downloads/t20s_male_json.zip",
@@ -40,8 +41,15 @@ SOURCES = {
 }
 ATTRIBUTION = ("Ball-by-ball data from Cricsheet (https://cricsheet.org), "
                "used under the Open Data Commons Attribution License.")
-COLUMNS = PREPARED_COLUMNS  # the nine original columns with the dummies right after `competition`
+COLUMNS = features.PREPARED_COLUMNS  # defined once, in the feature catalogue (linreg/features.py)
 NOT_A_DISMISSAL = {"retired hurt", "retired not out"}
+NOT_A_LEGAL_BALL = {"wides", "noballs"}
+POWERPLAY_LAST_OVER = 5  # overs are zero-indexed: indexes 0 to 5 are overs 1 to 6
+LAST_OVER = 9            # the 10th over: nothing after it is ever used by a candidate
+
+
+class PrepareError(Exception):
+    """The requested rebuild cannot be done from the data on hand."""
 EXCLUSIONS = ["women", "no_result", "dls", "reduced_overs", "super_over",
               "ended_before_10_overs", "no_first_innings"]
 
@@ -51,7 +59,7 @@ def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | N
 
     An unrecognised competition raises UnknownCompetition, even if the match would be excluded.
     """
-    dummies = dummy_values(competition)
+    dummies = dummy_values(competition)  # raises for an unknown competition, before anything else
     info = match.get("info", {})
     if info.get("gender") != "male":
         return None, "women"
@@ -70,34 +78,62 @@ def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | N
         return None, "super_over"
 
     runs_10 = powerplay = total = wickets_10 = 0
+    pp_wickets = runs_7_10 = wickets_7_10 = fours = sixes = dots = extras = 0
+    partnership_runs = balls_since_wicket = 0
     last_over = -1
     for over in first.get("overs", []):
         idx = over["over"]
         last_over = max(last_over, idx)
         for d in over.get("deliveries", []):
-            r = d["runs"]["total"]
+            runs = d["runs"]
+            r = runs["total"]
             total += r
+            if idx > LAST_OVER:
+                continue  # the target (final_total) uses the whole innings; every candidate stops at over 10
             w = sum(1 for x in d.get("wickets", []) if x.get("kind") not in NOT_A_DISMISSAL)
-            if idx <= 9:
-                runs_10 += r
-                wickets_10 += w
-            if idx <= 5:
+            runs_10 += r
+            wickets_10 += w
+            if idx <= POWERPLAY_LAST_OVER:
                 powerplay += r
-    if last_over < 9 or wickets_10 >= 10:
+                pp_wickets += w
+            else:
+                runs_7_10 += r
+                wickets_7_10 += w
+            if not runs.get("non_boundary"):
+                fours += runs.get("batter") == 4
+                sixes += runs.get("batter") == 6
+            dots += r == 0
+            extras += runs.get("extras", 0)
+            if w:  # a dismissal ends the partnership; this ball's runs belong to the one that ended
+                partnership_runs = balls_since_wicket = 0
+            else:
+                partnership_runs += r
+                balls_since_wicket += not (NOT_A_LEGAL_BALL & set(d.get("extras", {})))
+    if last_over < LAST_OVER or wickets_10 >= 10:
         return None, "ended_before_10_overs"
 
-    return {
+    row = features.derive_row({
         "match_id": match_id,
         "match_date": info["dates"][0],
         "season": str(info.get("season", "")),
         "competition": competition,
-        **dummies,
         "venue": info.get("venue", ""),
         "runs_at_10": runs_10,
         "wickets_at_10": wickets_10,
         "powerplay_runs": powerplay,
+        "powerplay_wickets": pp_wickets,
+        "runs_overs_7_10": runs_7_10,
+        "wickets_overs_7_10": wickets_7_10,
+        "fours_at_10": int(fours),
+        "sixes_at_10": int(sixes),
+        "dot_balls_at_10": int(dots),
+        "extras_at_10": extras,
+        "partnership_runs": partnership_runs,
+        "balls_since_last_wicket": int(balls_since_wicket),
         "final_total": total,
-    }, None
+    })
+    assert all(row[c] == v for c, v in dummies.items())  # the recipes and the shared mapping agree
+    return {column: row[column] for column in COLUMNS}, None
 
 
 def process_zip(zf: zipfile.ZipFile, competition: str) -> tuple[list[dict], Counter, int]:
@@ -165,23 +201,38 @@ def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
     all_rows.sort(key=lambda r: (r["match_date"], r["match_id"]))
     manifest["counts"]["total_innings"] = len(all_rows)
     manifest["dummies"] = manifest_entry()
+    manifest["features"] = features.manifest_entry()
     write_outputs(all_rows, manifest, data_dir)
     print(f"Wrote {len(all_rows)} innings")
 
 
 def run_from_existing(data_dir: Path = DATA_DIR) -> None:
-    """Add or refresh the dummy columns and the manifest entry on the existing files, without downloading.
+    """Add or refresh the dummy and derived columns and the manifest entries on the existing files, without downloading.
 
-    Every original value, the row order and the download date are kept exactly as they are.
+    Every original value, the row order and the download date are kept exactly as they are. The measured columns
+    need the ball-by-ball data, so if the file lacks any of them this stops with a clear message.
     """
     with open(data_dir / "innings.csv", newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
+        reader = csv.DictReader(f)
+        header = reader.fieldnames or []
+        rows = list(reader)
+    needed = [c for c in COLUMNS if c not in features.DERIVED]
+    missing = [c for c in needed if c not in header]
+    if missing:
+        raise PrepareError(
+            "The existing innings.csv has no ball-by-ball columns for: " + ", ".join(missing) + ". They cannot be "
+            "worked out from the file, so --from-existing cannot add them. Run scripts/prepare_data.py without "
+            "--from-existing to download fresh data.")
     for row in rows:
-        row.update(dummy_values(row["competition"]))  # an unrecognised competition stops here, before any write
+        dummy_values(row["competition"])  # an unrecognised competition stops here, before any write
+        numbers = {c: int(row[c]) for c in features.MEASURED}
+        derived = features.derive_row({**numbers, "competition": row["competition"]})
+        row.update({c: derived[c] for c in features.DERIVED})
     manifest = json.loads((data_dir / "manifest.json").read_text(encoding="utf-8"))
     manifest["dummies"] = manifest_entry()
+    manifest["features"] = features.manifest_entry()
     write_outputs(rows, manifest, data_dir)
-    print(f"Updated {len(rows)} innings with the competition dummy columns (no download)")
+    print(f"Updated {len(rows)} innings with the dummy and derived columns (no download)")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -196,4 +247,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        main()
+    except PrepareError as exc:
+        sys.exit(str(exc))

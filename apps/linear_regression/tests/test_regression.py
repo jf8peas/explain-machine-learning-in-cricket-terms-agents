@@ -4,7 +4,8 @@ import pytest
 from sklearn.linear_model import LinearRegression
 
 from linreg import regression
-from linreg.state import FEATURE_ORDER
+
+FEATURE_ORDER = ["runs_at_10", "wickets_at_10", "powerplay_runs"]  # three independent measurements, in a fixed order
 from tests.conftest import make_table
 
 

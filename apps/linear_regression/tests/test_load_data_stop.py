@@ -95,3 +95,44 @@ def test_several_wrong_rows_are_counted_once_each(run_graph, write_csv):
 def test_good_dummies_run_normally(run_graph, write_csv):
     events = run_graph({"data_path": write_csv(make_table())})
     assert events[0][1]["decision"]["branch"] == "ok"
+
+
+# --- three slices and the candidate columns (feature 004) ---
+
+def test_too_few_validation_innings_stops(run_graph, write_csv):
+    parts = [make_table(years=(2020, 2021), per_year=150), make_table(years=(2022,), per_year=99, seed=5),
+             make_table(years=(2023,), per_year=150, seed=6)]
+    events = run_graph({"data_path": write_csv(pd.concat(parts, ignore_index=True))})
+    assert_stopped(events, "2022")
+    assert "fewer than" in events[0][1]["data_error"] and "validat" in events[0][1]["data_error"]
+
+
+def test_too_few_test_innings_stops(run_graph, write_csv):
+    parts = [make_table(years=(2020, 2021, 2022), per_year=150), make_table(years=(2023,), per_year=99, seed=6)]
+    events = run_graph({"data_path": write_csv(pd.concat(parts, ignore_index=True))})
+    assert_stopped(events, "2023")
+    assert "fewer than" in events[0][1]["data_error"] and "test" in events[0][1]["data_error"]
+
+
+def test_two_calendar_years_are_not_enough(run_graph, write_csv):
+    assert_stopped(run_graph({"data_path": write_csv(make_table(years=(2022, 2023), per_year=200))}), "two calendar years")
+
+
+def test_a_file_missing_a_new_column_stops(run_graph, write_csv):
+    df = make_table().drop(columns=["powerplay_wickets", "fours_at_10"])
+    events = run_graph({"data_path": write_csv(df)})
+    assert_stopped(events, "missing columns")
+    assert "powerplay_wickets" in events[0][1]["data_error"] and "fours_at_10" in events[0][1]["data_error"]
+
+
+def test_a_wrong_derived_column_stops_with_the_count(run_graph, write_csv):
+    df = make_table()
+    df.loc[[0, 1], "wickets_in_hand"] = 99
+    assert_stopped(run_graph({"data_path": write_csv(df)}), "2 rows have a wickets_in_hand value")
+
+
+def test_a_blank_candidate_value_stops_naming_the_column_and_the_count(run_graph, write_csv):
+    df = make_table()
+    df["fours_at_10"] = df["fours_at_10"].astype(float)
+    df.loc[[3, 4, 5], "fours_at_10"] = None
+    assert_stopped(run_graph({"data_path": write_csv(df)}), "3 rows have a blank or non-numeric value in fours_at_10")

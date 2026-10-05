@@ -15,7 +15,7 @@ export function countRunRequests(page: Page): { count: () => number } {
 
 /** Answer /api/run with a fixed SSE body (e.g. a stream that stops before `done`, or another app's). */
 export async function serveRun(page: Page, body: string) {
-  await page.route("**/api/run", (route) =>
+  await page.route("**/api/run*", (route) =>
     route.fulfill({ status: 200, headers: { "content-type": "text/event-stream", "cache-control": "no-cache" }, body }));
 }
 

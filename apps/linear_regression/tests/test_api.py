@@ -15,7 +15,7 @@ STRUCTURE_SCHEMA = json.loads((CONTRACTS / "structure.schema.json").read_text())
 STEP_SCHEMA = json.loads((CONTRACTS / "step-event.schema.json").read_text())
 client = TestClient(app)
 
-NODE_ORDER_PREFIX = ["load_data", "explore", "split", "baseline", "fit_model", "evaluate"]
+NODE_ORDER_PREFIX = ["load_data", "split", "explore", "baseline", "propose_features", "check_proposal"]
 
 
 def parse_sse(text: str) -> list[tuple[str, dict]]:
@@ -31,16 +31,27 @@ def test_structure_matches_schema_and_has_branch_labels():
     assert r.status_code == 200
     body = r.json()
     jsonschema.validate(body, STRUCTURE_SCHEMA)
-    conditional = {(e["source"], e["target"]): e["branch"] for e in body["edges"] if e["conditional"]}
+    conditional = {(e["source"], e["target"], e["branch"]) for e in body["edges"] if e["conditional"]}
     assert conditional == {
-        ("load_data", "explore"): "ok",
-        ("load_data", "__end__"): "stop",
-        ("evaluate", "tune"): "tune",
-        ("evaluate", "explain_in_cricket_terms"): "explain",
+        ("load_data", "split", "ok"), ("load_data", "__end__", "stop"),
+        ("check_proposal", "fit_model", "fit"), ("check_proposal", "propose_features", "rejected"),
+        ("check_proposal", "forward_selection", "finished"),
+        ("evaluate", "propose_features", "continue"), ("evaluate", "forward_selection", "stop"),
+        ("forward_selection", "forward_selection", "again"), ("forward_selection", "final_test", "done"),
     }
     assert {n["id"] for n in body["nodes"]} == {
-        "__start__", "__end__", "load_data", "explore", "split", "baseline", "fit_model",
-        "evaluate", "tune", "explain_in_cricket_terms"}
+        "__start__", "__end__", "load_data", "split", "explore", "baseline", "propose_features", "check_proposal",
+        "fit_model", "evaluate", "forward_selection", "final_test", "explain_in_cricket_terms"}
+
+
+def test_only_propose_features_is_marked_as_the_language_model_step():
+    nodes = {n["id"]: n for n in client.get("/api/structure").json()["nodes"]}
+    assert nodes["propose_features"]["actor"] == "llm"
+    for name, n in nodes.items():
+        if n["kind"] == "node" and name != "propose_features":
+            assert n["actor"] == "code", name
+        if n["kind"] in ("start", "end"):
+            assert "actor" not in n
 
 
 def test_run_streams_valid_ordered_events_then_done():
@@ -58,9 +69,10 @@ def test_run_streams_valid_ordered_events_then_done():
         assert "summary" not in s["changes"] and s["summary"]
     nodes = [s["node"] for s in steps]
     assert nodes[: len(NODE_ORDER_PREFIX)] == NODE_ORDER_PREFIX
-    assert nodes[-1] == "explain_in_cricket_terms"
-    # attempts arrive accumulated: one more entry after each evaluate
-    counts = [len(s["changes"]["attempts"]) for s in steps if s["node"] == "evaluate"]
+    assert nodes[-2:] == ["final_test", "explain_in_cricket_terms"]
+    # attempts arrive accumulated: one more entry after each evaluation and each forward-selection step
+    counts = [len(s["changes"]["attempts"]) for s in steps if s["node"] in ("evaluate", "forward_selection")
+              and "attempts" in s["changes"]]
     assert counts == list(range(1, len(counts) + 1))
 
 

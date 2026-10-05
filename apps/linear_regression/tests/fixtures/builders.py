@@ -26,6 +26,34 @@ def make_innings(per_over_runs: list[int], wickets_in_over: dict[int, int] | Non
     return inn
 
 
+def delivery(batter: int = 0, extras: int = 0, kind: str | None = None, wicket: str | bool = False,
+             non_boundary: bool = False) -> dict:
+    """One Cricsheet-style delivery with full control: runs off the bat, extras (wides, noballs, byes, legbyes)
+    and an optional dismissal (True for a bowled wicket, or the dismissal kind such as "retired hurt")."""
+    d = {"batter": "A", "bowler": "B", "non_striker": "C",
+         "runs": {"batter": batter, "extras": extras, "total": batter + extras}}
+    if non_boundary:
+        d["runs"]["non_boundary"] = True
+    if extras:
+        d["extras"] = {kind or "byes": extras}
+    if wicket:
+        d["wickets"] = [{"player_out": "A", "kind": wicket if isinstance(wicket, str) else "bowled"}]
+    return d
+
+
+def innings_from_deliveries(overs: list[list[dict]], super_over: bool = False) -> dict:
+    """An innings whose overs are lists of deliveries (over index = position in the list)."""
+    inn = {"team": "X", "overs": [{"over": i, "deliveries": list(ds)} for i, ds in enumerate(overs)]}
+    if super_over:
+        inn["super_over"] = True
+    return inn
+
+
+def six_dot_overs(count: int) -> list[list[dict]]:
+    """`count` quiet overs of six dot balls (a convenient filler)."""
+    return [[delivery() for _ in range(6)] for _ in range(count)]
+
+
 def make_match(innings: list[dict], *, gender: str = "male", result: str | None = None,
                method: str | None = None, overs: int = 20, date: str = "2023-05-01",
                season: str = "2023", venue: str = "Ground") -> dict:

@@ -1,11 +1,17 @@
 """Shared test helpers: synthetic innings tables written to temp CSV files."""
 from __future__ import annotations
 
+import os
+
+# Tests never reach the network: the app under test uses the scripted fake model, and an in-process limit store.
+os.environ["LLM_PROVIDER"] = "fake"
+os.environ.setdefault("RATE_LIMIT_STORE", "memory")
+
 import numpy as np
 import pandas as pd
 import pytest
 
-from linreg.competition_dummies import add_dummies
+from linreg.features import add_derived
 from linreg.graph import build_graph
 from linreg.state import RECURSION_LIMIT
 
@@ -30,7 +36,22 @@ def make_table(years=(2020, 2021, 2022, 2023), per_year=150, mode="noisy", seed=
                          "season": str(y), "competition": ["ipl", "bbl", "t20i"][n % 3],
                          "venue": "Ground", "runs_at_10": runs, "wickets_at_10": wk,
                          "powerplay_runs": pp, "final_total": final})
-    return add_dummies(pd.DataFrame(rows))
+    df = pd.DataFrame(rows)
+    # The extra candidate columns come from their own random stream, so the original columns (and every test that
+    # depends on them) are unchanged. They are plausible and consistent: the parts add up to the totals.
+    extra = np.random.default_rng(seed + 1000)
+    n = len(df)
+    pp_wickets = np.minimum(df["wickets_at_10"], extra.poisson(1.0, n))
+    df["powerplay_wickets"] = pp_wickets
+    df["runs_overs_7_10"] = df["runs_at_10"] - df["powerplay_runs"]
+    df["wickets_overs_7_10"] = df["wickets_at_10"] - pp_wickets
+    df["fours_at_10"] = extra.poisson(6, n)
+    df["sixes_at_10"] = extra.poisson(2, n)
+    df["dot_balls_at_10"] = extra.poisson(22, n)
+    df["extras_at_10"] = extra.poisson(3, n)
+    df["partnership_runs"] = np.minimum(df["runs_at_10"], extra.poisson(25, n))
+    df["balls_since_last_wicket"] = np.minimum(60, extra.poisson(20, n))
+    return add_derived(df)  # wickets in hand, runs x wickets in hand and the competition dummies, from the recipes
 
 
 @pytest.fixture
@@ -42,14 +63,50 @@ def write_csv(tmp_path):
     return _write
 
 
+def make_config(model_id: str = "fake/steady", model_name: str = "Fast", **extra) -> dict:
+    """A run config for tests: a generous budget and a model id the fake knows. Extra keys override."""
+    from linreg.run_budget import RunBudget
+    cfg = {"model_id": model_id, "model_name": model_name, "llm_allowed": True,
+           "budget": RunBudget(deadline=float("inf") / 2, max_calls=100, call_timeout=25.0, reserve=0.0)}
+    cfg.update(extra)
+    return cfg
+
+
 @pytest.fixture
 def run_graph():
-    """Run the compiled graph, returning the list of (node, update) events."""
-    def _run(initial):
+    """Run the compiled graph with a scripted fake model; returns the list of (node, update) events.
+
+    run_graph(initial, llm=None, **config_overrides): `llm` defaults to the end-to-end fake (model ids fake/steady,
+    fake/quick, fake/broken and so on); keyword arguments override the run config (model_id, llm_allowed, budget...).
+    """
+    from linreg.llm_fake import default_fake
+
+    def _run(initial, llm=None, **config):
+        client = llm or default_fake()
         events = []
-        for chunk in build_graph().stream(initial, stream_mode="updates",
-                                          config={"recursion_limit": RECURSION_LIMIT}):
+        for chunk in build_graph(client).stream(
+                initial, stream_mode="updates",
+                config={"recursion_limit": RECURSION_LIMIT, "configurable": make_config(**config)}):
             (node, update), = chunk.items()
             events.append((node, update))
         return events
     return _run
+
+
+LIST_KEYS = ("attempts", "rounds", "rejections")
+
+
+def merged_state(events) -> dict:
+    """Fold the (node, update) events into the final run state (the list keys accumulate, as in the graph)."""
+    state: dict = {}
+    for _, update in events:
+        for key, value in update.items():
+            if key in LIST_KEYS:
+                state[key] = list(state.get(key, [])) + list(value)
+            else:
+                state[key] = value
+    return state
+
+
+def nodes_of(events) -> list[str]:
+    return [n for n, _ in events]

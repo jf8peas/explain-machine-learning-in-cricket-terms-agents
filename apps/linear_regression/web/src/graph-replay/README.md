@@ -18,11 +18,11 @@ A framework-free web component that draws any agent graph and replays a run of i
 
 ## Events it emits
 
-`replaychange` (bubbles, composed) on every change. `detail`: `{ cursor, steps, finished, atEnd, state, finalState }`, where `state` is the accumulated state at the step on display and `finalState` is the state after the last step once the stream has finished. Host pages use this to show their own results; the component never interprets the state.
+`refused` when a start is refused, and `replaychange` (bubbles, composed) on every change. `detail`: `{ cursor, steps, finished, atEnd, state, finalState }`, where `state` is the accumulated state at the step on display and `finalState` is the state after the last step once the stream has finished. Host pages use this to show their own results; the component never interprets the state.
 
 ## Behaviour
 
-Draws the whole graph before a run (dashed, labelled conditional edges); Play, Pause/Resume, Step, Back, Reset, a speed control, a clickable timeline of steps reached, and ← / → keys. Fetching is separate from display: events are buffered and shown at the chosen pace, and Back, jumping and the timeline replay from the buffer without rerunning the agent. Pressing Play again aborts the current fetch and starts clean. Travelling-marker animation is switched off under `prefers-reduced-motion`.
+Draws the whole graph before a run (dashed, labelled conditional edges); Play, Pause/Resume, Step, Back, Reset, a speed control, a clickable timeline of steps reached, and ← / → keys. Fetching is separate from display: events are buffered and shown at the chosen pace, and Back, jumping and the timeline replay from the buffer without rerunning the agent. Play is disabled while a run is streaming and comes back when it ends (nothing is aborted and restarted; Reset only replays what has arrived). A node with `actor: "llm"` in the structure is drawn with a dashed outline and a small tag, and its events are marked in the event panel; `actor` is optional and means nothing beyond styling. If the server refuses a start (a non-2xx response with a JSON `message`), the message is shown, earlier results stay visible, and a `refused` event (`detail.message`) is emitted. Travelling-marker animation is switched off under `prefers-reduced-motion`.
 
 ## Files
 

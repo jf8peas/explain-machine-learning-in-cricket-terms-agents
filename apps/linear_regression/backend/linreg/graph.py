@@ -1,33 +1,67 @@
-"""Builds the LangGraph StateGraph for the agent (app-specific)."""
+"""Builds the LangGraph StateGraph for the agent (app-specific).
+
+load_data -> split -> explore -> baseline -> propose_features -> check_proposal -> fit_model -> evaluate
+              (back to propose_features, or on to forward_selection) -> final_test -> explain_in_cricket_terms
+
+`propose_features` is the only language-model node; every other node is ordinary code.
+"""
 from __future__ import annotations
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from . import nodes
+from .llm_client import LlmClient
 from .state import RunState
+
+# Which nodes are the language model's and which are code; the visualiser draws them differently.
+NODE_ACTORS = {name: "code" for name in ["load_data", "split", "explore", "baseline", "check_proposal", "fit_model",
+                                         "evaluate", "forward_selection", "final_test", "explain_in_cricket_terms"]}
+NODE_ACTORS["propose_features"] = "llm"
 
 
 def route_after_load(state: RunState) -> str:
     return "stop" if state.get("data_error") else "ok"
 
 
+def route_after_check(state: RunState) -> str:
+    """fit, rejected, or finished. A model that fails also ends the model's part (the decision says why)."""
+    branch = state["decision"]["branch"]
+    return "finished" if branch == "failed" else branch
+
+
 def route_after_evaluate(state: RunState) -> str:
-    return state["decision"]["branch"]
+    return state["decision"]["branch"]          # continue or stop
 
 
-def build_graph():
+def route_after_forward(state: RunState) -> str:
+    return state["decision"]["branch"]          # again or done
+
+
+def build_graph(llm: LlmClient):
     g = StateGraph(RunState)
-    for name in ["load_data", "explore", "split", "baseline", "fit_model", "evaluate", "tune",
-                 "explain_in_cricket_terms"]:
+
+    def propose_features(state: RunState, config: RunnableConfig) -> dict:
+        return nodes.propose_features(state, config, llm)
+
+    for name in ["load_data", "split", "explore", "baseline", "check_proposal", "fit_model", "evaluate",
+                 "forward_selection", "final_test", "explain_in_cricket_terms"]:
         g.add_node(name, getattr(nodes, name))
+    g.add_node("propose_features", propose_features)
+
     g.add_edge(START, "load_data")
-    g.add_conditional_edges("load_data", route_after_load, {"ok": "explore", "stop": END})
-    g.add_edge("explore", "split")
-    g.add_edge("split", "baseline")
-    g.add_edge("baseline", "fit_model")
+    g.add_conditional_edges("load_data", route_after_load, {"ok": "split", "stop": END})
+    g.add_edge("split", "explore")
+    g.add_edge("explore", "baseline")
+    g.add_edge("baseline", "propose_features")
+    g.add_edge("propose_features", "check_proposal")
+    g.add_conditional_edges("check_proposal", route_after_check, {
+        "fit": "fit_model", "rejected": "propose_features", "finished": "forward_selection"})
     g.add_edge("fit_model", "evaluate")
-    g.add_conditional_edges("evaluate", route_after_evaluate,
-                            {"tune": "tune", "explain": "explain_in_cricket_terms"})
-    g.add_edge("tune", "fit_model")
+    g.add_conditional_edges("evaluate", route_after_evaluate, {"continue": "propose_features",
+                                                               "stop": "forward_selection"})
+    g.add_conditional_edges("forward_selection", route_after_forward, {"again": "forward_selection",
+                                                                       "done": "final_test"})
+    g.add_edge("final_test", "explain_in_cricket_terms")
     g.add_edge("explain_in_cricket_terms", END)
     return g.compile()

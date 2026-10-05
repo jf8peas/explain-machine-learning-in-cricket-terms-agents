@@ -1,6 +1,6 @@
 // <tab-set> and <data-grid> given an unrelated table, in a page with no app code: they work unchanged.
 import { readFileSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const firstName = (page: import("@playwright/test").Page) =>
   page.locator(".dg-grid .tabulator-row").first().locator('.tabulator-cell[tabulator-field="name"]');

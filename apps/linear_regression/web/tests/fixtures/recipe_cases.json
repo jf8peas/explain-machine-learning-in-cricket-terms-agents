@@ -1,0 +1,322 @@
+{
+ "catalogue": [
+  {
+   "id": "runs_at_10",
+   "label": "runs scored at the halfway mark",
+   "description": "Runs the batting side had scored after 10 overs.",
+   "unit": "runs",
+   "bounds": {
+    "min": 0
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "runs_at_10"
+   ]
+  },
+  {
+   "id": "wickets_at_10",
+   "label": "wickets lost at the halfway mark",
+   "description": "Wickets the batting side had lost after 10 overs.",
+   "unit": "wickets",
+   "bounds": {
+    "min": 0,
+    "max": 9
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "wickets_at_10"
+   ]
+  },
+  {
+   "id": "powerplay_runs",
+   "label": "runs scored in the powerplay",
+   "description": "Runs scored in the powerplay, overs 1 to 6.",
+   "unit": "runs",
+   "bounds": {
+    "min": 0
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "powerplay_runs"
+   ]
+  },
+  {
+   "id": "powerplay_wickets",
+   "label": "wickets lost in the powerplay",
+   "description": "Wickets lost in the powerplay, overs 1 to 6.",
+   "unit": "wickets",
+   "bounds": {
+    "min": 0,
+    "max": 9
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "powerplay_wickets"
+   ]
+  },
+  {
+   "id": "runs_overs_7_10",
+   "label": "runs scored in overs 7 to 10",
+   "description": "Runs scored in overs 7 to 10, the stretch just after the powerplay.",
+   "unit": "runs",
+   "bounds": {
+    "min": 0
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "runs_overs_7_10"
+   ]
+  },
+  {
+   "id": "wickets_overs_7_10",
+   "label": "wickets lost in overs 7 to 10",
+   "description": "Wickets lost in overs 7 to 10, the stretch just after the powerplay.",
+   "unit": "wickets",
+   "bounds": {
+    "min": 0,
+    "max": 9
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "wickets_overs_7_10"
+   ]
+  },
+  {
+   "id": "fours_at_10",
+   "label": "fours hit",
+   "description": "Fours hit in the first 10 overs.",
+   "unit": "fours",
+   "bounds": {
+    "min": 0,
+    "max": 60
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "fours_at_10"
+   ]
+  },
+  {
+   "id": "sixes_at_10",
+   "label": "sixes hit",
+   "description": "Sixes hit in the first 10 overs.",
+   "unit": "sixes",
+   "bounds": {
+    "min": 0,
+    "max": 60
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "sixes_at_10"
+   ]
+  },
+  {
+   "id": "dot_balls_at_10",
+   "label": "dot balls faced",
+   "description": "Balls in the first 10 overs that went for no runs at all.",
+   "unit": "balls",
+   "bounds": {
+    "min": 0,
+    "max": 80
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "dot_balls_at_10"
+   ]
+  },
+  {
+   "id": "extras_at_10",
+   "label": "extras conceded",
+   "description": "Extras the bowling side gave away in the first 10 overs: wides, no-balls, byes and leg-byes.",
+   "unit": "runs",
+   "bounds": {
+    "min": 0,
+    "max": 60
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "extras_at_10"
+   ]
+  },
+  {
+   "id": "partnership_runs",
+   "label": "runs in the current partnership",
+   "description": "Runs scored by the pair at the crease since the last wicket fell, as the 10th over ended.",
+   "unit": "runs",
+   "bounds": {
+    "min": 0
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "partnership_runs"
+   ]
+  },
+  {
+   "id": "balls_since_last_wicket",
+   "label": "balls since the last wicket",
+   "description": "Legal balls bowled since the last wicket fell, as the 10th over ended. Equals all the balls bowled if no wicket had fallen.",
+   "unit": "balls",
+   "bounds": {
+    "min": 0,
+    "max": 80
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "balls_since_last_wicket"
+   ]
+  },
+  {
+   "id": "wickets_in_hand",
+   "label": "wickets in hand",
+   "description": "Wickets still in hand after 10 overs: 10 minus the wickets lost.",
+   "unit": "wickets",
+   "bounds": {
+    "min": 1,
+    "max": 10
+   },
+   "source": {
+    "difference": {
+     "from": 10,
+     "of": "wickets_at_10"
+    }
+   },
+   "inputs": [
+    "wickets_at_10"
+   ]
+  },
+  {
+   "id": "runs_x_wickets_in_hand",
+   "label": "runs at the halfway mark times wickets in hand",
+   "description": "Runs at 10 overs multiplied by wickets in hand. It is high only when a side is scoring fast and still has plenty of wickets to attack with.",
+   "unit": "runs x wickets",
+   "bounds": {
+    "min": 0
+   },
+   "source": {
+    "product": [
+     "runs_at_10",
+     "wickets_in_hand"
+    ]
+   },
+   "inputs": [
+    "runs_at_10",
+    "wickets_at_10"
+   ]
+  },
+  {
+   "id": "is_ipl",
+   "label": "innings played in the IPL",
+   "description": "1 if the innings was played in the IPL, otherwise 0. A T20 international innings has 0 in both competition columns.",
+   "unit": "0/1",
+   "bounds": {
+    "min": 0,
+    "max": 1
+   },
+   "source": {
+    "indicator": {
+     "column": "competition",
+     "equals": "ipl"
+    }
+   },
+   "inputs": [
+    "competition"
+   ]
+  },
+  {
+   "id": "is_bbl",
+   "label": "innings played in the BBL",
+   "description": "1 if the innings was played in the BBL, otherwise 0. A T20 international innings has 0 in both competition columns.",
+   "unit": "0/1",
+   "bounds": {
+    "min": 0,
+    "max": 1
+   },
+   "source": {
+    "indicator": {
+     "column": "competition",
+     "equals": "bbl"
+    }
+   },
+   "inputs": [
+    "competition"
+   ]
+  }
+ ],
+ "cases": [
+  {
+   "inputs": {
+    "runs_at_10": 80,
+    "wickets_at_10": 0,
+    "competition": "ipl"
+   },
+   "derived": {
+    "wickets_in_hand": 10,
+    "runs_x_wickets_in_hand": 800,
+    "is_ipl": 1,
+    "is_bbl": 0
+   }
+  },
+  {
+   "inputs": {
+    "runs_at_10": 55,
+    "wickets_at_10": 9,
+    "competition": "t20i"
+   },
+   "derived": {
+    "wickets_in_hand": 1,
+    "runs_x_wickets_in_hand": 55,
+    "is_ipl": 0,
+    "is_bbl": 0
+   }
+  },
+  {
+   "inputs": {
+    "runs_at_10": 101,
+    "wickets_at_10": 3,
+    "competition": "bbl"
+   },
+   "derived": {
+    "wickets_in_hand": 7,
+    "runs_x_wickets_in_hand": 707,
+    "is_ipl": 0,
+    "is_bbl": 1
+   }
+  },
+  {
+   "inputs": {
+    "runs_at_10": 0,
+    "wickets_at_10": 5,
+    "competition": "bbl"
+   },
+   "derived": {
+    "wickets_in_hand": 5,
+    "runs_x_wickets_in_hand": 0,
+    "is_ipl": 0,
+    "is_bbl": 1
+   }
+  }
+ ]
+}

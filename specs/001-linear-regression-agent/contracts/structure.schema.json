@@ -14,7 +14,11 @@
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string" },
-          "kind": { "enum": ["start", "end", "node"] }
+          "kind": { "enum": ["start", "end", "node"] },
+          "actor": {
+            "enum": ["llm", "code"],
+            "description": "Optional. Who does the step: a language model or ordinary code. The visualiser styles nodes by it and knows nothing else about the app."
+          }
         }
       }
     },

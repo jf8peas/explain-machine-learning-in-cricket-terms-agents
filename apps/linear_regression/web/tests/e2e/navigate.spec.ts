@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { countRunRequests, open, playToEnd, timelineItems } from "./helpers";
 
 const current = (page: import("@playwright/test").Page) => page.locator('[data-testid=timeline-item][aria-current="step"]');
@@ -12,16 +12,16 @@ test("stepping, the timeline and Reset replay from the buffer without rerunning 
   await expect(current(page)).toContainText("explain_in_cricket_terms");
 
   await page.keyboard.press("ArrowLeft");
-  await expect(current(page)).toHaveText(`${last}. evaluate`);
+  await expect(current(page)).toHaveText(`${last}. final_test`);
   await page.keyboard.press("ArrowLeft");
-  await expect(current(page)).toHaveText(`${last - 1}. fit_model`);
+  await expect(current(page)).toHaveText(`${last - 1}. forward_selection`);
   await page.keyboard.press("ArrowRight");
-  await expect(current(page)).toHaveText(`${last}. evaluate`);
+  await expect(current(page)).toHaveText(`${last}. final_test`);
 
   await timelineItems(page).nth(2).click();
-  await expect(page.getByTestId("event-node")).toHaveText("split");
-  await page.getByTestId("back").click();
   await expect(page.getByTestId("event-node")).toHaveText("explore");
+  await page.getByTestId("back").click();
+  await expect(page.getByTestId("event-node")).toHaveText("split");
 
   expect(requests.count()).toBe(1); // nothing was refetched
 

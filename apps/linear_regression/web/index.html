@@ -46,6 +46,7 @@
     ul.explanation { padding-left: 1.2em; max-width: 75ch; }
     ul.explanation li { margin-bottom: 6px; }
     form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .tryit-fields { display: contents; }
     form label { display: flex; flex-direction: column; font-size: .9rem; color: var(--muted); gap: 4px; }
     form input { font: inherit; width: 9.5em; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
     form button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
@@ -54,6 +55,24 @@
     footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
     .attribution { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
     a { color: var(--accent); }
+    .variation-note { margin: 0 0 10px; max-width: 75ch; font-size: .9rem; }
+    .variation-note strong { color: var(--text); }
+    .model-picker { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 10px; }
+    .model-picker select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-left: 6px; }
+    details.catalogue { margin: 0 0 12px; font-size: .95rem; }
+    details.catalogue summary { cursor: pointer; color: var(--accent); }
+    .catalogue-list { margin: 8px 0 0; padding-left: 1.2em; columns: 2 24em; column-gap: 28px; }
+    .catalogue-list li { margin-bottom: 6px; break-inside: avoid; }
+    ol.rounds { padding-left: 1.4em; max-width: 80ch; }
+    ol.rounds li { margin-bottom: 12px; }
+    .reason { margin: 4px 0 4px; padding: 6px 12px; border-left: 4px solid var(--accent); background: var(--bg); color: var(--text); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
+    .tag { display: inline-block; margin-left: 8px; font-size: .75rem; font-weight: 600; color: var(--muted); }
+    .outcome { font-size: .9rem; color: var(--muted); }
+    .outcome.rejected { color: var(--lose); }
+    .outcome.fit { color: var(--win); }
+    .notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); }
+    .winner { flex-basis: 100%; margin: 0; font-weight: 600; }
+    section[data-testid=leaderboard] h3, section[data-testid=rounds] h3 { margin-top: 12px; }
     .data-intro { max-width: 75ch; margin-top: 0; }
     .data-intro strong { color: var(--text); }
   </style>
@@ -68,25 +87,40 @@
       <div class="intro-body">
         <p>
           This app uses LangGraph to build an <strong>agent</strong>: a <strong>graph</strong> of steps, each doing one
-          job and passing its results on. Press Play to watch it work one step at a time, including when it decides to
-          add more information and try again, or stop and explain. It follows a fixed graph and decides from the
-          numbers, with no AI language model.
+          job and passing its results on. Press Play to watch it work one step at a time. One step is different from the
+          rest: a <strong>language model</strong> decides which features to try next, using what it knows about cricket
+          and the results so far. Every other step is ordinary code, and <strong>every number you see comes from that
+          code</strong>, never from the language model.
         </p>
         <p>
-          The problem: predict a T20 first innings' final total after 10 overs, from runs, wickets lost and powerplay
-          runs (overs 1–6) in past men's T20 internationals, IPL and BBL innings. <strong>Linear regression</strong>
-          fits a straight line, so each input gets a simple "runs per unit" effect we can explain in cricket terms.
-          The benchmark is the broadcaster's projected score: current run rate × 20 overs.
+          The problem: predict a T20 first innings' final total after 10 overs, from measurements taken at that point
+          (runs, wickets, boundaries, the current partnership and more) in past men's T20 internationals, IPL and BBL
+          innings. <strong>Linear regression</strong> fits a straight line, so each feature gets a simple "runs per
+          unit" effect we can explain in cricket terms. <strong>Forward selection</strong>, a simple mechanical method,
+          runs alongside as a rival. The benchmark is the broadcaster's projected score: current run rate × 20 overs.
         </p>
       </div>
       <p class="goal" data-testid="goal">
         <strong>The goal:</strong> beat the broadcaster's projection by at least 3 runs of average error, on the latest
-        calendar year, which the model never saw in training.
+        calendar year, which nothing was trained or chosen on.
       </p>
     </section>
 
     <tab-set default-tab="working" aria-label="Page sections">
     <div data-tab="working" data-label="Working">
+    <details class="catalogue" data-testid="catalogue">
+      <summary>What the agent can choose from</summary>
+      <p class="muted" data-testid="catalogue-intro"></p>
+      <ul class="catalogue-list" data-testid="catalogue-list"></ul>
+    </details>
+    <div class="model-picker" data-testid="model-picker">
+      <label>Language model <select data-testid="model-select" aria-describedby="model-note"></select></label>
+      <span class="muted" id="model-note" data-testid="model-note"></span>
+    </div>
+    <p class="muted variation-note" data-testid="variation-note">
+      Because a language model is involved, <strong>runs can differ each time</strong>, even with the same settings.
+      That is expected: the code checks and scores everything the model proposes, so the numbers stay honest.
+    </p>
     <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
 
     <h2>What the agent found</h2>
@@ -99,9 +133,7 @@
     <section class="card" data-testid="tryit">
       <p class="muted" data-testid="tryit-hint">Run the agent first, then use its model on an innings of your own.</p>
       <form novalidate>
-        <label>Runs at 10 overs <input name="runs_at_10" type="number" inputmode="numeric" min="0" /></label>
-        <label>Wickets at 10 overs <input name="wickets_at_10" type="number" inputmode="numeric" min="0" max="9" /></label>
-        <label>Powerplay runs (overs 1–6) <input name="powerplay_runs" type="number" inputmode="numeric" min="0" /></label>
+        <span class="tryit-fields" data-testid="tryit-fields"></span>
         <button type="submit" disabled>Predict</button>
       </form>
       <p class="error" role="alert" data-testid="tryit-error"></p>
@@ -114,7 +146,7 @@
       <h2>The innings the agent works from</h2>
       <p class="muted data-intro">
         Every row is one real first innings. The agent reads these rows, learns from the earlier years
-        (<strong>Training</strong>) and is marked on the latest year (<strong>Test</strong>). Sort, search and filter
+        (<strong>Training</strong>), chooses features on the year before the latest (<strong>Validation</strong>) and is marked once on the latest year (<strong>Test</strong>). Sort, search and filter
         them, copy cells into a spreadsheet, or download the lot.
       </p>
       <data-grid noun="innings"></data-grid>

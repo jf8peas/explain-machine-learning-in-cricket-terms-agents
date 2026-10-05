@@ -1,5 +1,5 @@
 {
-  "download_date": "2026-10-01",
+  "download_date": "2026-10-04",
   "sources": [
     {
       "competition": "t20i",
@@ -62,6 +62,68 @@
     "columns": {
       "is_ipl": "ipl",
       "is_bbl": "bbl"
+    }
+  },
+  "features": {
+    "runs_at_10": {
+      "measured": true
+    },
+    "wickets_at_10": {
+      "measured": true
+    },
+    "powerplay_runs": {
+      "measured": true
+    },
+    "powerplay_wickets": {
+      "measured": true
+    },
+    "runs_overs_7_10": {
+      "measured": true
+    },
+    "wickets_overs_7_10": {
+      "measured": true
+    },
+    "fours_at_10": {
+      "measured": true
+    },
+    "sixes_at_10": {
+      "measured": true
+    },
+    "dot_balls_at_10": {
+      "measured": true
+    },
+    "extras_at_10": {
+      "measured": true
+    },
+    "partnership_runs": {
+      "measured": true
+    },
+    "balls_since_last_wicket": {
+      "measured": true
+    },
+    "wickets_in_hand": {
+      "difference": {
+        "from": 10,
+        "of": "wickets_at_10"
+      }
+    },
+    "runs_x_wickets_in_hand": {
+      "product": [
+        "runs_at_10",
+        "wickets_in_hand"
+      ]
+    },
+    "is_ipl": {
+      "indicator": {
+        "column": "competition",
+        "equals": "ipl"
+      }
+    },
+    "is_bbl": {
+      "indicator": {
+        "column": "competition",
+        "equals": "bbl"
+      }
     }
   }
 }

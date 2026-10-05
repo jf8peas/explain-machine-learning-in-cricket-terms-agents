@@ -10,22 +10,13 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .data_loading import REQUIRED_COLUMNS, DataError
+from .data_loading import DataError
 
 REFERENCE = "t20i"
 # dummy column -> the competition it stands for (order matters: it is the column order)
 DUMMIES = {"is_ipl": "ipl", "is_bbl": "bbl"}
 DUMMY_COLUMNS = list(DUMMIES)
 KNOWN_COMPETITIONS = {REFERENCE, *DUMMIES.values()}
-
-
-def _with_dummies_after_competition(columns: list[str]) -> list[str]:
-    at = columns.index("competition") + 1
-    return columns[:at] + DUMMY_COLUMNS + columns[at:]
-
-
-# The full ordered column list of the prepared innings table.
-PREPARED_COLUMNS = _with_dummies_after_competition(REQUIRED_COLUMNS)
 
 
 class UnknownCompetition(ValueError):

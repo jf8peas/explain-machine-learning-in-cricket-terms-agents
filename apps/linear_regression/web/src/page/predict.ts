@@ -1,4 +1,7 @@
-// Try-your-own: runs entirely in the browser from the completed run's coefficients.
+// Try-your-own: runs entirely in the browser from the finished run's winning model and the feature catalogue.
+// The form asks only for base measurements; derived values (wickets in hand and so on) are worked out with the
+// shared recipes, and competition is a choice that sets the dummies.
+import { deriveAll, type Values } from "./recipes";
 
 export interface Model {
   features: string[];
@@ -6,35 +9,82 @@ export interface Model {
   intercept: number;
 }
 
-export interface Innings {
-  runs_at_10: number;
-  wickets_at_10: number;
-  powerplay_runs: number;
+export interface CatalogueFeature {
+  id: string;
+  label: string;
+  unit: string;
+  bounds: { min: number; max?: number };
+  source: Record<string, unknown>;
+  inputs: string[];
 }
 
-export const MAX_WICKETS_AT_10 = 9;
+export interface CompetitionChoice {
+  column: string;
+  reference: string;
+  options: { value: string; label: string }[];
+}
 
-export function validate(i: Partial<Record<keyof Innings, number>>): string[] {
+export interface Catalogue {
+  limit: number;
+  features: CatalogueFeature[];
+  competition: CompetitionChoice;
+}
+
+export type Field =
+  | { kind: "number"; id: string; label: string; min: number; max?: number }
+  | { kind: "choice"; id: string; label: string; options: { value: string; label: string }[] };
+
+const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** The base measurements a model needs. Runs at 10 overs always comes first: the TV projection needs it too. */
+export function fieldsFor(features: string[], catalogue: Catalogue): Field[] {
+  const byId = new Map(catalogue.features.map((f) => [f.id, f]));
+  const needed = ["runs_at_10"];
+  for (const id of features) for (const base of byId.get(id)?.inputs ?? [id]) if (!needed.includes(base)) needed.push(base);
+  return needed.map((id): Field => {
+    if (id === catalogue.competition.column) {
+      return { kind: "choice", id, label: "Competition", options: catalogue.competition.options };
+    }
+    const f = byId.get(id)!;
+    return { kind: "number", id, label: capitalise(f.label), min: f.bounds.min, max: f.bounds.max };
+  });
+}
+
+export type Entered = Record<string, number | string | undefined>;
+
+export function validate(entered: Entered, fields: Field[]): string[] {
   const errors: string[] = [];
-  const fields: [keyof Innings, string][] = [
-    ["runs_at_10", "Runs at 10 overs"], ["wickets_at_10", "Wickets at 10 overs"],
-    ["powerplay_runs", "Powerplay runs"],
-  ];
-  for (const [k, name] of fields) {
-    const v = i[k];
-    if (v === undefined || Number.isNaN(v)) errors.push(`${name}: enter a number.`);
-    else if (v < 0) errors.push(`${name} cannot be negative.`);
-    else if (!Number.isInteger(v)) errors.push(`${name} must be a whole number.`);
+  for (const f of fields) {
+    const v = entered[f.id];
+    if (f.kind === "choice") {
+      if (!f.options.some((o) => o.value === v)) errors.push(`${f.label}: choose one.`);
+      continue;
+    }
+    if (v === undefined || typeof v !== "number" || Number.isNaN(v)) errors.push(`${f.label}: enter a number.`);
+    else if (!Number.isInteger(v)) errors.push(`${f.label} must be a whole number.`);
+    else if (v < f.min) errors.push(f.min === 0 ? `${f.label} cannot be negative.` : `${f.label} must be at least ${f.min}.`);
+    else if (f.max !== undefined && v > f.max) errors.push(`${f.label} must be between ${f.min} and ${f.max}.`);
   }
   if (errors.length) return errors;
-  if (i.wickets_at_10! > MAX_WICKETS_AT_10) errors.push(`Wickets at 10 overs must be between 0 and ${MAX_WICKETS_AT_10}.`);
-  if (i.powerplay_runs! > i.runs_at_10!) errors.push("Powerplay runs cannot be more than the runs at 10 overs.");
+  const runs = entered.runs_at_10 as number;
+  if (typeof entered.powerplay_runs === "number" && entered.powerplay_runs > runs) {
+    errors.push("Powerplay runs cannot be more than the runs at 10 overs.");
+  }
+  if (typeof entered.runs_overs_7_10 === "number" && entered.runs_overs_7_10 > runs) {
+    errors.push("Runs in overs 7 to 10 cannot be more than the runs at 10 overs.");
+  }
   return errors;
 }
 
-export function predict(m: Model, i: Innings): number {
+/** Every feature value for the model: the measurements as entered, plus the derived ones from the recipes. */
+export function featureValues(entered: Entered, catalogue: Catalogue): Values {
+  const base = Object.fromEntries(Object.entries(entered).filter(([, v]) => v !== undefined)) as Values;
+  return { ...base, ...deriveAll(catalogue.features, base) };
+}
+
+export function predict(m: Model, values: Values): number {
   let total = m.intercept;
-  for (const f of m.features) total += (m.coefficients[f] ?? 0) * i[f as keyof Innings];
+  for (const f of m.features) total += (m.coefficients[f] ?? 0) * (values[f] as number);
   return total;
 }
 

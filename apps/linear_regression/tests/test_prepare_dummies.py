@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 
 import prepare_data
-from linreg.competition_dummies import DUMMY_COLUMNS, PREPARED_COLUMNS, UnknownCompetition, manifest_entry
+from linreg import features
+from linreg.competition_dummies import DUMMY_COLUMNS, UnknownCompetition, manifest_entry
+
+PREPARED_COLUMNS = features.PREPARED_COLUMNS
 from tests.fixtures.builders import NORMAL_RUNS, NORMAL_WICKETS, make_innings, make_match
 
 
@@ -101,16 +104,21 @@ def test_a_failed_write_leaves_existing_files_unchanged_and_no_temp_files(tmp_pa
     assert not list(tmp_path.glob("*.tmp"))
 
 
-def old_style_files(folder: Path, competitions=("t20i", "ipl", "bbl", "ipl")):
-    """An innings.csv and manifest.json as they were before the dummies existed."""
-    cols = [c for c in PREPARED_COLUMNS if c not in DUMMY_COLUMNS]
+def old_style_files(folder: Path, competitions=("t20i", "ipl", "bbl", "ipl"), with_measured: bool = True):
+    """An innings.csv and manifest.json as they were before the dummies (and, unless asked, before the derived columns)
+    existed: the measured columns only, or just the original nine when with_measured is False."""
+    original_nine = ["match_id", "match_date", "season", "competition", "venue", "runs_at_10", "wickets_at_10",
+                     "powerplay_runs", "final_total"]
+    cols = [c for c in PREPARED_COLUMNS if c not in features.DERIVED] if with_measured else original_nine
     with open(folder / "innings.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
         for i, comp in enumerate(competitions):
-            w.writerow({"match_id": f"id{i}", "match_date": f"2023-0{i + 1}-01", "season": "2023", "competition": comp,
+            row = {c: 3 + i for c in cols}
+            row.update({"match_id": f"id{i}", "match_date": f"2023-0{i + 1}-01", "season": "2023", "competition": comp,
                         "venue": 'Ground, "North"', "runs_at_10": 70 + i, "wickets_at_10": i, "powerplay_runs": 50,
                         "final_total": 170 + i})
+            w.writerow(row)
     manifest = {"download_date": "2026-10-01", "sources": [{"competition": "ipl", "url": "x"}],
                 "counts": {"ipl": {"matches_read": 5, "excluded": {"dls": 1}, "innings_kept": 2},
                            "total_innings": len(competitions)}, "attribution": "Cricsheet"}
@@ -124,10 +132,11 @@ def test_from_existing_adds_the_dummies_and_changes_nothing_else(tmp_path):
     prepare_data.run_from_existing(tmp_path)
     rows = read(tmp_path / "innings.csv")
     assert list(rows[0]) == PREPARED_COLUMNS
-    assert [{k: v for k, v in r.items() if k not in DUMMY_COLUMNS} for r in rows] == before_rows  # same values and order
+    assert [{k: v for k, v in r.items() if k not in features.DERIVED} for r in rows] == before_rows  # same values and order
     assert [(r["is_ipl"], r["is_bbl"]) for r in rows] == [("0", "0"), ("1", "0"), ("0", "1"), ("1", "0")]
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     assert manifest.pop("dummies") == manifest_entry()
+    assert manifest.pop("features") == features.manifest_entry()
     assert manifest == before_manifest  # download date, sources, counts, attribution all kept
     assert not list(tmp_path.glob("*.tmp"))
 

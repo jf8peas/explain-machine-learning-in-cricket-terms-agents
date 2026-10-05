@@ -1,6 +1,6 @@
 // Data tab: tabs, spreadsheet grid, sort/search/filter, split visibility, summary, CSV download, failure.
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { countRunRequests, open, playToEnd, timelineItems } from "./helpers";
 
 const TOTAL = 5146; // manifest total_innings; checked against the agent's load_data step below
@@ -58,7 +58,6 @@ test.describe("tabs", () => {
     const form = page.getByTestId("tryit");
     await form.locator("[name=runs_at_10]").fill("84");
     await form.locator("[name=wickets_at_10]").fill("2");
-    await form.locator("[name=powerplay_runs]").fill("52");
     const steps = await timelineItems(page).count();
     const explanation = (await page.getByTestId("explanation").textContent())!;
     for (let i = 0; i < 3; i++) {
@@ -69,7 +68,6 @@ test.describe("tabs", () => {
     await expect(timelineItems(page)).toHaveCount(steps);
     await expect(form.locator("[name=runs_at_10]")).toHaveValue("84");
     await expect(form.locator("[name=wickets_at_10]")).toHaveValue("2");
-    await expect(form.locator("[name=powerplay_runs]")).toHaveValue("52");
   });
 
   test("opening #data directly shows the grid without a run", async ({ page }) => {
@@ -136,7 +134,8 @@ test.describe("grid", () => {
     await expect(page.getByTestId("heading-help")).toContainText("Runs at 10 overs");
     await expect(page.getByTestId("heading-help")).toContainText("after 10 overs");
     await page.getByTestId("column-guide").locator("summary").click();
-    await expect(page.getByTestId("column-guide").locator("dt")).toHaveCount(12);
+    const columnCount = (await (await page.request.get("/api/data")).json()).columns.length;
+    await expect(page.getByTestId("column-guide").locator("dt")).toHaveCount(columnCount);
     await expect(page.getByTestId("column-guide")).toContainText("Used for");
   });
 
@@ -236,7 +235,7 @@ test.describe("competition dummy columns", () => {
     await expect(heading(page, "is_bbl")).toContainText(dummyHeadings[1]);
     await heading(page, "is_ipl").focus();
     await expect(page.getByTestId("heading-help")).toContainText("IPL (0/1)");
-    await expect(page.getByTestId("heading-help")).toContainText("1 if it was played in the IPL");
+    await expect(page.getByTestId("heading-help")).toContainText("1 if the innings was played in the IPL");
     await page.getByTestId("column-guide").locator("summary").click();
     await expect(page.getByTestId("column-guide")).toContainText("BBL (0/1)");
     await expect(page.getByTestId("column-guide")).toContainText("otherwise 0");
@@ -407,18 +406,57 @@ test.describe("sort, search and filter", () => {
   });
 });
 
-test.describe("training and test", () => {
-  test("Used for = Test shows only the latest year and matches the agent's test set", async ({ page }) => {
+test.describe("training, validation and test", () => {
+  const slice = async (page: Page, value: string) => {
+    await page.getByTestId("filter-used_for").selectOption(value);
+    return Number(((await count(page).innerText()).match(/Showing ([\d,]+)/) as RegExpMatchArray)[1].replace(/,/g, ""));
+  };
+
+  test("the Used for filter offers Training, Validation and Test", async ({ page }) => {
+    await openData(page);
+    await expect(page.getByTestId("filter-used_for").locator("option")).toHaveText(["All", "Test", "Training", "Validation"]);
+  });
+
+  test("each slice shows rows from the right years and its count matches the summary", async ({ page }) => {
+    await openData(page);
+    const summary = await (await page.request.get("/api/data")).json();
+    const section = summary.summary.sections.find((x: { title: string }) => x.title.startsWith("Slices"));
+    const shown = Object.fromEntries(section.rows.map((r: { label: string; value: string }) =>
+      [r.label.split(" ")[0], Number(r.value.replace(/,/g, ""))]));
+    const years = [...new Set(summary.rows.map((r: string[]) => Number(r[1].slice(0, 4))))].sort() as number[];
+    const [testYear, validationYear] = [years[years.length - 1], years[years.length - 2]];
+
+    expect(await slice(page, "test")).toBe(shown.Test);
+    await expect(cell(page, 0, "used_for")).toHaveText("Test");
+    await expect(cell(page, 0, "match_date")).toContainText(String(testYear));
+    expect(await slice(page, "validation")).toBe(shown.Validation);
+    await expect(cell(page, 0, "used_for")).toHaveText("Validation");
+    await expect(cell(page, 0, "match_date")).toContainText(String(validationYear));
+    expect(await slice(page, "training")).toBe(shown.Training);
+    await expect(cell(page, 0, "used_for")).toHaveText("Training");
+    expect(shown.Training + shown.Validation + shown.Test).toBe(TOTAL);
+  });
+
+  test("the agent's own split step agrees on the test year's count", async ({ page }) => {
     await openData(page);
     const steps = await runSteps(page);
-    await page.getByTestId("filter-used_for").selectOption("test");
-    await expect(count(page)).toHaveText(`Showing ${steps.split.split.test_n.toLocaleString("en")} of ${TOTAL.toLocaleString("en")} innings`);
-    await expect(cell(page, 0, "used_for")).toHaveText("Test");
-    const year = String(steps.split.split.test_year);
-    await expect(cell(page, 0, "match_date")).toContainText(year);
-    await page.getByTestId("filter-used_for").selectOption("training");
-    await expect(count(page)).toContainText(`Showing ${steps.split.split.train_n.toLocaleString("en")} of`);
-    await expect(cell(page, 0, "used_for")).toHaveText("Training");
+    expect(await slice(page, "test")).toBe(steps.split.split.test_n);
+    await expect(cell(page, 0, "match_date")).toContainText(String(steps.split.split.test_year));
+  });
+
+  test("the new candidate columns have headings and descriptions on focus", async ({ page }) => {
+    await openData(page);
+    for (const [field, heading_, words] of [
+      ["powerplay_wickets", "Powerplay wickets (overs 1-6)", "powerplay"],
+      ["dot_balls_at_10", "Dot balls at 10 overs", "no runs"],
+      ["partnership_runs", "Partnership runs at 10 overs", "since the last wicket"],
+      ["wickets_in_hand", "Wickets in hand", "10 minus"],
+    ] as const) {
+      await expect(heading(page, field)).toContainText(heading_);
+      await heading(page, field).focus();
+      await expect(page.getByTestId("heading-help")).toContainText(heading_);
+      await expect(page.getByTestId("heading-help")).toContainText(words);
+    }
   });
 });
 
@@ -432,8 +470,8 @@ test.describe("summary", () => {
     await expect(summary).toContainText("Downloaded from Cricsheet");
     await expect(summary).toContainText("Excluded, and why");
     await expect(summary).toContainText("No result");
-    await expect(summary.getByTestId("section-note")).toContainText("prepare_data.py");
-    await expect(summary.getByTestId("section-note")).toContainText("before the agent runs");
+    const exclusionNote = summary.getByTestId("section-note").filter({ hasText: "prepare_data.py" });
+    await expect(exclusionNote).toContainText("before the agent runs");
     await expect(summary).toContainText("Innings per competition");
     await expect(page.getByTestId("attribution-foot")).toContainText("Open Data Commons Attribution License");
     await expect(page.getByTestId("attribution-download")).toContainText("Cricsheet");
@@ -448,7 +486,8 @@ test.describe("download", () => {
     await page.getByTestId("tab-data").click(); // click 1
     await expect(count(page)).toContainText(`${TOTAL.toLocaleString("en")} of`);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-csv").click()]); // click 2
-    expect(download.suggestedFilename()).toBe("t20-first-innings-2026-10-01.csv");
+    const downloaded = JSON.parse(readFileSync("../data/manifest.json", "utf8")).download_date; // the data's own download date
+    expect(download.suggestedFilename()).toBe(`t20-first-innings-${downloaded}.csv`);
     const raw = readFileSync((await download.path())!);
     expect([...raw.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // UTF-8 byte-order mark
     const rows = lines(raw.toString("utf8"));

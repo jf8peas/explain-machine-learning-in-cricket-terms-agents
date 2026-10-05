@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { loadEnv } from "vite";
 import { open } from "./helpers";
 
@@ -16,10 +16,11 @@ test("the intro is visible and links back to the main site in the same tab", asy
 
 test("the whole graph is drawn before anything runs", async ({ page }) => {
   await open(page);
-  for (const id of ["load_data", "explore", "split", "baseline", "fit_model", "evaluate", "tune", "explain_in_cricket_terms"]) {
+  for (const id of ["load_data", "split", "explore", "baseline", "propose_features", "check_proposal", "fit_model", "evaluate",
+    "forward_selection", "final_test", "explain_in_cricket_terms"]) {
     await expect(page.locator(`[data-node="${id}"]`)).toBeVisible();
   }
-  expect(await page.locator(".edge").count()).toBe(11);
+  expect(await page.locator(".edge").count()).toBe(17);
   expect(await page.locator(".node.active").count()).toBe(0);
   expect(await page.locator(".node.visited").count()).toBe(0);
 });
@@ -27,9 +28,9 @@ test("the whole graph is drawn before anything runs", async ({ page }) => {
 test("conditional edges are dashed and labelled with their branch", async ({ page }) => {
   await open(page);
   const conditional = page.locator(".edge.conditional");
-  await expect(conditional).toHaveCount(4);
+  await expect(conditional).toHaveCount(9);
   const labels = await conditional.locator("text").allTextContents();
-  expect(labels.sort()).toEqual(["explain", "ok", "stop", "tune"]);
+  expect(labels.sort()).toEqual(["again", "continue", "done", "finished", "fit", "ok", "rejected", "stop", "stop"]);
   const dash = await conditional.first().locator("path").evaluate((p) => getComputedStyle(p).strokeDasharray);
   expect(dash).not.toBe("none");
   const plain = await page.locator(".edge:not(.conditional)").first().locator("path").evaluate((p) => getComputedStyle(p).strokeDasharray);
