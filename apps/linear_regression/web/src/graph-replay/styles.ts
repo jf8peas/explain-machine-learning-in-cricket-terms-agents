@@ -50,8 +50,10 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 }
 .main > .graph { grid-area: graph; } .main > .legend { grid-area: legend; } .main > .side { grid-area: side; }
 @media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "legend" "graph" "side"; } }
-.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; }
-svg { display: block; width: 100%; height: auto; max-height: 640px; }
+/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays
+   readable, and the card is never shorter than the right-hand column was when the page loaded (--graph-min). */
+.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; min-height: var(--graph-min, 0); }
+svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 .side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .panel { border: 1px solid var(--gr-border); border-radius: 8px; padding: 8px 10px; background: var(--gr-surface); }
 .panel h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gr-muted); }
@@ -101,15 +103,19 @@ svg { display: block; width: 100%; height: auto; max-height: 640px; }
 .actor-pill.code { background: var(--gr-surface); color: var(--gr-muted); border: 1px solid var(--gr-border); }
 .node .tick { font-size: 11px; fill: var(--gr-visited-border); text-anchor: end; }
 .node .count { font-size: 11px; font-weight: 700; fill: var(--gr-bg); text-anchor: middle; }
-.node .count-bg { fill: var(--gr-accent); stroke: none; }
+/* more specific than the visited and active rules, which also match every circle in a node */
+.node .count-bg, .node.visited .count-bg, .node.active .count-bg { fill: var(--gr-accent); stroke: none; }
 /* stage badge (on each node) and band (behind the graph); the colour comes from --stage-colour set per element */
-.stage-badge circle { fill: var(--stage-colour); stroke: var(--gr-bg); stroke-width: 1.5; }
-.stage-badge text { fill: var(--gr-stage-text); font-size: 10.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-.stage-badge.unassigned circle { stroke: var(--gr-muted); stroke-dasharray: 2 2; }
+/* more specific than the node's run-state rules (visited, active), so a badge keeps its stage colour whatever the run state */
+.node .stage-badge circle, .item-node .stage-badge circle,
+.node.visited .stage-badge circle, .node.active .stage-badge circle { fill: var(--stage-colour); stroke: var(--gr-bg); stroke-width: 1.5; stroke-dasharray: none; }
+.node .stage-badge text, .item-node .stage-badge text { fill: var(--gr-stage-text); font-size: 10.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.node .stage-badge.unassigned circle, .node.visited .stage-badge.unassigned circle, .node.active .stage-badge.unassigned circle { stroke: var(--gr-muted); stroke-dasharray: 2 2; }
 .band rect { fill: var(--stage-colour); fill-opacity: .09; stroke: var(--stage-colour); stroke-width: 1.5; }
 .band-badge { fill: var(--stage-colour); }
 .band-number { fill: var(--gr-stage-text); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
-.band-name { fill: var(--gr-text); font-size: 11.5px; font-weight: 600; dominant-baseline: central; }
+.band-name { fill: var(--gr-text); font-size: 11.5px; font-weight: 600; dominant-baseline: central;
+  paint-order: stroke; stroke: var(--gr-surface); stroke-width: 4px; stroke-linejoin: round; }
 /* legend */
 .legend[hidden] { display: none; }
 .legend h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gr-muted); }

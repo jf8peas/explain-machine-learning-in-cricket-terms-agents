@@ -156,3 +156,23 @@ describe("done-beforehand items in the layout", () => {
     expect(plain.edges.some((e) => e.item)).toBe(false);
   });
 });
+
+describe("band width for the label", () => {
+  it("makes a narrow band at least as wide as its label, around the same centre", () => {
+    const [b] = computeBands([node("a", "s1", 200, 0)], stageOf, () => 300);
+    expect(b.w).toBeGreaterThanOrEqual(300);
+    expect(b.x + b.w / 2).toBeCloseTo(200, 3);
+  });
+
+  it("leaves a band alone when it is already wide enough", () => {
+    const [narrow] = computeBands([node("a", "s1", 0, 0)], stageOf);
+    const [same] = computeBands([node("a", "s1", 0, 0)], stageOf, () => 10);
+    expect(same.w).toBe(narrow.w);
+  });
+
+  it("still splits a widened band that would cover a node it does not hold", () => {
+    const nodes = [node("a", "s1", 0, 0), node("u", undefined, 190, 0), node("b", "s1", 0, 100)];
+    const bands = computeBands(nodes, stageOf, () => 400);
+    for (const band of bands) expect(overlaps(band, nodes[1])).toBe(false);
+  });
+});

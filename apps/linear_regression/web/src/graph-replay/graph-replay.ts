@@ -130,10 +130,23 @@ export class GraphReplay extends HTMLElement {
       this.layout = layoutGraph(this.structure);
       this.drawGraph();
       this.setupLegend();
+      requestAnimationFrame(() => this.measureStartHeight());
       this.update();
     } catch {
       this.setMessage("Could not load the graph structure.", true);
     }
+  }
+
+  /** On wide screens the graph is never shorter than the right-hand column was when the page loaded: legend and panels
+   *  at their natural heights, measured once before anything runs. (On a phone there is one column, so no minimum.) */
+  private measureStartHeight() {
+    const main = this.$(".main");
+    if (!main || window.matchMedia("(max-width: 760px)").matches) return;
+    const legend = this.$(".legend");
+    const panels = (Array.from(this.$(".side").children) as HTMLElement[]).filter((el) => !el.hidden);
+    const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
+    const total = legend.hidden ? sideHeight : legend.offsetHeight + (panels.length ? 12 + sideHeight : 0);
+    main.style.setProperty("--graph-min", `${total}px`);
   }
 
   /** Open an item's summary, or close it if it is already open. Never touches playback. */
@@ -217,6 +230,7 @@ export class GraphReplay extends HTMLElement {
     const root = this.$("svg") as unknown as SVGSVGElement;
     root.innerHTML = "";
     root.setAttribute("viewBox", `0 0 ${Math.ceil(L.width)} ${Math.ceil(L.height)}`);
+    root.style.maxWidth = `${Math.ceil(L.width)}px`;   // never drawn larger than its natural size
     const defs = svg("defs");
     root.appendChild(defs);
     const bandsG = svg("g", { class: "bands" });   // the bottom layer: bands never hide an edge or a node
@@ -251,7 +265,8 @@ export class GraphReplay extends HTMLElement {
       const key = `${le.source}->${le.target}`;
       const e = L.edges.find((x) => x.source === le.source && x.target === le.target);
       if (!e) continue;
-      const at = e.label ? { x: e.label.x, y: e.label.y + 18 } : e.points[Math.floor(e.points.length / 2)];
+      const mid = e.label ?? e.points[Math.floor(e.points.length / 2)];
+      const at = { x: mid.x + 52, y: mid.y };           // beside the edge, clear of its line, its label and the nodes
       const pill = svg("g", { class: "loop-pill", "data-testid": "loop-round", "data-loop-edge": key, transform: `translate(${at.x},${at.y})`, hidden: "" });
       pill.appendChild(svg("rect", { x: -33, y: -8, width: 66, height: 16, rx: 8 }));
       pill.appendChild(svg("text", {}));

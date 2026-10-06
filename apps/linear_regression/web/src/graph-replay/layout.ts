@@ -32,7 +32,9 @@ const CHAR_W = 7.2;
 /** The id an item gets in the layout, so it can never clash with a graph node. */
 export const itemId = (id: string) => `item:${id}`;
 export const BAND_PAD = 10;      // space between a band's edge and its nodes
-export const BAND_LABEL = 20;    // extra space above the nodes, for the band's label
+export const BAND_LABEL = 20;
+const LABEL_CHAR_W = 6.9;       // a band's label: its name at about this width a character,
+const LABEL_EXTRA = 44;         // plus the badge and the padding either side    // extra space above the nodes, for the band's label
 
 export function nodeSize(n: StructureNode): { w: number; h: number } {
   if (n.kind !== "node") return { w: 22, h: 22 };
@@ -81,14 +83,21 @@ export function layoutGraph(structure: Structure): Layout {
   }
   const gl = g.graph();
   const known = new Set((structure.stages ?? []).map((st) => st.id));
-  const bands = computeBands(nodes, (n) => ((n.kind === "node" || n.kind === "item") && n.stage && known.has(n.stage) ? n.stage : null));
+  const nameOf = new Map((structure.stages ?? []).map((st) => [st.id, st.name]));
+  const bands = computeBands(nodes, (n) => ((n.kind === "node" || n.kind === "item") && n.stage && known.has(n.stage) ? n.stage : null),
+    (stage) => Math.ceil((nameOf.get(stage) ?? "").length * LABEL_CHAR_W) + LABEL_EXTRA);
   return { nodes, edges, bands, width: gl.width ?? 0, height: gl.height ?? 0 };
 }
 
 const isStep = (n: LaidNode) => n.kind !== "start" && n.kind !== "end";
-const boxOf = (group: LaidNode[]) => {
-  const x1 = Math.min(...group.map((n) => n.x - n.w / 2)) - BAND_PAD;
-  const x2 = Math.max(...group.map((n) => n.x + n.w / 2)) + BAND_PAD;
+const boxOf = (group: LaidNode[], minWidth = 0) => {
+  let x1 = Math.min(...group.map((n) => n.x - n.w / 2)) - BAND_PAD;
+  let x2 = Math.max(...group.map((n) => n.x + n.w / 2)) + BAND_PAD;
+  if (x2 - x1 < minWidth) {                       // wide enough for the band's label, around the same centre
+    const mid = (x1 + x2) / 2;
+    x1 = mid - minWidth / 2;
+    x2 = mid + minWidth / 2;
+  }
   const y1 = Math.min(...group.map((n) => n.y - n.h / 2)) - BAND_PAD - BAND_LABEL;
   const y2 = Math.max(...group.map((n) => n.y + n.h / 2)) + BAND_PAD;
   return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
@@ -101,9 +110,11 @@ const overlaps = (b: { x: number; y: number; w: number; h: number }, n: LaidNode
  * left to right) and each run of neighbours in one stage becomes a band. A band that would cover a node it does not
  * hold (a node of another stage, or an unassigned node) is split at its widest gap until it does not. Start and end are
  * not steps: they are neither in a run nor in the way, so a band may surround them.
- * `stageOf` returns a node's stage id, or null for a node with no (known) stage.
+ * `stageOf` returns a node's stage id, or null for a node with no (known) stage. `minWidth(stage)` is the least width a
+ * band may have, so its label fits; a band widened for it is tested against the other nodes like any other.
  */
-export function computeBands(nodes: LaidNode[], stageOf: (n: LaidNode) => string | null): Band[] {
+export function computeBands(nodes: LaidNode[], stageOf: (n: LaidNode) => string | null,
+                             minWidth: (stage: string) => number = () => 0): Band[] {
   const steps = nodes.filter(isStep);
   const staged = steps.filter((n) => stageOf(n) !== null)
     .sort((a, b) => Math.round(a.y * 10) - Math.round(b.y * 10) || a.x - b.x);
@@ -114,8 +125,14 @@ export function computeBands(nodes: LaidNode[], stageOf: (n: LaidNode) => string
   }
   const bands: Band[] = [];
   const place = (group: LaidNode[]): void => {
-    const box = boxOf(group);
-    const blocked = steps.some((o) => !group.includes(o) && overlaps(box, o));
+    const wanted = minWidth(stageOf(group[0]) as string);
+    const blockedBy = (box: ReturnType<typeof boxOf>) => steps.some((o) => !group.includes(o) && overlaps(box, o));
+    let box = boxOf(group, wanted);
+    let blocked = blockedBy(box);
+    if (blocked && group.length === 1 && wanted > 0) {   // widening for the label would cover a neighbour: keep it snug
+      box = boxOf(group);
+      blocked = blockedBy(box);
+    }
     if (group.length === 1 || !blocked) {
       bands.push({ stage: stageOf(group[0]) as string, nodes: group.map((n) => n.id), ...box });
       return;
