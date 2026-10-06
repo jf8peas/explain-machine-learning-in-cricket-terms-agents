@@ -3,21 +3,42 @@
   "title": "GraphStructure",
   "description": "Response of GET /structure. Generic: contains nothing app-specific.",
   "type": "object",
-  "required": ["nodes", "edges"],
+  "required": [
+    "nodes",
+    "edges"
+  ],
   "additionalProperties": false,
   "properties": {
     "nodes": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "kind"],
+        "required": [
+          "id",
+          "kind"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string" },
-          "kind": { "enum": ["start", "end", "node"] },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "start",
+              "end",
+              "node"
+            ]
+          },
           "actor": {
-            "enum": ["llm", "code"],
+            "enum": [
+              "llm",
+              "code"
+            ],
             "description": "Optional. Who does the step: a language model or ordinary code. The visualiser styles nodes by it and knows nothing else about the app."
+          },
+          "stage": {
+            "type": "string",
+            "description": "Optional. The id of the stage (one of `stages`) this node belongs to. A missing or unknown id shows the node as unassigned. start and end nodes carry none."
           }
         }
       }
@@ -26,15 +47,169 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["source", "target", "conditional", "branch"],
+        "required": [
+          "source",
+          "target",
+          "conditional",
+          "branch"
+        ],
         "additionalProperties": false,
         "properties": {
-          "source": { "type": "string" },
-          "target": { "type": "string" },
-          "conditional": { "type": "boolean" },
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "conditional": {
+            "type": "boolean"
+          },
           "branch": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Branch name for conditional edges (falls back to the target node name when the framework omits a label); null for plain edges."
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "description": "Optional. The ordered stage set; `number` is the 1-based position.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "name",
+          "question",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "loop": {
+      "type": "object",
+      "description": "Optional. Stage ids whose connecting edges the page emphasises once the run has gone round them.",
+      "required": [
+        "fit",
+        "choose"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "fit": {
+          "type": "string"
+        },
+        "choose": {
+          "type": "string"
+        }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "description": "Optional plain text notes. `stages` maps a stage id to its note; for a stage with no node it is the reason.",
+      "additionalProperties": false,
+      "properties": {
+        "general": {
+          "type": "string"
+        },
+        "stages": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "Optional display-only entries, never steps of the run.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "stage",
+          "before",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "label",
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "link": {
+                "type": "object",
+                "required": [
+                  "label",
+                  "href"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "href": {
+                    "type": "string",
+                    "description": "Used as a link only if it starts with #."
+                  }
+                }
+              }
+            }
           }
         }
       }

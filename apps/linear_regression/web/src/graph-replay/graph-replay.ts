@@ -1,11 +1,14 @@
 // <graph-replay structure-url="..." run-url="...">
 // Generic: knows only a graph structure and a stream of step events. Nothing about the app.
 import { ReplayBuffer, realClock, type StepEvent } from "./buffer";
-import { layoutGraph, pathData, type LaidEdge, type Layout } from "./layout";
+import { drawBands } from "./bands";
+import { ItemPanel, Legend } from "./legend";
+import { layoutGraph, pathData, type LaidEdge, type LaidNode, type Layout, type Structure } from "./layout";
 import { streamRun, type Refusal } from "./sse";
+import { loopEdges, resolveStage, roundAt, type Resolved } from "./stages";
 import { styles } from "./styles";
+import { svg } from "./svg";
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const START = "__start__";
 const END = "__end__";
 
@@ -23,17 +26,19 @@ export interface ReplayChangeDetail {
 const esc = (s: unknown) =>
   String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
-function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number> = {}) {
-  const el = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
-  return el;
-}
-
 export class GraphReplay extends HTMLElement {
   static observedAttributes = ["structure-url", "run-url", "interval-ms"];
 
   private buf = new ReplayBuffer(realClock, () => this.update());
   private layout: Layout | null = null;
+  private structure: Structure | null = null;
+  private legend: Legend | null = null;
+  private itemPanel: ItemPanel | null = null;
+  private itemEls = new Map<string, SVGGElement>();
+  private loopKeys = new Set<string>();
+  private loopPills = new Map<string, SVGGElement>();
+  /** The stage picked in the legend: a viewing preference, kept apart from the playback buffer. */
+  private selectedStage: string | null = null;
   private abort: AbortController | null = null;
   /** True from pressing Play until the stream ends (or is refused): Play is disabled meanwhile. */
   private running = false;
@@ -47,6 +52,7 @@ export class GraphReplay extends HTMLElement {
   private edgeEls = new Map<string, SVGGElement>();
   private nodeEls = new Map<string, SVGGElement>();
   private actors = new Map<string, "llm" | "code">();
+  private stageOf = new Map<string, Resolved>();
   private $ = (sel: string) => this.shadowRoot!.querySelector(sel) as HTMLElement;
 
   constructor() {
@@ -72,8 +78,10 @@ export class GraphReplay extends HTMLElement {
         </div>
         <div class="status" role="status" aria-live="polite" data-testid="status"></div>
         <div class="main">
+          <section class="panel legend" data-testid="legend" aria-labelledby="h-legend" hidden></section>
           <div class="graph"><svg role="img" aria-label="Flowchart of the agent's steps" data-testid="graph"></svg></div>
           <div class="side">
+            <section class="panel item-panel" data-testid="item-panel" aria-labelledby="h-item" aria-live="polite" hidden></section>
             <section class="panel" aria-labelledby="h-event"><h3 id="h-event">Event</h3><div id="event" data-testid="event" aria-live="polite"></div></section>
             <section class="panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><div class="state" id="state" data-testid="state"></div></section>
           </div>
@@ -118,12 +126,90 @@ export class GraphReplay extends HTMLElement {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(String(res.status));
-      this.layout = layoutGraph(await res.json());
+      this.structure = (await res.json()) as Structure;
+      this.layout = layoutGraph(this.structure);
       this.drawGraph();
+      this.setupLegend();
       this.update();
     } catch {
       this.setMessage("Could not load the graph structure.", true);
     }
+  }
+
+  /** Open an item's summary, or close it if it is already open. Never touches playback. */
+  private toggleItem(id: string) {
+    if (!this.itemPanel) return;
+    const item = this.structure?.items?.find((it) => it.id === id);
+    if (!item || this.itemPanel.open === id) { this.itemPanel.hide(); return; }
+    this.itemPanel.show(item);
+  }
+
+  /** A done-beforehand item: dashed and muted, tagged, with its stage badge. A button, but never a step. */
+  private drawItem(n: LaidNode, stages: NonNullable<Structure["stages"]>): SVGGElement {
+    const id = n.id.replace(/^item:/, "");
+    const resolved = resolveStage(n, stages);
+    const g = svg("g", {
+      class: "item-node", "data-item": id, "data-testid": "item", role: "button", tabindex: 0,
+      "aria-label": `${n.label ?? id}, done beforehand. Show what was done.`, transform: `translate(${n.x},${n.y})`,
+    });
+    if (resolved.state === "assigned") {
+      g.setAttribute("data-stage", resolved.stage.id);
+      g.setAttribute("style", `--stage-colour: var(${resolved.token})`);
+      g.appendChild(svg("rect", { class: "stage-halo", x: -n.w / 2 - 4, y: -n.h / 2 - 4, width: n.w + 8, height: n.h + 8, rx: 11 }));
+    }
+    g.appendChild(svg("rect", { class: "body", x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: 8 }));
+    const t = svg("text", { x: 0, y: 2 });
+    t.textContent = n.label ?? id;
+    g.appendChild(t);
+    g.appendChild(svg("rect", { class: "item-tag-bg", x: n.w / 2 - 82, y: -n.h / 2 - 8, width: 86, height: 15, rx: 7 }));
+    const tag = svg("text", { class: "item-tag", x: n.w / 2 - 39, y: -n.h / 2 - 0.5 });
+    tag.textContent = "done beforehand";
+    g.appendChild(tag);
+    if (resolved.state !== "none") {
+      const assigned = resolved.state === "assigned";
+      const badge = svg("g", {
+        class: `stage-badge${assigned ? "" : " unassigned"}`, "data-testid": "stage-badge",
+        transform: `translate(${-n.w / 2 + 2},${n.h / 2 - 2})`,
+        style: `--stage-colour: var(${assigned ? resolved.token : "--gr-stage-none"})`,
+      });
+      badge.appendChild(svg("circle", { r: 9 }));
+      const num = svg("text", {});
+      num.textContent = assigned ? String(resolved.number) : "–";
+      badge.appendChild(num);
+      g.appendChild(badge);
+    }
+    g.addEventListener("click", () => this.toggleItem(id));
+    g.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); this.toggleItem(id); }
+    });
+    return g;
+  }
+
+  private setupLegend() {
+    const stages = this.structure?.stages ?? [];
+    const panel = this.$(".legend");
+    if (!stages.length || !this.layout) { panel.hidden = true; return; }
+    const withNodes = new Set(this.layout.nodes.filter((n) => n.kind === "node" && n.stage).map((n) => n.stage as string));
+    const unassigned = this.layout.nodes.filter((n) => resolveStage(n, stages).state === "unassigned").map((n) => n.id);
+    this.legend = new Legend(panel, {
+      stages, notes: this.structure?.notes, withNodes, unassigned,
+      onSelect: (id) => { this.selectedStage = id; this.applyFilter(); },
+    });
+    if (this.selectedStage) this.legend.select(this.selectedStage);
+  }
+
+  /** Dim every node and band outside the selected stage, except the active node. A class only: no animation. */
+  private applyFilter() {
+    const picked = this.selectedStage;
+    const graph = this.$(".graph");
+    if (picked) graph.setAttribute("data-filter", picked); else graph.removeAttribute("data-filter");
+    const mark = (el: Element, stage: string | null, active: boolean) => {
+      el.classList.toggle("stage-selected", !!picked && stage === picked);
+      el.classList.toggle("dim", !!picked && stage !== picked && !active);
+    };
+    for (const el of this.nodeEls.values()) mark(el, el.getAttribute("data-stage"), el.classList.contains("active"));
+    for (const el of this.itemEls.values()) mark(el, el.getAttribute("data-stage"), false);
+    graph.querySelectorAll(".band").forEach((el) => mark(el, el.getAttribute("data-stage"), false));
   }
 
   private drawGraph() {
@@ -133,15 +219,23 @@ export class GraphReplay extends HTMLElement {
     root.setAttribute("viewBox", `0 0 ${Math.ceil(L.width)} ${Math.ceil(L.height)}`);
     const defs = svg("defs");
     root.appendChild(defs);
+    const bandsG = svg("g", { class: "bands" });   // the bottom layer: bands never hide an edge or a node
     const edgesG = svg("g");
     const nodesG = svg("g");
-    root.append(edgesG, nodesG);
+    root.append(bandsG, edgesG, nodesG);
+    const stages = this.structure?.stages ?? [];
+    drawBands(bandsG, L.bands, stages);
     this.edgeEls.clear();
     this.nodeEls.clear();
     this.actors.clear();
+    this.stageOf.clear();
+    this.itemEls.clear();
+    this.loopKeys.clear();
+    this.loopPills.clear();
+    this.itemPanel = new ItemPanel(this.$(".item-panel"), () => this.itemPanel?.hide());
 
     for (const e of L.edges) {
-      const g = svg("g", { class: `edge${e.conditional ? " conditional" : ""}`, "data-edge": `${e.source}->${e.target}` });
+      const g = svg("g", { class: `edge${e.conditional ? " conditional" : ""}${e.item ? " item-edge" : ""}`, "data-edge": `${e.source}->${e.target}` });
       const p = svg("path", { d: pathData(e.points), "marker-end": "url(#arrow)" });
       g.appendChild(p);
       if (e.label && e.branch) {
@@ -152,11 +246,39 @@ export class GraphReplay extends HTMLElement {
       edgesG.appendChild(g);
       this.edgeEls.set(`${e.source}->${e.target}`, g);
     }
+    // The loop between the fit stage and the choose stage: a pill on each of its edges, shown from the second round.
+    for (const le of this.structure ? loopEdges(this.structure) : []) {
+      const key = `${le.source}->${le.target}`;
+      const e = L.edges.find((x) => x.source === le.source && x.target === le.target);
+      if (!e) continue;
+      const at = e.label ? { x: e.label.x, y: e.label.y + 18 } : e.points[Math.floor(e.points.length / 2)];
+      const pill = svg("g", { class: "loop-pill", "data-testid": "loop-round", "data-loop-edge": key, transform: `translate(${at.x},${at.y})`, hidden: "" });
+      pill.appendChild(svg("rect", { x: -33, y: -8, width: 66, height: 16, rx: 8 }));
+      pill.appendChild(svg("text", {}));
+      edgesG.appendChild(pill);
+      this.loopKeys.add(key);
+      this.loopPills.set(key, pill);
+    }
     defs.innerHTML = `<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--gr-muted)"/></marker>`;
 
     for (const n of L.nodes) {
+      if (n.kind === "item") {
+        const ig = this.drawItem(n, stages);
+        nodesG.appendChild(ig);
+        this.itemEls.set(n.id, ig);
+        continue;
+      }
       const g = svg("g", { class: `node ${n.kind}${n.actor ? ` actor-${n.actor}` : ""}`, "data-node": n.id, "data-actor": n.actor ?? "", transform: `translate(${n.x},${n.y})` });
       if (n.actor) this.actors.set(n.id, n.actor);
+      const resolved = resolveStage(n, stages);
+      this.stageOf.set(n.id, resolved);
+      if (resolved.state === "assigned") {
+        g.setAttribute("data-stage", resolved.stage.id);
+        g.setAttribute("style", `--stage-colour: var(${resolved.token})`);
+        // drawn only when the node's stage is picked in the legend, so a pick never changes the fill or the border
+        g.appendChild(svg("rect", { class: "stage-halo", x: -n.w / 2 - 4, y: -n.h / 2 - 4, width: n.w + 8, height: n.h + 8, rx: 11 }));
+      }
+      if (resolved.state === "unassigned") g.classList.add("stage-unassigned");
       if (n.kind === "node") {
         g.appendChild(svg("rect", { x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: 8 }));
         const t = svg("text", { x: 0, y: 0 });
@@ -168,6 +290,22 @@ export class GraphReplay extends HTMLElement {
         g.appendChild(svg("circle", { class: "count-bg", cx: -n.w / 2 + 2, cy: -n.h / 2 + 2, r: 10, hidden: "" }));
         const c = svg("text", { class: "count", x: -n.w / 2 + 2, y: -n.h / 2 + 3, hidden: "" });
         g.appendChild(c);
+        if (resolved.state !== "none") { // the stage's number badge, at the bottom-left corner (the others are taken)
+          const assigned = resolved.state === "assigned";
+          const badge = svg("g", {
+            class: `stage-badge${assigned ? "" : " unassigned"}`, "data-testid": "stage-badge",
+            transform: `translate(${-n.w / 2 + 2},${n.h / 2 - 2})`,
+            style: `--stage-colour: var(${assigned ? resolved.token : "--gr-stage-none"})`,
+          });
+          badge.appendChild(svg("circle", { r: 9 }));
+          const num = svg("text", {});
+          num.textContent = assigned ? String(resolved.number) : "–";
+          badge.appendChild(num);
+          const tip = svg("title");
+          tip.textContent = assigned ? `Stage ${resolved.number}: ${resolved.stage.name}` : "No stage assigned";
+          badge.appendChild(tip);
+          g.appendChild(badge);
+        }
         if (n.actor === "llm") { // a small tag so a language-model step is plain to see, whatever the colours
           g.appendChild(svg("rect", { class: "actor-tag-bg", x: n.w / 2 - 30, y: -n.h / 2 - 8, width: 34, height: 15, rx: 7 }));
           const tag = svg("text", { class: "actor-tag", x: n.w / 2 - 13, y: -n.h / 2 - 0.5 });
@@ -350,6 +488,9 @@ export class GraphReplay extends HTMLElement {
       if (id === active) el.setAttribute("aria-current", "step"); else el.removeAttribute("aria-current");
     }
 
+    this.applyFilter();
+    this.updateLoop();
+
     const taken = new Set<string>();
     for (let i = 0; i <= b.cursor; i++) taken.add(`${i === 0 ? START : b.events[i - 1].node}->${b.events[i].node}`);
     if (reachedEnd && active) taken.add(`${active}->${END}`);
@@ -358,6 +499,24 @@ export class GraphReplay extends HTMLElement {
     if (b.cursor !== this.markerCursor) {
       this.moveMarker(active);
       this.markerCursor = b.cursor;
+    }
+  }
+
+  /** Emphasise the loop edges, with the round number, from the second visit to the fit stage. Recomputed from the replay
+   *  position on every update, so Back lowers it and Reset clears it. Static styling: no animation. */
+  private updateLoop() {
+    const loop = this.structure?.loop;
+    const b = this.buf;
+    const round = loop ? roundAt(b.events, b.cursor, (node) => {
+      const r = this.stageOf.get(node);
+      return r?.state === "assigned" ? r.stage.id : null;
+    }, loop.fit) : 0;
+    const on = round >= 2;
+    for (const [key, el] of this.edgeEls) el.classList.toggle("loop", on && this.loopKeys.has(key));
+    for (const pill of this.loopPills.values()) {
+      pill.toggleAttribute("hidden", !on);
+      const text = pill.querySelector("text");
+      if (text) text.textContent = on ? `↻ round ${round}` : "";
     }
   }
 
@@ -403,7 +562,7 @@ export class GraphReplay extends HTMLElement {
       return;
     }
     const e = b.events[b.cursor];
-    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> ${this.actors.get(e.node) === "llm" ? '<span class="actor-pill" data-testid="event-actor">language model step</span>' : this.actors.get(e.node) === "code" ? '<span class="actor-pill code" data-testid="event-actor">code step</span>' : ""} <span>· step ${e.step} of ${b.finished ? b.events.length : "…"}</span></p><p data-testid="event-summary">${esc(e.summary)}</p>`;
+    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> ${this.actors.get(e.node) === "llm" ? '<span class="actor-pill" data-testid="event-actor">language model step</span>' : this.actors.get(e.node) === "code" ? '<span class="actor-pill code" data-testid="event-actor">code step</span>' : ""} <span>· step ${e.step} of ${b.finished ? b.events.length : "…"}</span></p>${this.stageLine(e.node)}<p data-testid="event-summary">${esc(e.summary)}</p>`;
     const state = b.stateAt();
     const changed = new Set(b.changedKeysAt());
     this.$("#state").innerHTML = Object.entries(state).map(([k, v]) => {
@@ -412,14 +571,32 @@ export class GraphReplay extends HTMLElement {
     }).join("");
   }
 
+  /** The stage line of the Event panel: badge, name and question, and the app's note for the stage if it gave one. */
+  private stageLine(node: string): string {
+    const r = this.stageOf.get(node);
+    if (!r || r.state === "none") return "";
+    if (r.state === "unassigned") return `<p class="stage-line unassigned" data-testid="event-stage">No stage assigned to this step.</p>`;
+    const note = this.structure?.notes?.stages?.[r.stage.id];
+    return `<p class="stage-line" data-testid="event-stage" data-stage="${esc(r.stage.id)}" style="--stage-colour: var(${r.token})">` +
+      `<span class="badge">${r.number}</span> <strong>${esc(r.stage.name)}</strong> <span class="stage-question">${esc(r.stage.question)}</span>` +
+      `${note ? ` <span class="stage-line-note">${esc(note)}</span>` : ""}</p>`;
+  }
+
   private updateTimeline() {
     const b = this.buf;
     const ol = this.$(".timeline");
     const reached = b.reached;
     if (this.timelineCount !== reached.length) {
       this.timelineCount = reached.length;
-      ol.innerHTML = reached.map((e, i) =>
-        `<li><button data-index="${i}" data-testid="timeline-item" aria-label="Step ${e.step}: ${esc(e.node)}">${e.step}. ${esc(e.node)}</button></li>`).join("");
+      ol.innerHTML = reached.map((e, i) => {
+        const r = this.stageOf.get(e.node);
+        // the stage cue is a number drawn by CSS from data-stage-number (so the button's text stays "3. explore")
+        const cue = r?.state === "assigned"
+          ? ` data-stage="${esc(r.stage.id)}" data-stage-number="${r.number}" style="--stage-colour: var(${r.token})"`
+          : r?.state === "unassigned" ? ` data-stage-number="–" style="--stage-colour: var(--gr-stage-none)"` : "";
+        const spoken = r?.state === "assigned" ? `, stage ${r.number} ${esc(r.stage.name)}` : r?.state === "unassigned" ? ", no stage assigned" : "";
+        return `<li><button data-index="${i}" data-testid="timeline-item"${cue} aria-label="Step ${e.step}: ${esc(e.node)}${spoken}">${e.step}. ${esc(e.node)}</button></li>`;
+      }).join("");
     }
     ol.querySelectorAll("button").forEach((btn, i) => {
       if (i === b.cursor) btn.setAttribute("aria-current", "step"); else btn.removeAttribute("aria-current");

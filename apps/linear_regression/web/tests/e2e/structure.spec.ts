@@ -20,7 +20,8 @@ test("the whole graph is drawn before anything runs", async ({ page }) => {
     "forward_selection", "final_test", "explain_in_cricket_terms"]) {
     await expect(page.locator(`[data-node="${id}"]`)).toBeVisible();
   }
-  expect(await page.locator(".edge").count()).toBe(17);
+  expect(await page.locator(".edge:not(.item-edge)").count()).toBe(17);          // the agent's own edges
+  expect(await page.locator(".edge.item-edge").count()).toBe(1);                 // plus the done-beforehand connector
   expect(await page.locator(".node.active").count()).toBe(0);
   expect(await page.locator(".node.visited").count()).toBe(0);
 });

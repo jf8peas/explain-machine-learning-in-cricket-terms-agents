@@ -76,3 +76,20 @@ describe("layoutGraph with a self-loop", () => {
     expect(Math.max(...loop.points.map((p) => p.x))).toBeLessThanOrEqual(out.width);
   });
 });
+
+describe("layoutGraph and stages", () => {
+  it("passes each node's stage through to the laid-out node", () => {
+    const staged: Structure = {
+      ...structure,
+      nodes: structure.nodes.map((n) => (n.kind === "node" ? { ...n, stage: n.id === "a" ? "one" : "two" } : n)),
+    };
+    const out = layoutGraph(staged);
+    expect(out.nodes.find((n) => n.id === "a")?.stage).toBe("one");
+    expect(out.nodes.find((n) => n.id === "c")?.stage).toBe("two");
+    expect(out.nodes.find((n) => n.id === "__start__")?.stage).toBeUndefined();
+  });
+
+  it("leaves a structure without stages exactly as before", () => {
+    expect(layoutGraph(structure).nodes.every((n) => n.stage === undefined)).toBe(true);
+  });
+});

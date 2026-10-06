@@ -70,15 +70,23 @@ def _day(ts: pd.Timestamp) -> str:
     return f"{ts.day} {ts.strftime('%b %Y')}"
 
 
+def exclusion_rows(manifest: dict[str, Any]) -> list[dict[str, str]]:
+    """What the preparation script left out and why, totalled over the competitions: one row per reason that applied.
+    The Data tab's "Excluded, and why" section and the graph's done-beforehand summary both use this."""
+    excluded: dict[str, int] = {}
+    for comp in manifest["counts"].values():
+        if isinstance(comp, dict):
+            for reason, n in comp.get("excluded", {}).items():
+                excluded[reason] = excluded.get(reason, 0) + int(n)
+    return [{"label": EXCLUSION_LABELS.get(r, r.replace("_", " ").capitalize()), "value": f"{n:,}"}
+            for r, n in excluded.items() if n]
+
+
 def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
     slices = split_three_ways(df)
     train_years = sorted(int(y) for y in slices.train["match_date"].dt.year.unique())
     counts = manifest["counts"]
     comps = [(k, v) for k, v in counts.items() if isinstance(v, dict)]
-    excluded: dict[str, int] = {}
-    for _, comp in comps:
-        for reason, n in comp.get("excluded", {}).items():
-            excluded[reason] = excluded.get(reason, 0) + int(n)
     downloaded = pd.Timestamp(manifest["download_date"])
     return {
         "headline": [
@@ -95,8 +103,7 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
                       {"label": f"Validation ({slices.validation_year})" if slices.validation_year else "Validation", "value": f"{len(slices.validation):,}"},
                       {"label": f"Test ({slices.test_year})", "value": f"{len(slices.test):,}"}]},
             {"title": "Excluded, and why", "note": EXCLUSIONS_NOTE,
-             "rows": [{"label": EXCLUSION_LABELS.get(r, r.replace("_", " ").capitalize()), "value": f"{n:,}"}
-                      for r, n in excluded.items() if n]},
+             "rows": exclusion_rows(manifest)},
         ],
         "attribution": manifest["attribution"],
         "attribution_url": "https://cricsheet.org",

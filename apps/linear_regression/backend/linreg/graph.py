@@ -19,6 +19,13 @@ NODE_ACTORS = {name: "code" for name in ["load_data", "split", "explore", "basel
                                          "evaluate", "forward_selection", "final_test", "explain_in_cricket_terms"]}
 NODE_ACTORS["propose_features"] = "llm"
 
+# Which of the eight machine learning stages (see stages.py) each node belongs to. The visualiser shows it on every node.
+NODE_STAGES = {
+    "baseline": "frame", "load_data": "prepare", "explore": "understand", "split": "split", "fit_model": "fit",
+    "propose_features": "choose", "check_proposal": "choose", "evaluate": "choose", "forward_selection": "choose",
+    "final_test": "assess", "explain_in_cricket_terms": "interpret",
+}
+
 
 def route_after_load(state: RunState) -> str:
     return "stop" if state.get("data_error") else "ok"

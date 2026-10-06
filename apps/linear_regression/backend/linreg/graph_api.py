@@ -94,16 +94,30 @@ def run_events(app, initial: dict[str, Any], recursion_limit: int, configurable:
 
 def create_router(app, initial_state: Callable[[], dict[str, Any]], recursion_limit: int,
                   node_meta: dict[str, dict[str, Any]] | None = None,
-                  admit: Callable[[Request, float], Any] | None = None) -> APIRouter:
+                  admit: Callable[[Request, float], Any] | None = None,
+                  structure_extras: Callable[[], dict[str, Any]] | None = None) -> APIRouter:
     """`admit(request, started)` decides whether a run may start. It returns a permit with `configurable` (the per-run
     configuration passed to the graph outside its state) and `release()` (called when the stream ends), or raises
-    Refusal. `started` is a monotonic clock reading taken at the top of the handler."""
+    Refusal. `started` is a monotonic clock reading taken at the top of the handler.
+
+    `structure_extras()` returns extra top-level fields for the structure response (for example stages, notes). It is
+    called on first use and its result kept; if it raises, the plain structure is served and the call is tried again
+    next time. The router does not look inside what it returns."""
     router = APIRouter()
     structure = graph_structure(app, node_meta)
+    extras: dict[str, Any] | None = None
 
     @router.get("/structure")
     def get_structure():
-        return structure
+        nonlocal extras
+        if structure_extras is None:
+            return structure
+        if extras is None:
+            try:
+                extras = structure_extras()
+            except Exception:  # noqa: BLE001 - the graph itself is still worth serving
+                return structure
+        return {**structure, **extras}
 
     @router.get("/run")
     def get_run(request: Request):

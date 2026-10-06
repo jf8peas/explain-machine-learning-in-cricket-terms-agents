@@ -4,6 +4,9 @@ export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
   fullyParallel: true,
+  // One API process serves every test and each full run is CPU work, so too many workers made the heaviest tests
+  // (six runs each) time out. Eight keeps the suite quick without that.
+  workers: 8,
   retries: 0,
   use: { baseURL: "http://127.0.0.1:5173", trace: "retain-on-failure" },
   webServer: [

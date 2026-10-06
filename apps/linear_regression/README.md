@@ -12,6 +12,16 @@ The page has two tabs, **Working** (the agent graph, results and try-your-own) a
 - `web/src/tab-set/` (`<tab-set>`) and `web/src/data-grid/` (`<data-grid>`) are reusable and know nothing about cricket or regression; see their READMEs. The grid library (Tabulator) is imported only in `data-grid/grid-adapter.ts`.
 - Spec, plan and tasks: `specs/002-data-tab/`. Feature 004: `specs/004-llm-feature-selection/`.
 
+## Machine learning stages
+
+Every step of the agent belongs to one of eight stages of a machine learning project (frame the problem, prepare the data, understand the data, split the data, fit the model, choose the setup, final assessment, interpret and communicate). The graph shows each node's stage with a numbered, coloured badge, groups neighbouring nodes of a stage in labelled bands, and has a legend that highlights one stage. The detail panel and the timeline show the stage too.
+
+- The stage set is defined once, in `backend/linreg/stages.py`, for every algorithm app. It reaches the page inside `GET /api/structure`; the visualiser holds no stage text.
+- To give a node a stage, add it to `NODE_STAGES` in `backend/linreg/graph.py`. `check_stages(app, mapping)` (used by `tests/test_structure_stages.py`) fails if a node has no stage, an unknown stage, or the mapping names something that is not a node. Another app calls the same function with its own graph and mapping.
+- `backend/linreg/stage_info.py` supplies this app's notes (Choose the setup is feature selection only here; the loop explanation with the training, validation and test years read from the data) and the display-only "done beforehand" item for `scripts/prepare_data.py`, built from `data/manifest.json` and the feature catalogue.
+- The colours and the checks they passed (contrast, difference from the existing colours) are in `specs/005-ml-stages/research.md`; `web/tests/unit/stage-colours.test.ts` holds the values.
+- Spec, plan and tasks: `specs/005-ml-stages/`.
+
 ## Competition dummy columns
 
 `data/innings.csv` has two 0/1 columns right after `competition`: `is_ipl` (1 for an IPL innings) and `is_bbl` (1 for a BBL innings). T20 International is the reference category: both are 0. A linear regression can only do arithmetic with numbers, so a text category needs columns like these. The Data tab shows them and explains them; the agent may offer them to the language model as features.

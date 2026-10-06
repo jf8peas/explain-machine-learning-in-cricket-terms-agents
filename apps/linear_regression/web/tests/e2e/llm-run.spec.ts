@@ -196,6 +196,7 @@ test("Play and Reset are disabled while a run is in progress and come back when 
 });
 
 test("a refused start shows the message and keeps the earlier results", async ({ page }) => {
+  test.setTimeout(180_000);                                           // five or six whole runs: slow when the suite shares one server
   await open(page);
   await playToEnd(page);                                               // run 1 of the 5 allowed an hour
   const rows = await page.getByTestId("attempt-row").count();
@@ -211,6 +212,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
 });
 
 test("the limit is per visitor: another visitor can still run", async ({ page, browser }) => {
+  test.setTimeout(180_000);                                           // five or six whole runs: slow when the suite shares one server
   await open(page);
   for (let i = 0; i < 5; i++) expect((await page.request.get("/api/run")).status()).toBe(200);
   expect((await page.request.get("/api/run")).status()).toBe(429);

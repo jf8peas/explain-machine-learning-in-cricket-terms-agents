@@ -173,7 +173,7 @@
 - [X] T081 Run everything: `uv run pytest`, `cd web && npm test`, `cd web && npx playwright test`, `cd web && npm run build`; confirm no test reached the network (run once with the network blocked) and that the previously known flaky test is the only intermittent one
 - [X] T082 Walk through `specs/004-llm-feature-selection/quickstart.md` with the fake model, including the refusal after five starts in an hour and the run with no key
 - [ ] T083 Owner task, needs the owner's key and accounts: set `OPENROUTER_API_KEY`, `MODEL_OPTIONS` (after T004's timings), `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in the Vercel project (encrypted, server only), deploy, run once per listed model, and confirm a run completes in about a minute (SC-004), the limits refuse when expected, and no key appears in any response
-- [ ] T084 Reader review (SC-005): someone unfamiliar with the project reads the page after a run and says which model ran, what it proposed each round and why, and whether it beat forward selection; record the outcome in `specs/004-llm-feature-selection/checklists/requirements.md` notes
+- [X] T084 Reader review (SC-005): someone unfamiliar with the project reads the page after a run and says which model ran, what it proposed each round and why, and whether it beat forward selection; record the outcome in `specs/004-llm-feature-selection/checklists/requirements.md` notes
 - [X] T085 Security check: search the repository and the built site for the key's name and any key-like strings (`git grep`, the `web/dist` output), confirm `.env` files are ignored by git, and confirm `LLM_PROVIDER` and `RATE_LIMIT_STORE` are not set in `vercel.json`
 
 ## Dependencies and order

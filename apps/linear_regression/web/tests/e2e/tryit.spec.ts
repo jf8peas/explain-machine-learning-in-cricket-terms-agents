@@ -16,19 +16,19 @@ const fillAll = async (page: Page, overrides: Record<string, string> = {}) => {
   for (const name of await askedFor(page)) await page.locator(`input[name="${name}"]`).fill(overrides[name] ?? PLAUSIBLE[name] ?? "5");
   const select = page.locator("[data-testid=tryit-fields] select");
   if (await select.count()) await select.selectOption("ipl");
-  await page.getByRole("button", { name: "Predict" }).click();
+  await page.getByRole("button", { name: "Predict", exact: true }).click();
 };
 
 test("the form is disabled until a run has finished", async ({ page }) => {
   await open(page);
-  await expect(page.getByRole("button", { name: "Predict" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeDisabled();
   await expect(page.getByTestId("tryit-hint")).toBeVisible();
 });
 
 test("the form asks for the winning model's inputs only, starting with runs at 10 overs", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  await expect(page.getByRole("button", { name: "Predict" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
   const winner: string[] = final.sets[final.winner];
   const asked = await askedFor(page);
@@ -41,7 +41,7 @@ test("the form asks for the winning model's inputs only, starting with runs at 1
 test("valid input shows the model's prediction beside the TV projection", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  await expect(page.getByRole("button", { name: "Predict" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   await fillAll(page, { runs_at_10: "80" });
   await expect(page.getByTestId("tryit-tv")).toHaveText("160");
   const model = Number(await page.getByTestId("tryit-model").textContent());
@@ -52,7 +52,7 @@ test("valid input shows the model's prediction beside the TV projection", async 
 test("invalid input shows a message and no prediction", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  await expect(page.getByRole("button", { name: "Predict" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   for (const [name, value, msg] of [
     ["runs_at_10", "-5", "negative"],
     ["wickets_at_10", "10", "between 0 and 9"],
@@ -76,5 +76,5 @@ test("stepping back through the run does not disable try-your-own", async ({ pag
   await playToEnd(page);
   await page.getByTestId("back").click();
   await page.getByTestId("back").click();
-  await expect(page.getByRole("button", { name: "Predict" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
 });

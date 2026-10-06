@@ -37,3 +37,4 @@
 - Feature 003's "agent unchanged" guarantee is deliberately superseded (Assumptions). Existing tests that assume the fixed three-feature loop, the two-way split or the golden run will need to change in the plan.
 - The data columns need a fresh Cricsheet download (the ball-by-ball detail is not in the committed innings table), so `--from-existing` cannot produce them; this is noted in Assumptions and is a plan-level concern.
 - SC-004 (about a minute) depends on the chosen model's speed; SC-005 (a visitor can tell what happened) needs a person to judge.
+- SC-005 reader review (T084), 2026-10-06: done by the owner's reviewer; the owner reports the requirements are met. The reviewer's own words were not recorded here.

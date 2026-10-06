@@ -9,11 +9,13 @@ import pytest
 
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
-SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api"]
+SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api", "stages"]
 APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table",
                 # feature 004: the language-model step, its rules, its limits and its fake
                 "selection", "redundancy", "recipes", "llm_client", "llm_reply", "llm_fake", "prompts", "model_options",
-                "run_gate", "limit_store", "run_budget", "catalogue_api"}
+                "run_gate", "limit_store", "run_budget", "catalogue_api",
+                # feature 005: this app's notes and done-beforehand item for the stage legend
+                "stage_info"}
 
 
 def imported_modules(path: Path) -> set[str]:
@@ -103,3 +105,19 @@ def test_the_key_is_read_in_exactly_one_place():
 
     owners = sorted(f.name for f in PKG.glob("*.py") if "OPENROUTER_API_KEY" in code_lines(f))
     assert owners == ["llm_client.py"]
+
+
+def test_the_visualiser_holds_no_stage_text():
+    """Stage names and questions come from the structure response; no .ts file of the visualiser may contain them."""
+    from linreg.stages import STAGES
+    phrases = [t for s in STAGES for t in (s.name, s.question)]
+    for ts in (APP / "web" / "src" / "graph-replay").glob("*.ts"):
+        text = ts.read_text(encoding="utf-8").lower()  # comments included on purpose
+        for phrase in phrases:
+            assert phrase.lower() not in text, f"{ts.name} contains stage text {phrase!r}"
+
+
+def test_the_stage_module_is_generic():
+    code = (PKG / "stages.py").read_text(encoding="utf-8").lower()
+    for word in ("cricket", "innings", "regression", "wicket", "openrouter"):
+        assert word not in code, f"stages.py mentions {word!r}"

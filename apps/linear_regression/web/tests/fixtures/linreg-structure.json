@@ -1,0 +1,295 @@
+{
+  "nodes": [
+    {
+      "id": "__start__",
+      "kind": "start"
+    },
+    {
+      "id": "load_data",
+      "kind": "node",
+      "actor": "code",
+      "stage": "prepare"
+    },
+    {
+      "id": "split",
+      "kind": "node",
+      "actor": "code",
+      "stage": "split"
+    },
+    {
+      "id": "explore",
+      "kind": "node",
+      "actor": "code",
+      "stage": "understand"
+    },
+    {
+      "id": "baseline",
+      "kind": "node",
+      "actor": "code",
+      "stage": "frame"
+    },
+    {
+      "id": "check_proposal",
+      "kind": "node",
+      "actor": "code",
+      "stage": "choose"
+    },
+    {
+      "id": "fit_model",
+      "kind": "node",
+      "actor": "code",
+      "stage": "fit"
+    },
+    {
+      "id": "evaluate",
+      "kind": "node",
+      "actor": "code",
+      "stage": "choose"
+    },
+    {
+      "id": "forward_selection",
+      "kind": "node",
+      "actor": "code",
+      "stage": "choose"
+    },
+    {
+      "id": "final_test",
+      "kind": "node",
+      "actor": "code",
+      "stage": "assess"
+    },
+    {
+      "id": "explain_in_cricket_terms",
+      "kind": "node",
+      "actor": "code",
+      "stage": "interpret"
+    },
+    {
+      "id": "propose_features",
+      "kind": "node",
+      "actor": "llm",
+      "stage": "choose"
+    },
+    {
+      "id": "__end__",
+      "kind": "end"
+    }
+  ],
+  "edges": [
+    {
+      "source": "__start__",
+      "target": "load_data",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "baseline",
+      "target": "propose_features",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "check_proposal",
+      "target": "fit_model",
+      "conditional": true,
+      "branch": "fit"
+    },
+    {
+      "source": "check_proposal",
+      "target": "forward_selection",
+      "conditional": true,
+      "branch": "finished"
+    },
+    {
+      "source": "check_proposal",
+      "target": "propose_features",
+      "conditional": true,
+      "branch": "rejected"
+    },
+    {
+      "source": "evaluate",
+      "target": "forward_selection",
+      "conditional": true,
+      "branch": "stop"
+    },
+    {
+      "source": "evaluate",
+      "target": "propose_features",
+      "conditional": true,
+      "branch": "continue"
+    },
+    {
+      "source": "explore",
+      "target": "baseline",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "final_test",
+      "target": "explain_in_cricket_terms",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "fit_model",
+      "target": "evaluate",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "forward_selection",
+      "target": "final_test",
+      "conditional": true,
+      "branch": "done"
+    },
+    {
+      "source": "forward_selection",
+      "target": "forward_selection",
+      "conditional": true,
+      "branch": "again"
+    },
+    {
+      "source": "load_data",
+      "target": "__end__",
+      "conditional": true,
+      "branch": "stop"
+    },
+    {
+      "source": "load_data",
+      "target": "split",
+      "conditional": true,
+      "branch": "ok"
+    },
+    {
+      "source": "propose_features",
+      "target": "check_proposal",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "split",
+      "target": "explore",
+      "conditional": false,
+      "branch": null
+    },
+    {
+      "source": "explain_in_cricket_terms",
+      "target": "__end__",
+      "conditional": false,
+      "branch": null
+    }
+  ],
+  "stages": [
+    {
+      "id": "frame",
+      "number": 1,
+      "name": "Frame the problem",
+      "question": "What are we predicting, and what counts as good?",
+      "description": "Say what we are predicting and what counts as a good answer, so we know the score to beat."
+    },
+    {
+      "id": "prepare",
+      "number": 2,
+      "name": "Prepare the data",
+      "question": "Is the data clean and in a usable form?",
+      "description": "Clean the data and turn what was recorded into measurements a model can use."
+    },
+    {
+      "id": "understand",
+      "number": 3,
+      "name": "Understand the data",
+      "question": "What patterns are there?",
+      "description": "Look for patterns in the data before fitting anything."
+    },
+    {
+      "id": "split",
+      "number": 4,
+      "name": "Split the data",
+      "question": "What do we learn from, choose with, and mark on?",
+      "description": "Set aside data to learn from, data to choose with, and data to mark the final answer on."
+    },
+    {
+      "id": "fit",
+      "number": 5,
+      "name": "Fit the model",
+      "question": "What are the best parameters for this setup?",
+      "description": "For one chosen setup, find the parameters that fit the learning data best."
+    },
+    {
+      "id": "choose",
+      "number": 6,
+      "name": "Choose the setup",
+      "question": "Which features, model type and hyperparameters?",
+      "description": "Decide which features, model type and hyperparameters to use, judged on data the fit never saw."
+    },
+    {
+      "id": "assess",
+      "number": 7,
+      "name": "Final assessment",
+      "question": "How good is it on data it has never seen?",
+      "description": "Score the chosen model once, on data it has never seen."
+    },
+    {
+      "id": "interpret",
+      "number": 8,
+      "name": "Interpret and communicate",
+      "question": "What does it mean?",
+      "description": "Explain in plain words what the result means."
+    }
+  ],
+  "loop": {
+    "fit": "fit",
+    "choose": "choose"
+  },
+  "notes": {
+    "general": "Every time the agent tries a new setup (stage 6) it fits the model again (stage 5), so the two stages form a loop. Parameters are learned from the training years (2005 to 2024). The setup is chosen using the validation year (2025). The test year (2026) is used once, at the end.",
+    "stages": {
+      "choose": "In this app, Choose the setup means feature selection only. Plain linear regression has no hyperparameters to tune; hyperparameter tuning appears in later apps."
+    }
+  },
+  "items": [
+    {
+      "id": "prepare_data",
+      "label": "data preparation script",
+      "stage": "prepare",
+      "before": "load_data",
+      "summary": {
+        "text": "Done once, before the agent runs, by scripts/prepare_data.py. The agent does not do any of this: it only ever sees the innings that were kept.",
+        "rows": [
+          {
+            "label": "Excluded: No result",
+            "value": "97"
+          },
+          {
+            "label": "Excluded: Rain-affected (DLS)",
+            "value": "182"
+          },
+          {
+            "label": "Excluded: Reduced overs",
+            "value": "11"
+          },
+          {
+            "label": "Excluded: Innings ended before 10 overs",
+            "value": "27"
+          },
+          {
+            "label": "Columns measured from the ball-by-ball data",
+            "value": "12"
+          },
+          {
+            "label": "Columns worked out from those",
+            "value": "4"
+          },
+          {
+            "label": "Competition columns",
+            "value": "is_ipl and is_bbl"
+          }
+        ],
+        "link": {
+          "label": "See the Data tab",
+          "href": "#data"
+        }
+      }
+    }
+  ]
+}

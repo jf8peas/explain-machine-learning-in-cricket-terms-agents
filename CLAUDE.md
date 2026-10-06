@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/004-llm-feature-selection/plan.md](specs/004-llm-feature-selection/plan.md)
+Current feature plan: [specs/005-ml-stages/plan.md](specs/005-ml-stages/plan.md)
 <!-- SPECKIT END -->
