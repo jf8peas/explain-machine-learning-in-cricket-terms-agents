@@ -15,13 +15,13 @@ Builds on `specs/001-linear-regression-agent/contracts/structure.schema.json` an
   "edges": [ { "source": "check_proposal", "target": "fit_model", "conditional": true, "branch": "fit" } ],
 
   "stages": [
-    { "id": "frame", "number": 1, "name": "Frame the problem",
-      "question": "What are we predicting, and what counts as good?",
-      "description": "Say what we are predicting and what counts as a good answer, so we know the score to beat." }
+    { "id": "prepare", "number": 1, "name": "Prepare the data",
+      "question": "Is the data clean and in a usable form?",
+      "description": "Clean the data and turn what was recorded into measurements a model can use." }
   ],
   "loop": { "fit": "fit", "choose": "choose" },
   "notes": {
-    "general": "Every time the agent tries a new setup (stage 6) it fits the model again (stage 5) …",
+    "general": "Every time the agent tries a new setup (stage 5) it fits the model again (stage 6) …",
     "stages": { "choose": "In this app, Choose the setup means feature selection only. …" }
   },
   "items": [

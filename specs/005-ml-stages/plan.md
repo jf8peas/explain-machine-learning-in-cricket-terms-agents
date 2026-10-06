@@ -119,7 +119,7 @@ Decisions are in `research.md`; the points that matter when building:
 ## Risks
 
 - **Crowded nodes**: a badge, a visit count, a tick and an LLM tag on one node. They are on different corners; Playwright checks the badge and the count do not overlap on the busiest node.
-- **Close colour pairs**: two light-theme stages (4 and 6) and two dark-theme stages (3 and 7) are within ΔE 10 of each other; accepted because the number is the primary cue (research.md Decision 5). Worth a look by eye in both themes.
+- **Close colour pairs**: two light-theme stage numbers (4 and 6, Frame the problem and Fit the model) and two dark-theme numbers (3 and 7, Understand the data and Final assessment) are within ΔE 10 of each other; accepted because the number is the primary cue (research.md Decision 5). Worth a look by eye in both themes.
 - **Dim contrast**: dimmed nodes fall below normal text contrast by design; inactive elements are exempt, and the active node is never dimmed.
 - **Band labels at the graph's edge**: a label at a band's top-left could be clipped if the band is at the SVG edge; the layout margin is raised if so.
 - **Legend placement** and **item panel placement** are judgement calls to confirm on first look.

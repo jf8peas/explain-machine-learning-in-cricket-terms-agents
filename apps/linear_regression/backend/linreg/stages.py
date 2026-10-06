@@ -19,26 +19,29 @@ class Stage:
     description: str     # one plain sentence
 
 
+# The order is the order a run first reaches each stage: prepare the data, split it, look at the training years, set the
+# score to beat, then choose a setup and fit it (repeatedly), then the final test and the explanation.
 STAGES: tuple[Stage, ...] = (
-    Stage("frame", 1, "Frame the problem", "What are we predicting, and what counts as good?",
-          "Say what we are predicting and what counts as a good answer, so we know the score to beat."),
-    Stage("prepare", 2, "Prepare the data", "Is the data clean and in a usable form?",
+    Stage("prepare", 1, "Prepare the data", "Is the data clean and in a usable form?",
           "Clean the data and turn what was recorded into measurements a model can use."),
+    Stage("split", 2, "Split the data", "What do we learn from, choose with, and mark on?",
+          "Set aside data to learn from, data to choose with, and data to mark the final answer on."),
     Stage("understand", 3, "Understand the data", "What patterns are there?",
           "Look for patterns in the data before fitting anything."),
-    Stage("split", 4, "Split the data", "What do we learn from, choose with, and mark on?",
-          "Set aside data to learn from, data to choose with, and data to mark the final answer on."),
-    Stage("fit", 5, "Fit the model", "What are the best parameters for this setup?",
-          "For one chosen setup, find the parameters that fit the learning data best."),
-    Stage("choose", 6, "Choose the setup", "Which features, model type and hyperparameters?",
+    Stage("frame", 4, "Frame the problem", "What are we predicting, and what counts as good?",
+          "Say what we are predicting and what counts as a good answer, so we know the score to beat."),
+    Stage("choose", 5, "Choose the setup", "Which features, model type and hyperparameters?",
           "Decide which features, model type and hyperparameters to use, judged on data the fit never saw."),
+    Stage("fit", 6, "Fit the model", "What are the best parameters for this setup?",
+          "For one chosen setup, find the parameters that fit the learning data best."),
     Stage("assess", 7, "Final assessment", "How good is it on data it has never seen?",
           "Score the chosen model once, on data it has never seen."),
     Stage("interpret", 8, "Interpret and communicate", "What does it mean?",
           "Explain in plain words what the result means."),
 )
 
-# The two stages that form the loop the page emphasises: every new setup (choose) is fitted again (fit).
+# The two stages that form the loop the page emphasises: every new setup (choose) is fitted again (fit), so the
+# run goes back and forth between them.
 FIT_STAGE = "fit"
 CHOOSE_STAGE = "choose"
 

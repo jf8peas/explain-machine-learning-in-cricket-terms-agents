@@ -142,7 +142,7 @@ def test_the_loop_note_names_the_real_years_from_the_three_way_split():
 
 def test_the_loop_note_explains_the_two_loops_in_plain_words():
     note = general_note().lower()
-    assert "new setup (stage 6)" in note and "fits the model again (stage 5)" in note
+    assert "new setup (stage 5)" in note and "fits the model again (stage 6)" in note
     assert "parameters are learned from the training years" in note
     assert "the setup is chosen using the validation year" in note
     assert "used once" in note and "at the end" in note
@@ -154,6 +154,6 @@ def test_with_the_data_unreadable_the_note_is_sent_without_any_year(tmp_path):
     bad.write_text("not,a,table\n1,2,3\n", encoding="utf-8")
     note = structure_extras(data_path=bad)["notes"]["general"]
     assert "training years" in note and "validation year" in note and "test year" in note
-    assert not any(ch.isdigit() for ch in note.replace("stage 6", "").replace("stage 5", ""))
+    assert not any(ch.isdigit() for ch in note.replace("stage 5", "").replace("stage 6", ""))
     missing = structure_extras(data_path=tmp_path / "nope.csv")["notes"]["general"]
     assert missing == note

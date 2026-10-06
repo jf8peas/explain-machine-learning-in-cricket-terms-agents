@@ -13,16 +13,16 @@ The audience is cricket fans learning machine learning. Learning the stages of a
 
 ### The eight stages
 
-One fixed set, in this order. Each has a short name, a one-sentence plain-language description and the question it answers. (The wording of the descriptions is written in planning; the names and questions are fixed here.)
+One fixed set, in this order, which is the order a run of this agent first reaches each stage (the owner reordered the original list on 2026-10-06 so that the numbers run in step with the run; see Clarifications). Each has a short name, a one-sentence plain-language description and the question it answers. (The wording of the descriptions is written in planning; the names and questions are fixed here.)
 
 | # | Name | The question it answers |
 |---|---|---|
-| 1 | Frame the problem | What are we predicting, and what counts as good? |
-| 2 | Prepare the data | Is the data clean and in a usable form? (cleansing and creating features) |
+| 1 | Prepare the data | Is the data clean and in a usable form? (cleansing and creating features) |
+| 2 | Split the data | What do we learn from, choose with, and mark on? |
 | 3 | Understand the data | What patterns are there? |
-| 4 | Split the data | What do we learn from, choose with, and mark on? |
-| 5 | Fit the model | What are the best parameters for this setup? (parameter optimisation) |
-| 6 | Choose the setup | Which features, model type and hyperparameters? (feature selection and hyperparameter tuning) |
+| 4 | Frame the problem | What are we predicting, and what counts as good? |
+| 5 | Choose the setup | Which features, model type and hyperparameters? (feature selection and hyperparameter tuning) |
+| 6 | Fit the model | What are the best parameters for this setup? (parameter optimisation) |
 | 7 | Final assessment | How good is it on data it has never seen? |
 | 8 | Interpret and communicate | What does it mean? |
 
@@ -30,12 +30,12 @@ One fixed set, in this order. Each has a short name, a one-sentence plain-langua
 
 | Stage | Steps in this agent |
 |---|---|
-| 1 Frame the problem | `baseline` (the TV projection sets what "good" means: the score to beat) |
-| 2 Prepare the data | `load_data`, and the work done beforehand by the data preparation script (shown separately, see below) |
+| 1 Prepare the data | `load_data`, and the work done beforehand by the data preparation script (shown separately, see below) |
+| 2 Split the data | `split` |
 | 3 Understand the data | `explore` |
-| 4 Split the data | `split` |
-| 5 Fit the model | `fit_model` |
-| 6 Choose the setup | `propose_features`, `check_proposal`, `evaluate`, `forward_selection` |
+| 4 Frame the problem | `baseline` (the TV projection sets what "good" means: the score to beat) |
+| 5 Choose the setup | `propose_features`, `check_proposal`, `evaluate`, `forward_selection` |
+| 6 Fit the model | `fit_model` |
 | 7 Final assessment | `final_test` |
 | 8 Interpret and communicate | `explain_in_cricket_terms` |
 
@@ -47,6 +47,7 @@ Every node in the graph today is listed, so no node needs an assignment beyond t
 
 - Q: How should the fit-and-choose loop show on the graph? → A: The edges between Fit the model and the Choose the setup steps look like any other edge before a run; once the run has gone round the loop they are drawn emphasised and show a "round N" count that goes up each time the agent returns to Fit the model. Static styling, no animation.
 - Q: What is the second cue on each node? → A: A small numbered badge (1 to 8) matching the legend's order; the legend and the group bands also show the stage name. The timeline entries carry the same number badge.
+- Q (2026-10-06, after the build): Should the stage numbers run in step with the order this agent runs its steps? → A: Yes. The stage list is reordered to the order a run first reaches each stage and renumbered 1 to 8: 1 Prepare the data, 2 Split the data, 3 Understand the data, 4 Frame the problem, 5 Choose the setup, 6 Fit the model, 7 Final assessment, 8 Interpret and communicate. This replaces the original order, and it is the order every algorithm app now uses. Choose the setup (5) now comes before Fit the model (6), the order a run takes them in.
 - Q: How should grouping work when a stage's nodes aren't next to each other? → A: One band for each run of neighbouring nodes in the same stage, each labelled with the stage name and number. A stage can have several bands (here, stage 6 has more than one because Fit the model sits between its steps), and a band never encloses a node of another stage.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -122,7 +123,7 @@ Cleaning the data and creating features happen in the data preparation script, b
 
 ### User Story 5 - Understand the inner and outer loop (Priority: P2)
 
-Near the legend, a short explanation in cricket-friendly plain language says that every time the agent tries a new setup (stage 6) it fits the model again (stage 5); that parameters are learned from the training years, the setup is chosen using the validation year, and the test year is used once at the end. When the run loops between these two stages, the graph makes the loop easy to see.
+Near the legend, a short explanation in cricket-friendly plain language says that every time the agent tries a new setup (stage 5) it fits the model again (stage 6); that parameters are learned from the training years, the setup is chosen using the validation year, and the test year is used once at the end. When the run loops between these two stages, the graph makes the loop easy to see.
 
 **Why this priority**: The loop between fitting and choosing is the most confusing idea for newcomers and the one this agent shows best.
 
@@ -206,7 +207,7 @@ A second app with a different graph gets the legend, the highlighting, the group
 
 **The two loops, and what this app does not do**
 
-- **FR-020**: Near the legend, a short explanation in cricket-friendly plain language says that every time the agent tries a new setup (stage 6) it fits the model again (stage 5), that parameters are learned from the training years, the setup is chosen using the validation year, and the test year is used once at the end. The years named come from the data, not from typed text.
+- **FR-020**: Near the legend, a short explanation in cricket-friendly plain language says that every time the agent tries a new setup (stage 5) it fits the model again (stage 6), that parameters are learned from the training years, the setup is chosen using the validation year, and the test year is used once at the end. The years named come from the data, not from typed text.
 - **FR-021**: The Choose the setup stage states plainly that in this app it means feature selection only, because plain linear regression has no hyperparameters, and that hyperparameter tuning appears in later apps.
 
 **Reuse**
@@ -239,7 +240,7 @@ A second app with a different graph gets the legend, the highlighting, the group
 - The data preparation script, and the prepared data's record of what it excluded and which columns it created, already exist from features 002 to 004; this feature reads that record and adds nothing to the script's work.
 - The done-beforehand item is not an agent step, so adding it does not conflict with "no adding or removing agent steps" in Out of Scope. It does not change what any node does, the run's step sequence or its counts.
 - The final wording of the stage descriptions and the colours are chosen during planning, subject to FR-001, FR-005 and SC-003. The second cue is the stage's number badge (see Clarifications).
-- `baseline` sits in stage 1 because it sets the score to beat (what "good" means), even though it also runs on the validation year; this is the brief's assignment.
+- `baseline` sits in stage 4 (Frame the problem) because it sets the score to beat (what "good" means), even though it also runs on the validation year; this is the brief's assignment.
 - The shared stage set lives where the other shared pieces live, so the other seven apps can use it; how it is shared is a planning decision.
 - Selecting the done-beforehand item works by mouse, touch and keyboard, like the legend. It is the only node of the graph that can be selected.
 

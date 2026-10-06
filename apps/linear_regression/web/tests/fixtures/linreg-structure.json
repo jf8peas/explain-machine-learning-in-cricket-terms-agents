@@ -181,18 +181,18 @@
   ],
   "stages": [
     {
-      "id": "frame",
-      "number": 1,
-      "name": "Frame the problem",
-      "question": "What are we predicting, and what counts as good?",
-      "description": "Say what we are predicting and what counts as a good answer, so we know the score to beat."
-    },
-    {
       "id": "prepare",
-      "number": 2,
+      "number": 1,
       "name": "Prepare the data",
       "question": "Is the data clean and in a usable form?",
       "description": "Clean the data and turn what was recorded into measurements a model can use."
+    },
+    {
+      "id": "split",
+      "number": 2,
+      "name": "Split the data",
+      "question": "What do we learn from, choose with, and mark on?",
+      "description": "Set aside data to learn from, data to choose with, and data to mark the final answer on."
     },
     {
       "id": "understand",
@@ -202,25 +202,25 @@
       "description": "Look for patterns in the data before fitting anything."
     },
     {
-      "id": "split",
+      "id": "frame",
       "number": 4,
-      "name": "Split the data",
-      "question": "What do we learn from, choose with, and mark on?",
-      "description": "Set aside data to learn from, data to choose with, and data to mark the final answer on."
-    },
-    {
-      "id": "fit",
-      "number": 5,
-      "name": "Fit the model",
-      "question": "What are the best parameters for this setup?",
-      "description": "For one chosen setup, find the parameters that fit the learning data best."
+      "name": "Frame the problem",
+      "question": "What are we predicting, and what counts as good?",
+      "description": "Say what we are predicting and what counts as a good answer, so we know the score to beat."
     },
     {
       "id": "choose",
-      "number": 6,
+      "number": 5,
       "name": "Choose the setup",
       "question": "Which features, model type and hyperparameters?",
       "description": "Decide which features, model type and hyperparameters to use, judged on data the fit never saw."
+    },
+    {
+      "id": "fit",
+      "number": 6,
+      "name": "Fit the model",
+      "question": "What are the best parameters for this setup?",
+      "description": "For one chosen setup, find the parameters that fit the learning data best."
     },
     {
       "id": "assess",
@@ -242,7 +242,7 @@
     "choose": "choose"
   },
   "notes": {
-    "general": "Every time the agent tries a new setup (stage 6) it fits the model again (stage 5), so the two stages form a loop. Parameters are learned from the training years (2005 to 2024). The setup is chosen using the validation year (2025). The test year (2026) is used once, at the end.",
+    "general": "Every time the agent tries a new setup (stage 5) it fits the model again (stage 6), so the two stages form a loop. Parameters are learned from the training years (2005 to 2024). The setup is chosen using the validation year (2025). The test year (2026) is used once, at the end.",
     "stages": {
       "choose": "In this app, Choose the setup means feature selection only. Plain linear regression has no hyperparameters to tune; hyperparameter tuning appears in later apps."
     }

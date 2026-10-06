@@ -6,7 +6,7 @@ Nothing is stored. These are the shapes sent in `GET /api/structure` and the val
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string | `frame`, `prepare`, `understand`, `split`, `fit`, `choose`, `assess`, `interpret` |
+| `id` | string | `prepare`, `split`, `understand`, `frame`, `choose`, `fit`, `assess`, `interpret` (the order a run first reaches each stage) |
 | `number` | integer 1 to 8 | the position in the set; shown on badges; keys the colour tokens |
 | `name` | string | for example "Fit the model" |
 | `question` | string | the question the stage answers |
@@ -20,12 +20,12 @@ A mapping `node id → stage id`, passed through `node_meta` so each node in the
 
 | Node | Stage |
 |---|---|
-| `baseline` | `frame` |
 | `load_data` | `prepare` |
-| `explore` | `understand` |
 | `split` | `split` |
-| `fit_model` | `fit` |
+| `explore` | `understand` |
+| `baseline` | `frame` |
 | `propose_features`, `check_proposal`, `evaluate`, `forward_selection` | `choose` |
+| `fit_model` | `fit` |
 | `final_test` | `assess` |
 | `explain_in_cricket_terms` | `interpret` |
 

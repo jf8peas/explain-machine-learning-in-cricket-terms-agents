@@ -14,7 +14,7 @@ The page has two tabs, **Working** (the agent graph, results and try-your-own) a
 
 ## Machine learning stages
 
-Every step of the agent belongs to one of eight stages of a machine learning project (frame the problem, prepare the data, understand the data, split the data, fit the model, choose the setup, final assessment, interpret and communicate). The graph shows each node's stage with a numbered, coloured badge, groups neighbouring nodes of a stage in labelled bands, and has a legend that highlights one stage. The detail panel and the timeline show the stage too.
+Every step of the agent belongs to one of eight stages of a machine learning project (prepare the data, split the data, understand the data, frame the problem, choose the setup, fit the model, final assessment, interpret and communicate, numbered 1 to 8 in the order a run first reaches them). The graph shows each node's stage with a numbered, coloured badge, groups neighbouring nodes of a stage in labelled bands, and has a legend that highlights one stage. The detail panel and the timeline show the stage too.
 
 - The stage set is defined once, in `backend/linreg/stages.py`, for every algorithm app. It reaches the page inside `GET /api/structure`; the visualiser holds no stage text.
 - To give a node a stage, add it to `NODE_STAGES` in `backend/linreg/graph.py`. `check_stages(app, mapping)` (used by `tests/test_structure_stages.py`) fails if a node has no stage, an unknown stage, or the mapping names something that is not a node. Another app calls the same function with its own graph and mapping.

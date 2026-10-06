@@ -4,9 +4,10 @@ import { open, playToEnd, serveStructure, timelineItems } from "./helpers";
 // Stage badges and bands, the legend, the panel and timeline cues, the done-beforehand item and the loop emphasis,
 // against the real app with the scripted fake model. Stage names come from /api/structure, never from this file.
 
+// The numbers follow the order a run first reaches each stage.
 const NUMBER_OF: Record<string, number> = {
-  baseline: 1, load_data: 2, explore: 3, split: 4, fit_model: 5,
-  propose_features: 6, check_proposal: 6, evaluate: 6, forward_selection: 6, final_test: 7, explain_in_cricket_terms: 8,
+  load_data: 1, split: 2, explore: 3, baseline: 4, propose_features: 5, check_proposal: 5, evaluate: 5,
+  forward_selection: 5, fit_model: 6, final_test: 7, explain_in_cricket_terms: 8,
 };
 
 const node = (page: Page, id: string) => page.locator(`[data-node="${id}"]`);
@@ -67,7 +68,7 @@ test("neighbouring nodes of a stage share a labelled band; Choose the setup has 
   const holds = await page.locator('[data-testid="stage-band"][data-stage="choose"]').evaluateAll(
     (els) => els.map((e) => (e.getAttribute("data-nodes") ?? "").split(" ").sort().join(",")));
   expect(holds.sort()).toEqual(["check_proposal,propose_features", "evaluate,forward_selection"]);
-  expect(choose.number).toBe(6);
+  expect(choose.number).toBe(5);
 });
 
 test("a band never covers a node of another stage and sits behind the nodes", async ({ page }) => {
@@ -123,7 +124,7 @@ for (const scheme of ["light", "dark"] as const) {
     const fills = await page.getByTestId("stage-badge").evaluateAll((els) =>
       els.map((e) => getComputedStyle(e.querySelector("circle") as SVGCircleElement).fill));
     expect(new Set(fills).size).toBe(8);                       // eight stages, eight colours
-    const stage1 = await badge(page, "baseline").locator("circle").evaluate((c) => getComputedStyle(c).fill);
+    const stage1 = await badge(page, "load_data").locator("circle").evaluate((c) => getComputedStyle(c).fill);
     expect(stage1).toBe(scheme === "light" ? "rgb(138, 90, 0)" : "rgb(184, 134, 63)");
   });
 }
@@ -356,8 +357,8 @@ test("the timeline shows the run moving between Fit the model and Choose the set
   await open(page, 60);
   await playToEnd(page);
   const numbers = (await timelineItems(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-stage-number")))).join("");
-  expect(numbers.startsWith("2431")).toBe(true);              // load_data, split, explore, baseline
-  expect((numbers.match(/656/g) ?? []).length).toBeGreaterThanOrEqual(3);   // choose, fit, choose, once per fitted round
+  expect(numbers.startsWith("1234")).toBe(true);              // load_data, split, explore, baseline: in order
+  expect((numbers.match(/565/g) ?? []).length).toBeGreaterThanOrEqual(3);   // choose, fit, choose, once per fitted round
   expect(numbers.endsWith("78")).toBe(true);
 });
 
@@ -377,12 +378,12 @@ test("the Event panel shows the stage's note when the app supplied one", async (
 const itemNode = (page: Page) => page.getByTestId("item");
 const itemPanel = (page: Page) => page.getByTestId("item-panel");
 
-test("the item is drawn differently, with a tag and a stage 2 badge, ahead of load_data", async ({ page }) => {
+test("the item is drawn differently, with a tag and a stage 1 badge, ahead of load_data", async ({ page }) => {
   await open(page);
   await expect(itemNode(page)).toBeVisible();
   await expect(itemNode(page)).toHaveClass(/item/);
   await expect(itemNode(page).locator(".item-tag")).toContainText("done beforehand");
-  await expect(itemNode(page).getByTestId("stage-badge").locator("text")).toHaveText("2");
+  await expect(itemNode(page).getByTestId("stage-badge").locator("text")).toHaveText("1");
   await expect(page.locator('[data-edge="item:prepare_data->load_data"]')).toHaveClass(/item-edge/);
   const dash = await itemNode(page).locator("rect.body").evaluate((r) => getComputedStyle(r).strokeDasharray);
   expect(dash).not.toBe("none");
@@ -480,8 +481,8 @@ test("the loop note sits near the legend and names the real years", async ({ pag
   const years = (await (await page.request.get("/api/data")).json()).summary.sections
     .find((s: { title: string }) => s.title.startsWith("Slices")).rows.map((r: { label: string }) => r.label);
   const note = page.getByTestId("legend-note");
-  await expect(note).toContainText("new setup (stage 6)");
-  await expect(note).toContainText("fits the model again (stage 5)");
+  await expect(note).toContainText("new setup (stage 5)");
+  await expect(note).toContainText("fits the model again (stage 6)");
   for (const label of years) {                                    // "Training (2005 to 2024)", "Validation (2025)", "Test (2026)"
     const m = /\(([^)]+)\)/.exec(label);
     if (m) await expect(note).toContainText(m[1]);

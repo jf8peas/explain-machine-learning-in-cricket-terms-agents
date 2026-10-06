@@ -23,13 +23,13 @@ def toy_app():
     return g.compile()
 
 
-EXPECTED = [
-    ("frame", "Frame the problem", "What are we predicting, and what counts as good?"),
+EXPECTED = [                                   # the order a run first reaches each stage
     ("prepare", "Prepare the data", "Is the data clean and in a usable form?"),
-    ("understand", "Understand the data", "What patterns are there?"),
     ("split", "Split the data", "What do we learn from, choose with, and mark on?"),
-    ("fit", "Fit the model", "What are the best parameters for this setup?"),
+    ("understand", "Understand the data", "What patterns are there?"),
+    ("frame", "Frame the problem", "What are we predicting, and what counts as good?"),
     ("choose", "Choose the setup", "Which features, model type and hyperparameters?"),
+    ("fit", "Fit the model", "What are the best parameters for this setup?"),
     ("assess", "Final assessment", "How good is it on data it has never seen?"),
     ("interpret", "Interpret and communicate", "What does it mean?"),
 ]

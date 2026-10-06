@@ -4,16 +4,16 @@ Date: 2026-10-06. Contrast and colour-difference numbers were computed on this d
 
 ## Decision 1: The stage ids and descriptions
 
-Eight stages, ids in this order (the number is the position):
+Eight stages, ids in this order (the number is the position). The order is the order a run first reaches each stage, which the owner chose on 2026-10-06 after seeing the first order (frame, prepare, understand, split, fit, choose, final, interpret) give badges that ran 2, 4, 3, 1 along the graph:
 
 | # | id | Name | One-sentence description |
 |---|---|---|---|
-| 1 | `frame` | Frame the problem | Say what we are predicting and what counts as a good answer, so we know the score to beat. |
-| 2 | `prepare` | Prepare the data | Clean the data and turn what was recorded into measurements a model can use. |
+| 1 | `prepare` | Prepare the data | Clean the data and turn what was recorded into measurements a model can use. |
+| 2 | `split` | Split the data | Set aside data to learn from, data to choose with, and data to mark the final answer on. |
 | 3 | `understand` | Understand the data | Look for patterns in the data before fitting anything. |
-| 4 | `split` | Split the data | Set aside data to learn from, data to choose with, and data to mark the final answer on. |
-| 5 | `fit` | Fit the model | For one chosen setup, find the parameters that fit the learning data best. |
-| 6 | `choose` | Choose the setup | Decide which features, model type and hyperparameters to use, judged on data the fit never saw. |
+| 4 | `frame` | Frame the problem | Say what we are predicting and what counts as a good answer, so we know the score to beat. |
+| 5 | `choose` | Choose the setup | Decide which features, model type and hyperparameters to use, judged on data the fit never saw. |
+| 6 | `fit` | Fit the model | For one chosen setup, find the parameters that fit the learning data best. |
 | 7 | `assess` | Final assessment | Score the chosen model once, on data it has never seen. |
 | 8 | `interpret` | Interpret and communicate | Explain in plain words what the result means. |
 
@@ -33,12 +33,12 @@ A new backend module `backend/linreg/stages.py` (a shared-library candidate, no 
 
 | Stage | Nodes |
 |---|---|
-| `frame` | `baseline` |
 | `prepare` | `load_data` (and the display-only done-beforehand item) |
-| `understand` | `explore` |
 | `split` | `split` |
-| `fit` | `fit_model` |
+| `understand` | `explore` |
+| `frame` | `baseline` |
 | `choose` | `propose_features`, `check_proposal`, `evaluate`, `forward_selection` |
+| `fit` | `fit_model` |
 | `assess` | `final_test` |
 | `interpret` | `explain_in_cricket_terms` |
 
@@ -50,7 +50,7 @@ The node's fill and border already carry the run state and the language-model ma
 
 ## Decision 5: The eight colours, and the contrast check
 
-Eight tokens `--gr-stage-1` to `--gr-stage-8`, each with a light and a dark value, plus `--gr-stage-text` (the number colour: white in light, the dark page colour in dark). They sit in the existing token block of `styles.ts`, keyed by stage number. A stage number above 8 (another app with more stages) falls back to the neutral token.
+Eight tokens `--gr-stage-1` to `--gr-stage-8` (keyed by number, so they stayed with their numbers when the stage order changed), each with a light and a dark value, plus `--gr-stage-text` (the number colour: white in light, the dark page colour in dark). They sit in the existing token block of `styles.ts`, keyed by stage number. A stage number above 8 (another app with more stages) falls back to the neutral token.
 
 Rules I checked, per theme:
 
@@ -65,12 +65,12 @@ I first let a search pick the most spread-out colours that met the rules. It cho
 
 | # | Stage | Colour | Text | vs page | vs panel | ΔE green | purple | red | accent | amber | neutral |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | frame | `#8a5a00` | 5.9 | 5.9 | 5.5 | 37 | 55 | 26 | 53 | 21 | 33 |
-| 2 | prepare | `#5f7a00` | 4.9 | 4.9 | 4.6 | 18 | 75 | 52 | 63 | 27 | 38 |
+| 1 | prepare | `#8a5a00` | 5.9 | 5.9 | 5.5 | 37 | 55 | 26 | 53 | 21 | 33 |
+| 2 | split | `#5f7a00` | 4.9 | 4.9 | 4.6 | 18 | 75 | 52 | 63 | 27 | 38 |
 | 3 | understand | `#00798a` | 5.1 | 5.1 | 4.8 | 26 | 30 | 60 | 23 | 46 | 18 |
-| 4 | split | `#8a4f7d` | 6.0 | 6.0 | 5.6 | 58 | 16 | 28 | 29 | 53 | 22 |
-| 5 | fit | `#bb5400` | 4.8 | 4.8 | 4.5 | 49 | 49 | 16 | 50 | 23 | 36 |
-| 6 | choose | `#a3246b` | 6.9 | 6.9 | 6.5 | 69 | 20 | 25 | 36 | 58 | 29 |
+| 4 | frame | `#8a4f7d` | 6.0 | 6.0 | 5.6 | 58 | 16 | 28 | 29 | 53 | 22 |
+| 5 | choose | `#bb5400` | 4.8 | 4.8 | 4.5 | 49 | 49 | 16 | 50 | 23 | 36 |
+| 6 | fit | `#a3246b` | 6.9 | 6.9 | 6.5 | 69 | 20 | 25 | 36 | 58 | 29 |
 | 7 | assess | `#00695c` | 6.6 | 6.6 | 6.2 | 17 | 39 | 54 | 35 | 44 | 23 |
 | 8 | interpret | `#7a5c46` | 6.1 | 6.1 | 5.7 | 34 | 39 | 20 | 39 | 28 | 23 |
 
@@ -78,18 +78,18 @@ I first let a search pick the most spread-out colours that met the rules. It cho
 
 | # | Stage | Colour | Text | vs page | vs panel | ΔE green | purple | red | accent | amber | neutral |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | frame | `#b8863f` | 5.6 | 5.6 | 5.0 | 36 | 49 | 27 | 48 | 15 | 32 |
-| 2 | prepare | `#b5cf4a` | 10.4 | 10.4 | 9.2 | 20 | 70 | 52 | 62 | 20 | 40 |
+| 1 | prepare | `#b8863f` | 5.6 | 5.6 | 5.0 | 36 | 49 | 27 | 48 | 15 | 32 |
+| 2 | split | `#b5cf4a` | 10.4 | 10.4 | 9.2 | 20 | 70 | 52 | 62 | 20 | 40 |
 | 3 | understand | `#4fd0e0` | 9.9 | 9.9 | 8.8 | 25 | 35 | 64 | 24 | 43 | 22 |
-| 4 | split | `#cf9bc2` | 7.9 | 7.9 | 7.0 | 55 | 15 | 22 | 30 | 47 | 21 |
-| 5 | fit | `#ff9a3c` | 8.6 | 8.6 | 7.7 | 46 | 49 | 22 | 50 | 16 | 36 |
-| 6 | choose | `#f06ab0` | 6.4 | 6.4 | 5.7 | 72 | 20 | 21 | 39 | 56 | 28 |
+| 4 | frame | `#cf9bc2` | 7.9 | 7.9 | 7.0 | 55 | 15 | 22 | 30 | 47 | 21 |
+| 5 | choose | `#ff9a3c` | 8.6 | 8.6 | 7.7 | 46 | 49 | 22 | 50 | 16 | 36 |
+| 6 | fit | `#f06ab0` | 6.4 | 6.4 | 5.7 | 72 | 20 | 21 | 39 | 56 | 28 |
 | 7 | assess | `#3fd0c8` | 9.6 | 9.6 | 8.5 | 16 | 39 | 55 | 30 | 40 | 24 |
 | 8 | interpret | `#d8b59a` | 9.5 | 9.5 | 8.5 | 33 | 37 | 19 | 37 | 18 | 24 |
 
 Existing tokens compared against (light / dark): visited green `#3f8f5f` / `#5fbf86`, language-model purple `#7a3fc0` / `#b794f4`, error red `#b3261e` / `#ff8a80`, accent blue `#1d6fe0` / `#6ea8ff`, changed amber `#c58f00` / `#e0b030`, neutral grey (muted text) `#5b6678` / `#98a3b5`.
 
-**Results**: every row passes all the rules (the smallest ΔE to the three named colours is 15, stage 4 dark against purple; to the accent blue, 23; to the changed amber, 15 at the lowest, stage 1 dark; to the neutral grey, 18 at the lowest, stage 3 light). **Known near misses**, accepted because the number badge is the primary cue: stages 4 and 6 are only ΔE 10 apart in the light theme (plum and raspberry), and stages 3 and 7 are ΔE 9 apart in the dark theme (cyan and teal). With 8 colours that must also avoid green, purple, red, blue and amber, some pairs have to be close. SC-003's automated check covers what can be computed: the eight numbers differ and the eight colours differ; the "colour removed" check is a manual look.
+**Results**: every row passes all the rules (the smallest ΔE to the three named colours is 15, stage 4 dark against purple; to the accent blue, 23; to the changed amber, 15 at the lowest, stage 1 dark; to the neutral grey, 18 at the lowest, stage 3 light). ****Known near misses**, accepted because the number badge is the primary cue: numbers 4 and 6 (Frame the problem and Fit the model) are only ΔE 10 apart in the light theme (plum and raspberry), and numbers 3 and 7 (Understand the data and Final assessment) are ΔE 9 apart in the dark theme (cyan and teal). With 8 colours that must also avoid green, purple, red, blue and amber, some pairs have to be close. SC-003's automated check covers what can be computed: the eight numbers differ and the eight colours differ; the "colour removed" check is a manual look.
 
 Band labels use the page text colour on a tint of the stage colour at low opacity, so label contrast is the text colour's, not the stage colour's.
 
@@ -110,7 +110,7 @@ Bands are drawn first in the SVG (the bottom layer), so they never hide an edge 
 
 ## Decision 7: The legend, and how selection is kept
 
-The legend is built inside `<graph-replay>` by a new module `legend.ts` from the structure's `stages`. Every stage name, question, description, note and reason is set with `textContent`, like all other server text. Each stage is a real `<button aria-pressed>` showing the badge, name and question; an "All" button clears the filter. A visually hidden polite live region announces the choice ("Highlighting stage 5, Fit the model. Other steps are dimmed." and "Highlight cleared."). Focus is visible with the existing focus ring. The existing global ← and → keys still step the replay; the legend needs no other keys.
+The legend is built inside `<graph-replay>` by a new module `legend.ts` from the structure's `stages`. Every stage name, question, description, note and reason is set with `textContent`, like all other server text. Each stage is a real `<button aria-pressed>` showing the badge, name and question; an "All" button clears the filter. A visually hidden polite live region announces the choice ("Highlighting stage 6, Fit the model. Other steps are dimmed." and "Highlight cleared."). Focus is visible with the existing focus ring. The existing global ← and → keys still step the replay; the legend needs no other keys.
 
 The selected stage is one field on the component, **separate from the playback buffer** (`ReplayBuffer` is untouched). Play, Pause, Step, Back, Reset and a new run never read or write it; only the legend buttons do, so it persists as the spec requires.
 
@@ -127,7 +127,7 @@ The structure response may carry `notes`: `{ "general": "<text>", "stages": { "<
 For this app the backend supplies:
 
 - `stages.choose`: "In this app, Choose the setup means feature selection only. Plain linear regression has no hyperparameters to tune; hyperparameter tuning appears in later apps." (FR-021)
-- `general`: "Every time the agent tries a new setup (stage 6) it fits the model again (stage 5), so the two stages form a loop. Parameters are learned from the training years ({first} to {last}). The setup is chosen using the validation year ({validation}). The test year ({test}) is used once, at the end." (FR-020)
+- `general`: "Every time the agent tries a new setup (stage 5) it fits the model again (stage 6), so the two stages form a loop. Parameters are learned from the training years ({first} to {last}). The setup is chosen using the validation year ({validation}). The test year ({test}) is used once, at the end." (FR-020)
 - a reason for any stage with no node: none today, because all eight stages have a node. A pytest test makes sure every stage without a node has a reason, so the case works as soon as an app has one.
 
 The years come from `split_three_ways` on the loaded data (the same call the agent and the Data tab use), computed once per process and cached. If the data cannot be loaded, the general note is sent without the years sentence, never with invented years.
