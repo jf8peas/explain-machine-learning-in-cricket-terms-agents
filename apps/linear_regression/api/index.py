@@ -1,5 +1,6 @@
 """Vercel entry point: exposes the FastAPI app at /api/structure, /api/run, /api/models, /api/data and /api/catalogue."""
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -22,6 +23,9 @@ from linreg.model_options import ModelOptions  # noqa: E402
 from linreg.run_gate import RunGate  # noqa: E402
 from linreg.stage_info import structure_extras  # noqa: E402
 from linreg.state import RECURSION_LIMIT  # noqa: E402
+
+# Our own loggers (linreg.limits, linreg.gate, linreg.llm) report at INFO so a deployment can be diagnosed from its logs.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 MODELS_CACHE = "public, s-maxage=300, stale-while-revalidate=3600"
 

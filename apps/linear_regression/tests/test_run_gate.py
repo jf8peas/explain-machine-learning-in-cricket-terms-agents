@@ -231,3 +231,28 @@ def test_a_run_that_runs_out_of_time_still_reaches_the_end():
     r = tc.get("/api/run", headers=visitor(1))
     assert not llm.requests and "event: done" in r.text
     assert final_state(r)["llm_status"] == "failed"
+
+
+# --- what the gate logs when it has to run without the model ---
+
+import logging  # noqa: E402
+
+
+def gate_log(caplog):
+    return "\n".join(r.getMessage() for r in caplog.records if r.name == "linreg.gate")
+
+
+def test_an_unreachable_store_is_logged_with_the_reason_and_the_model(caplog):
+    tc, _ = app_with(store=Broken())
+    with caplog.at_level(logging.INFO, logger="linreg.gate"):
+        tc.get("/api/run?model=m1", headers=visitor(1))
+    text = gate_log(caplog)
+    assert "run limit store unavailable" in text and "down" in text and "model=fake/steady" in text
+
+
+def test_no_store_configured_is_logged(caplog):
+    llm = default_fake()
+    tc = TestClient(create_app(llm, OPTIONS, {}))
+    with caplog.at_level(logging.INFO, logger="linreg.gate"):
+        tc.get("/api/run")
+    assert "run limit store not configured" in gate_log(caplog)

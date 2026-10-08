@@ -133,3 +133,79 @@ def test_upstash_is_chosen_when_its_settings_are_present():
 def test_without_any_settings_there_is_no_store_so_the_model_will_not_be_used():
     assert store_from_env({}) is None
     assert store_from_env({"UPSTASH_REDIS_REST_URL": "https://x.upstash.io"}) is None      # the token is missing
+
+
+# --- what the logs say when the store fails or is misconfigured (never the token) ---
+
+import logging  # noqa: E402
+
+
+def logged(caplog):
+    return "\n".join(r.getMessage() for r in caplog.records if r.name == "linreg.limits")
+
+
+@pytest.mark.parametrize("response,expected", [
+    (httpx.Response(500, text="boom TOKEN123"), ["status=500", "boom"]),
+    (httpx.Response(401, json={"error": "Unauthorized"}), ["status=401", "Unauthorized"]),
+    (httpx.Response(200, json=[{"result": 1}, {"error": "ERR syntax error"}, {"result": 5}]),
+     ["store_error", "ERR syntax error"]),
+    (httpx.Response(200, text="not json"), ["could not be read"]),
+])
+def test_a_failing_call_logs_why_and_where_without_the_token(caplog, response, expected):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"), pytest.raises(StoreUnavailable):
+        upstash(lambda req: response).incr("k", 60)
+    text = logged(caplog)
+    for piece in expected:
+        assert piece in text
+    assert "op=INCR+EXPIRE+TTL" in text and "example.upstash.io" in text and "elapsed=" in text
+    assert "TOKEN123" not in text
+
+
+def test_a_network_error_logs_its_kind_and_removes_the_token(caplog):
+    def handler(req):
+        raise httpx.ConnectError("cannot reach TOKEN123", request=req)
+
+    with caplog.at_level(logging.INFO, logger="linreg.limits"), pytest.raises(StoreUnavailable):
+        upstash(handler).take_lock("k", 10)
+    text = logged(caplog)
+    assert "ConnectError" in text and "[redacted]" in text and "op=SET" in text
+    assert "TOKEN123" not in text
+
+
+def test_a_url_without_a_scheme_is_named_as_the_problem(caplog):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"), pytest.raises(StoreUnavailable):
+        UpstashStore("example.upstash.io", "TOKEN123").incr("k", 60)       # httpx refuses it before any network use
+    text = logged(caplog)
+    assert "UnsupportedProtocol" in text and "not a usable url" in text and "TOKEN123" not in text
+
+
+def test_a_missing_setting_is_logged_by_name(caplog):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"):
+        assert store_from_env({"UPSTASH_REDIS_REST_URL": "https://x.upstash.io"}) is None
+    text = logged(caplog)
+    assert "not configured" in text and "UPSTASH_REDIS_REST_TOKEN=missing" in text
+    assert "UPSTASH_REDIS_REST_URL=present" in text
+
+
+def test_a_url_with_no_scheme_is_warned_about_when_the_store_is_chosen(caplog):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"):
+        assert isinstance(store_from_env({"UPSTASH_REDIS_REST_URL": "x.upstash.io", "UPSTASH_REDIS_REST_TOKEN": "SECRET-TOKEN-XYZ"}),
+                          UpstashStore)
+    text = logged(caplog)
+    assert "no http:// or https://" in text and "SECRET-TOKEN-XYZ" not in text
+
+
+def test_stray_whitespace_and_quotes_in_the_settings_are_flagged_without_showing_them(caplog):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"):
+        store_from_env({"UPSTASH_REDIS_REST_URL": "\"https://x.upstash.io\"", "UPSTASH_REDIS_REST_TOKEN": "SECRET-TOKEN-XYZ\n"})
+    text = logged(caplog)
+    assert "wrapped in quotes" in text and "contains a newline" in text and "whitespace" in text
+    assert "SECRET-TOKEN-XYZ" not in text
+
+
+def test_a_good_configuration_logs_the_host_and_never_the_token(caplog):
+    with caplog.at_level(logging.INFO, logger="linreg.limits"):
+        store_from_env({"UPSTASH_REDIS_REST_URL": "https://eu1-example-12345.upstash.io/", "UPSTASH_REDIS_REST_TOKEN": "SECRET-TOKEN-XYZ"})
+    text = logged(caplog)
+    assert "Upstash at eu1-example-12345.upstash.io" in text and "chars=" in text
+    assert "SECRET-TOKEN-XYZ" not in text

@@ -15,7 +15,7 @@ export default defineConfig({
       // an in-process limit store. A fresh server every run (reuseExistingServer is false) so the in-memory counters
       // start empty; stop any API you left running on port 8000 first. The fake knows these model ids (see
       // linreg/llm_fake.py): fake/steady (the default), fake/quick, fake/slow, fake/markup, fake/broken, fake/timeout.
-      command: "uv run uvicorn api.index:app --port 8000",
+      command: "uv run python -m uvicorn api.index:app --port 8000",
       cwd: "..",
       url: "http://127.0.0.1:8000/api/structure",
       reuseExistingServer: false,

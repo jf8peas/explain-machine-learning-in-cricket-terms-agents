@@ -67,6 +67,7 @@ class RunGate:
         self._secret = self.environ.get("VISITOR_ID_SECRET") or secrets.token_hex(16)
         if not self.environ.get("VISITOR_ID_SECRET"):
             log.warning("VISITOR_ID_SECRET is not set: visitor ids will not survive a restart. Set it in production.")
+        log.info("run gate ready: limit store=%s", type(self.store).__name__ if self.store is not None else "none")
 
     def _number(self, name: str, default: int) -> int:
         try:
@@ -93,6 +94,7 @@ class RunGate:
     def admit(self, request: Request, started: float) -> Permit:
         model = self._model(request)
         if self.store is None:  # no way to check the limits: never call the model
+            log.warning("run limit store not configured: running without the language model (model=%s)", model.id)
             return Permit(self._configurable(model, started, False, STORE_DOWN))
         vid = visitor_id(request, self._secret)
         lock_ttl = self._number("RUN_LOCK_SECONDS", 90)
@@ -122,8 +124,8 @@ class RunGate:
         except Refusal:
             self._undo(lock_key, locked, counted)  # a refused start leaves no lock and uses up no quota
             raise
-        except StoreUnavailable:
-            log.warning("run limit store unavailable; running without the language model")
+        except StoreUnavailable as exc:
+            log.warning("run limit store unavailable, so running without the language model (model=%s): %s", model.id, exc)
             self._undo(lock_key, locked, counted)
             return Permit(self._configurable(model, started, False, STORE_DOWN))
         return Permit(self._configurable(model, started, True), release=lambda: self._release(lock_key))
