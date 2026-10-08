@@ -9,13 +9,16 @@ import pytest
 
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
-SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api", "stages"]
+SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api", "stages",
+          "accuracy"]
 APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table",
                 # feature 004: the language-model step, its rules, its limits and its fake
                 "selection", "redundancy", "recipes", "llm_client", "llm_reply", "llm_fake", "prompts", "model_options",
                 "run_gate", "limit_store", "run_budget", "catalogue_api",
                 # feature 005: this app's notes and done-beforehand item for the stage legend
-                "stage_info"}
+                "stage_info",
+                # feature 006: the four methods, the goal, the wording and the introduction's endpoint
+                "methods", "goal", "accuracy_text", "reference_api"}
 
 
 def imported_modules(path: Path) -> set[str]:
@@ -121,3 +124,12 @@ def test_the_stage_module_is_generic():
     code = (PKG / "stages.py").read_text(encoding="utf-8").lower()
     for word in ("cricket", "innings", "regression", "wicket", "openrouter"):
         assert word not in code, f"stages.py mentions {word!r}"
+
+
+def test_the_accuracy_and_evaluation_modules_are_generic():
+    for module in ("accuracy", "evaluation"):
+        code = (PKG / f"{module}.py").read_text(encoding="utf-8").lower()
+        for word in ("cricket", "innings", "wicket", "broadcaster", "openrouter"):
+            if module == "evaluation" and word == "broadcaster":
+                continue                     # evaluation.py holds the broadcaster's projection by its existing design
+            assert word not in code, f"{module}.py mentions {word!r}"

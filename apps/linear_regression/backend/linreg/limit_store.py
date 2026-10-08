@@ -13,6 +13,9 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from .settings import describe as _describe_setting
+from .settings import unwrap as _unwrap
+
 log = logging.getLogger("linreg.limits")
 
 
@@ -139,20 +142,6 @@ def _host(url: str) -> str:
     return parts.netloc if parts.scheme and parts.netloc else f"(not a usable url: scheme={parts.scheme or 'none'})"
 
 
-def _describe_setting(name: str, value: str | None) -> str:
-    """Whether a setting is present and shaped sensibly, without revealing it: only its length and stray characters."""
-    if not value:
-        return f"{name}=missing"
-    flags = []
-    if value != value.strip():
-        flags.append("leading or trailing whitespace")
-    if value[:1] in "\"'" or value[-1:] in "\"'":
-        flags.append("wrapped in quotes")
-    if "\n" in value or "\r" in value:
-        flags.append("contains a newline")
-    return f"{name}=present(chars={len(value)}{', ' + ', '.join(flags) if flags else ''})"
-
-
 def store_from_env(environ: Mapping[str, str]) -> LimitStore | None:
     """Upstash when configured; the in-process store only when RATE_LIMIT_STORE=memory; otherwise None.
 
@@ -160,14 +149,19 @@ def store_from_env(environ: Mapping[str, str]) -> LimitStore | None:
     if environ.get("RATE_LIMIT_STORE") == "memory":
         log.info("run limit store: in-process (RATE_LIMIT_STORE=memory), for development and tests only")
         return MemoryStore()
-    url, token = environ.get("UPSTASH_REDIS_REST_URL"), environ.get("UPSTASH_REDIS_REST_TOKEN")
-    summary = f"{_describe_setting('UPSTASH_REDIS_REST_URL', url)} {_describe_setting('UPSTASH_REDIS_REST_TOKEN', token)}"
+    raw_url, raw_token = environ.get("UPSTASH_REDIS_REST_URL"), environ.get("UPSTASH_REDIS_REST_TOKEN")
+    summary = f"{_describe_setting('UPSTASH_REDIS_REST_URL', raw_url)} {_describe_setting('UPSTASH_REDIS_REST_TOKEN', raw_token)}"
+    url, token = _unwrap(raw_url), _unwrap(raw_token)
+    for name, raw, cleaned in (("UPSTASH_REDIS_REST_URL", raw_url, url), ("UPSTASH_REDIS_REST_TOKEN", raw_token, token)):
+        if raw and cleaned != raw:
+            log.warning("run limit store: %s had surrounding quotes or whitespace, which were removed; "
+                        "fix the value where it is set so it is stored without them", name)
     if url and token:
-        if not url.strip().lower().startswith(("http://", "https://")):
+        if not url.lower().startswith(("http://", "https://")):
             log.warning("run limit store: UPSTASH_REDIS_REST_URL has no http:// or https:// at the start, so calls will "
                         "fail (%s)", summary)
         else:
-            log.info("run limit store: Upstash at %s (%s)", _host(url.strip()), summary)
+            log.info("run limit store: Upstash at %s (%s)", _host(url), summary)
         return UpstashStore(url, token)
     log.warning("run limit store: not configured, so the language model will not be used (%s)", summary)
     return None

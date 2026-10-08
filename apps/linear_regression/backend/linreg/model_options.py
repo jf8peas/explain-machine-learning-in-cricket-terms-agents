@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass
 from typing import Mapping
 
+from .settings import read as read_setting
+
 # Timed and priced on 2026-10-06 with scripts/time_models.py; see MODEL_OPTIONS.md for the comparison and why each
 # model is here.
 FALLBACK_OPTIONS: list[dict] = [
@@ -70,7 +72,7 @@ class ModelOptions:
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "ModelOptions":
-        raw = (os.environ if environ is None else environ).get("MODEL_OPTIONS", "").strip()
+        raw = (read_setting(os.environ if environ is None else environ, "MODEL_OPTIONS") or "").strip()
         if not raw:
             return cls(_parse(json.dumps(FALLBACK_OPTIONS)))
         return cls(_parse(raw))

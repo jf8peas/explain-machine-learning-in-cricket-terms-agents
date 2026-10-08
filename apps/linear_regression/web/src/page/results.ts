@@ -2,6 +2,8 @@
 // Everything is inserted as text; the language model's reason is never interpreted as HTML.
 import { labelFor } from "./catalogue";
 import { fmt, h } from "./dom";
+import { renderAccuracy, type FinalAccuracy } from "./accuracy";
+import type { ChartPoints } from "./accuracy-chart";
 import { renderLeaderboard, renderRounds, type Attempt, type RoundNote } from "./leaderboard";
 
 interface Final {
@@ -15,20 +17,23 @@ interface Final {
   improvement: number;
   llm_took_part: boolean;
   sets: { llm?: string[]; forward?: string[] };
+  verdict_sentence?: string;
 }
+type FinalState = Final & Partial<FinalAccuracy>;
 interface Explanation {
   sentences: string[];
   most_important: string;
   comparison: { model_mae: number; baseline_mae: number; beat_baseline: boolean; cleared_margin: boolean; improvement: number; r2: number };
 }
 
-function finalComparison(f: Final, explanation: Explanation | undefined, failure: string | null | undefined): HTMLElement {
+function finalComparison(f: FinalState, explanation: Explanation | undefined, failure: string | null | undefined): HTMLElement {
   const box = h("div", { class: `compare ${f.beat_tv ? "win" : "lose"}`, "data-testid": "comparison" });
   const col = (label: string, value: number | null, testid: string, note?: string) =>
     h("div", { "data-testid": testid },
       h("span", { class: "big" }, value === null ? "–" : fmt(value)),
       h("span", { class: "cap" }, label), ...(note ? [h("span", { class: "cap" }, note)] : []));
   box.append(
+    ...(f.accuracy ? [col("runs: the know-nothing guess", f.accuracy.know_nothing.average_miss, "final-know-nothing")] : []),
     col("runs: the language model's choice", f.test_mae.llm, "final-llm", f.llm_took_part ? undefined : "did not take part"),
     col("runs: forward selection", f.test_mae.forward, "final-forward"),
     col("runs: the TV projection", f.test_mae.tv, "final-tv"));
@@ -38,15 +43,16 @@ function finalComparison(f: Final, explanation: Explanation | undefined, failure
       ? `${f.winner_name.charAt(0).toUpperCase()}${f.winner_name.slice(1)} won` + (f.margin ? ` by ${fmt(f.margin)} runs.` : ", on a tie.")
       : `The language model did not take part${failure ? ` (${failure.replace(/\.$/, "")})` : ""}, so forward selection's set is the result.`));
   box.append(h("p", { class: "verdict", "data-testid": "verdict" },
-    f.beat_tv ? `The winning model beat the TV projection by ${fmt(Math.abs(verdict?.improvement ?? f.improvement))} runs.`
-              : `The winning model did not beat the TV projection (${fmt(Math.abs(f.improvement))} runs worse).`));
+    f.verdict_sentence ??
+    (f.beat_tv ? `The winning model beat the TV projection by ${fmt(Math.abs(verdict?.improvement ?? f.improvement))} runs.`
+               : `The winning model did not beat the TV projection (${fmt(Math.abs(f.improvement))} runs worse).`)));
   return box;
 }
 
 export function renderResults(target: HTMLElement, state: Record<string, unknown>): void {
   const attempts = (state.attempts as Attempt[] | undefined) ?? [];
   const rounds = (state.rounds as RoundNote[] | undefined) ?? [];
-  const final = state.final as Final | undefined;
+  const final = state.final as FinalState | undefined;
   const expl = state.explanation as Explanation | undefined;
   const baseline = state.baseline_validation_mae as number | undefined;
   const dataError = state.data_error as string | null | undefined;
@@ -77,6 +83,10 @@ export function renderResults(target: HTMLElement, state: Record<string, unknown
   if (roundsEl) parts.push(roundsEl);
   if (final) {
     parts.push(h("h3", {}, "The final test"), finalComparison(final, expl, failure));
+    if (final.accuracy && final.methods && final.method_defs) {
+      parts.push(...renderAccuracy(final as FinalAccuracy, (state.split as { test_year?: number } | undefined)?.test_year,
+        state.chart_points as ChartPoints | undefined));
+    }
     if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best set: ${final.sets.llm.map(labelFor).join(", ")}.`));
     if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's set: ${final.sets.forward.map(labelFor).join(", ")}.`));
   }

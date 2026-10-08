@@ -12,15 +12,16 @@ from typing import Any
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 
-from . import cricket_explanation, features as feature_registry, regression, selection
+from . import accuracy_text, cricket_explanation, features as feature_registry, goal, regression, scoring, selection
+from .accuracy import accuracy, display
 from .competition_dummies import check_dummies
 from .data_loading import DataError, load_innings
-from .evaluation import broadcaster_projection, mae, r2
+from .evaluation import broadcaster_projection, know_nothing_guess, mae, r2
 from .llm_client import LlmClient, LlmError, LlmTimeout, LlmUnavailable
 from .llm_reply import UnusableReply, parse_reply
 from .prompts import build_request
 from .season_split import Slices, split_three_ways
-from .state import FORWARD, LLM, MARGIN_RUNS, MIN_TEST_INNINGS, ROUND_CAP, SET_LIMIT, RunState
+from .state import FORWARD, LLM, MIN_TEST_INNINGS, ROUND_CAP, SET_LIMIT, RunState
 
 log = logging.getLogger("linreg.llm")
 
@@ -145,11 +146,21 @@ def explore(state: RunState) -> dict[str, Any]:
 
 def baseline(state: RunState) -> dict[str, Any]:
     """The TV projection scored on the validation year (the test year is not touched here)."""
-    validation = _slices(state).validation
+    s = _slices(state)
+    validation = s.validation
     err = mae(validation["final_total"], broadcaster_projection(validation["runs_at_10"]))
-    return {"baseline_validation_mae": _r(err),
+    # The know-nothing guess is the training years' average total, whatever the score at 10 overs; the floor any
+    # useful prediction must beat. It is scored here on the validation year, like the projection.
+    reference = {
+        "know_nothing": display(accuracy(validation["final_total"],
+                                         know_nothing_guess(s.train["final_total"], len(validation)))),
+        "broadcaster": display(accuracy(validation["final_total"], broadcaster_projection(validation["runs_at_10"]))),
+    }
+    return {"baseline_validation_mae": _r(err), "reference_validation": reference,
             "summary": (f"On the validation year the TV projected score (current run rate x 20 overs) misses the real "
-                        f"total by {_r(err, 1)} runs on average. That is the score to beat.")}
+                        f"total by {_r(err, 1)} runs on average. That is the score to beat. A know-nothing guess, the "
+                        f"training years' average total whatever the score at 10 overs, misses by "
+                        f"{reference['know_nothing']['average_miss']} runs.")}
 
 
 # --- the language-model loop ----------------------------------------------------------------------------------
@@ -335,22 +346,32 @@ def final_test(state: RunState) -> dict[str, Any]:
                      "forward": scores["forward"]["test_mae"] if "forward" in scores else None, "tv": tv},
         "winner": winner, "winner_name": "the language model" if winner == "llm" else "forward selection",
         "margin": margin, "winner_mae": won["test_mae"], "winner_r2": won["test_r2"],
-        "beat_tv": tv - won["test_mae"] > 0, "cleared_margin": tv - won["test_mae"] >= MARGIN_RUNS,
-        "improvement": _r(tv - won["test_mae"]),
         "sets": {k: v["features"] for k, v in scores.items()},
         "llm_took_part": "llm" in scores,
     }
+    # How every method did, against actual totals, from the displayed figures (one scoring each, in scoring.py)
+    extra, points = scoring.final_scoring(train, test, {k: v["fitted"] for k, v in scores.items()}, winner)
+    final.update(extra)
+    verdict = extra["verdict"]
+    final.update({"beat_tv": verdict["beat"], "cleared_margin": verdict["reached"], "improvement": verdict["improvement_runs"]})
     return {
+        "chart_points": points,
         "final": final, "features": list(won["features"]), "coefficients": coefficients,
         "intercept": _r(fitted["intercept"], 3), "feature_iqr": {f: _r(v, 2) for f, v in fitted["feature_iqr"].items()},
         "summary": ("Final test, once each on the test year: "
                     + ", ".join(f"{name} {_r(v, 1)} runs" for name, v in (
                         ("language model", final["test_mae"]["llm"]), ("forward selection", final["test_mae"]["forward"]),
                         ("TV projection", tv)) if v is not None)
-                    + f". {final['winner_name'].capitalize()} wins."),
+                    + f". {final['winner_name'].capitalize()} wins. The know-nothing guess "
+                    f"missed by {final['accuracy']['know_nothing']['average_miss']} runs."),
     }
 
 
 def explain_in_cricket_terms(state: RunState) -> dict[str, Any]:
-    expl = cricket_explanation.build_explanation(dict(state), feature_registry.labels(), MARGIN_RUNS)
+    final = state.get("final", {})
+    has_references = "accuracy" in final and "verdict_sentence" in final
+    expl = cricket_explanation.build_explanation(
+        dict(state), feature_registry.labels(), goal.goal()["margin_runs"],
+        comparison_sentences=accuracy_text.comparison_sentences(final) if has_references else None,
+        verdict_sentence=final.get("verdict_sentence"))
     return {"explanation": expl, "summary": "Turned the numbers into plain cricket sentences."}

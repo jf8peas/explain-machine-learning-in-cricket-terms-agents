@@ -6,6 +6,7 @@ import { ItemPanel, Legend } from "./legend";
 import { layoutGraph, pathData, type LaidEdge, type LaidNode, type Layout, type Structure } from "./layout";
 import { streamRun, type Refusal } from "./sse";
 import { loopEdges, resolveStage, roundAt, type Resolved } from "./stages";
+import { summarise } from "./state-view";
 import { styles } from "./styles";
 import { svg } from "./svg";
 
@@ -582,7 +583,7 @@ export class GraphReplay extends HTMLElement {
     const changed = new Set(b.changedKeysAt());
     this.$("#state").innerHTML = Object.entries(state).map(([k, v]) => {
       const c = changed.has(k);
-      return `<div class="row${c ? " changed" : ""}" data-key="${esc(k)}" data-changed="${c}"><span class="key">${esc(k)}</span>${c ? '<span class="badge">changed in this step</span>' : ""}<pre>${esc(JSON.stringify(v, null, 2))}</pre></div>`;
+      return `<div class="row${c ? " changed" : ""}" data-key="${esc(k)}" data-changed="${c}"><span class="key">${esc(k)}</span>${c ? '<span class="badge">changed in this step</span>' : ""}<pre>${esc(JSON.stringify(summarise(v), null, 2))}</pre></div>`;
     }).join("");
   }
 

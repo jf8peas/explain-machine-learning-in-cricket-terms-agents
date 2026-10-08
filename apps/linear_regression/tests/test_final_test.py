@@ -94,9 +94,12 @@ def test_a_tie_goes_to_forward_selection(run_graph, path, monkeypatch):
 
 def test_beating_the_tv_projection_needs_the_margin(run_graph, path):
     f = merged_state(run_graph({"data_path": path}, llm=FakeLlm({"fake/steady": list(SCRIPT)})))["final"]
-    gain = f["test_mae"]["tv"] - f["winner_mae"]
+    # the verdict is worked out from the displayed (one-decimal) average misses, so a reader can check it from the page
+    shown = f["accuracy"]
+    gain = round(shown["broadcaster"]["average_miss"] - shown[f["winner"]]["average_miss"], 1)
     assert f["beat_tv"] is (gain > 0) and f["cleared_margin"] is (gain >= MARGIN_RUNS)
-    assert f["improvement"] == pytest.approx(gain, abs=0.011)
+    assert f["improvement"] == gain
+    assert gain == pytest.approx(f["test_mae"]["tv"] - f["winner_mae"], abs=0.11)     # and close to the unrounded gap
 
 
 def test_without_a_language_model_set_forward_selection_wins_by_default(run_graph, path):

@@ -9,6 +9,8 @@
     :root {
       --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
       --accent: #1d6fe0; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
+      /* the chart's four method colours, taken from the colours above so they follow the theme */
+      --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -29,6 +31,21 @@
     .intro-body strong { color: var(--text); }
     .goal { margin: 8px 0 0; padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--surface); }
     @media (max-width: 760px) { .intro-body { grid-template-columns: 1fr; } }
+    /* the goal beside how good the bar is, so the block adds little height above the Play button */
+    .intro-ref { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 8px 24px; align-items: start; margin-top: 8px; }
+    .intro-ref .goal { margin: 0; }
+    .reference { font-size: .85rem; color: var(--muted); }
+    .reference p { margin: 0 0 6px; max-width: 70ch; }
+    .reference .reference-lead { color: var(--text); }
+    .table-scroll { overflow-x: auto; margin: 4px 0 6px; }
+    table.reference-table { border-collapse: collapse; width: 100%; font-size: .8rem; font-variant-numeric: tabular-nums; }
+    table.reference-table th, table.reference-table td { padding: 2px 6px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    table.reference-table th:first-child { text-align: left; }
+    table.reference-table thead th { color: var(--muted); font-weight: 600; white-space: normal; vertical-align: bottom; line-height: 1.2; }
+    table.reference-table tbody th { color: var(--text); font-weight: 600; }
+    .reference-error { color: var(--muted); font-style: italic; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    @media (max-width: 760px) { .intro-ref { grid-template-columns: minmax(0, 1fr); } }
     section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
     .muted { color: var(--muted); }
     .error { color: var(--lose); font-weight: 600; }
@@ -73,6 +90,33 @@
     .notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); }
     .winner { flex-basis: 100%; margin: 0; font-weight: 600; }
     section[data-testid=leaderboard] h3, section[data-testid=rounds] h3 { margin-top: 12px; }
+    /* the final results: every method side by side */
+    table.accuracy-table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: .9rem; font-variant-numeric: tabular-nums; }
+    table.accuracy-table caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
+    table.accuracy-table th, table.accuracy-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: right; vertical-align: top; }
+    table.accuracy-table thead th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+    table.accuracy-table th[scope=row], table.accuracy-table thead th:first-child { text-align: left; }
+    table.accuracy-table tbody th { font-weight: 600; }
+    table.accuracy-table .method-note { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); max-width: 26ch; }
+    table.accuracy-table tr.winner { background: var(--win-bg); }
+    .finding { margin: 8px 0 0; max-width: 75ch; }
+    .expectations { margin: 10px 0 0; max-width: 75ch; padding: 8px 12px; border-left: 4px solid var(--muted); background: var(--bg); border-radius: 0 6px 6px 0; }
+    /* the predicted-versus-actual chart */
+    .chart { margin-top: 14px; }
+    .chart-heading { margin: 0 0 6px; font-size: 1rem; }
+    .chart-toggles { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 8px; }
+    button.chart-toggle { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: .9rem; padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+    button.chart-toggle .chart-toggle-name { color: var(--text); }
+    button.chart-toggle[aria-pressed="true"] { border-color: currentColor; background: var(--surface); box-shadow: inset 0 0 0 1px currentColor; font-weight: 600; }
+    .chart-key-icon .mark, .chart-marks .mark { fill: currentColor; fill-opacity: .12; stroke: currentColor; stroke-width: 1.2; }
+    .chart-plot { display: block; width: 100%; max-width: 520px; height: auto; }
+    .chart-area { fill: var(--bg); stroke: var(--border); }
+    .chart-grid { stroke: var(--border); stroke-width: 1; opacity: .7; }
+    .chart-diagonal { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .chart-tick { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+    .chart-tick.y { text-anchor: end; }
+    .chart-title { fill: var(--muted); font-size: 12px; text-anchor: middle; }
     .data-intro { max-width: 75ch; margin-top: 0; }
     .data-intro strong { color: var(--text); }
   </style>
@@ -97,13 +141,13 @@
           (runs, wickets, boundaries, the current partnership and more) in past men's T20 internationals, IPL and BBL
           innings. <strong>Linear regression</strong> fits a straight line, so each feature gets a simple "runs per
           unit" effect we can explain in cricket terms. <strong>Forward selection</strong>, a simple mechanical method,
-          runs alongside as a rival. The benchmark is the broadcaster's projected score: current run rate × 20 overs.
+          runs alongside as a rival.
         </p>
       </div>
-      <p class="goal" data-testid="goal">
-        <strong>The goal:</strong> beat the broadcaster's projection by at least 3 runs of average error, on the latest
-        calendar year, which nothing was trained or chosen on.
-      </p>
+      <div class="intro-ref">
+        <p class="goal" data-testid="goal" hidden></p>
+        <div class="reference" data-testid="reference" aria-live="polite"></div>
+      </div>
     </section>
 
     <tab-set default-tab="working" aria-label="Page sections">

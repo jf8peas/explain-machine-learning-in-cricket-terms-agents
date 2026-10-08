@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { open, playToEnd, serveRun, sse, timelineItems } from "./helpers";
+import { finishRun, open, serveRun, sse, timelineItems } from "./helpers";
 
 // The scripted default model (fake/steady) on the committed data: three fitted rounds, one repeat that code rejects,
 // then "finished"; forward selection adds eight features; then the final test and the explanation.
@@ -18,7 +18,7 @@ test("Play runs the whole agent in order, with marks, counts and a marker", asyn
   await page.getByTestId("play").click();
   await expect(page.locator(".node.active")).toHaveCount(1);
   await expect(page.getByTestId("marker")).toBeVisible();
-  await playToEnd(page);
+  await finishRun(page);   // Play was already pressed above; pressing it again would start a second run
 
   const names = (await timelineItems(page).allTextContents()).map((t) => t.replace(/^\d+\.\s*/, ""));
   expect(names).toEqual(EXPECTED_PATH);
@@ -51,7 +51,7 @@ test("reduced motion removes the travelling marker but keeps everything else", a
   const watch = setInterval(async () => {
     animated = animated || (await page.getByTestId("replay").getAttribute("data-animating").catch(() => null)) === "true";
   }, 20);
-  await playToEnd(page);
+  await finishRun(page);   // Play was already pressed above; pressing it again would start a second run
   clearInterval(watch);
   expect(animated).toBe(false);
   await expect(page.locator('[data-node="fit_model"]')).toHaveAttribute("data-visits", "3");

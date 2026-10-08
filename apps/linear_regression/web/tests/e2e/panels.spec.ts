@@ -17,7 +17,7 @@ test("each step shows its event and the state, with only that step's changes hig
 
   await timelineItems(page).nth(3).click(); // baseline
   await expect(page.getByTestId("event-node")).toHaveText("baseline");
-  expect(await keys(rows(page, true))).toEqual(["baseline_validation_mae"]);
+  expect(await keys(rows(page, true))).toEqual(["baseline_validation_mae", "reference_validation"]);   // the projection and the know-nothing guess
   expect(await keys(rows(page, false))).toEqual(["data_error", "data_summary", "decision", "explore", "model_name", "split"]);
 
   await timelineItems(page).nth(7).click(); // first evaluate

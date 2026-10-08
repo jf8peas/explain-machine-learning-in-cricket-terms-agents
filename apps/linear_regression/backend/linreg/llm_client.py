@@ -12,6 +12,8 @@ from typing import Protocol
 
 import httpx
 
+from .settings import read as read_setting
+
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 KEY_VARIABLE = "OPENROUTER_API_KEY"
 TEMPERATURE = 0.3
@@ -61,7 +63,9 @@ class OpenRouterClient:
         self._url = url
 
     def _key(self) -> str | None:
-        return self._api_key or os.environ.get(KEY_VARIABLE) or None
+        if self._api_key:
+            return self._api_key
+        return read_setting(os.environ, KEY_VARIABLE) or None
 
     def complete(self, request: LlmRequest) -> str:
         key = self._key()

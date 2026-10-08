@@ -31,7 +31,8 @@ def check_numbers(state):
     flatten_numbers(expl["figures"], known)
     for sentence in expl["sentences"]:
         for token in NUM.findall(sentence):
-            assert any(abs(float(token) - v) < 0.051 for v in known), f"{token!r} in {sentence!r} is not in the state"
+            # sizes are compared: a sentence says "1.1 runs too low" where the state holds -1.1
+            assert any(abs(abs(float(token)) - abs(v)) < 0.051 for v in known), f"{token!r} in {sentence!r} is not in the state"
 
 
 def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10", "wickets_in_hand"),

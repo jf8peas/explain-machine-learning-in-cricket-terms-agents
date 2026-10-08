@@ -22,6 +22,7 @@ from .graph_api import Refusal
 from .limit_store import LimitStore, StoreUnavailable, store_from_env
 from .model_options import ModelOption, ModelOptions
 from .run_budget import RunBudget
+from .settings import read as read_setting
 
 log = logging.getLogger("linreg.gate")
 
@@ -64,8 +65,9 @@ class RunGate:
         self.store = store if store is not None else store_from_env(self.environ)
         self._clock = clock
         # Hashing needs a secret; without one a random per-process value is used (ids then change when the server does).
-        self._secret = self.environ.get("VISITOR_ID_SECRET") or secrets.token_hex(16)
-        if not self.environ.get("VISITOR_ID_SECRET"):
+        configured_secret = read_setting(self.environ, "VISITOR_ID_SECRET")
+        self._secret = configured_secret or secrets.token_hex(16)
+        if not configured_secret:
             log.warning("VISITOR_ID_SECRET is not set: visitor ids will not survive a restart. Set it in production.")
         log.info("run gate ready: limit store=%s", type(self.store).__name__ if self.store is not None else "none")
 

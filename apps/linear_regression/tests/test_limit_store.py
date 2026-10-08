@@ -195,12 +195,35 @@ def test_a_url_with_no_scheme_is_warned_about_when_the_store_is_chosen(caplog):
     assert "no http:// or https://" in text and "SECRET-TOKEN-XYZ" not in text
 
 
-def test_stray_whitespace_and_quotes_in_the_settings_are_flagged_without_showing_them(caplog):
+def test_quotes_and_whitespace_pasted_into_the_settings_are_removed_and_said_so(caplog):
+    """A `.env` line pasted into a dashboard often keeps its quote marks, which made every call fail."""
     with caplog.at_level(logging.INFO, logger="linreg.limits"):
-        store_from_env({"UPSTASH_REDIS_REST_URL": "\"https://x.upstash.io\"", "UPSTASH_REDIS_REST_TOKEN": "SECRET-TOKEN-XYZ\n"})
+        store = store_from_env({"UPSTASH_REDIS_REST_URL": "\"https://x.upstash.io\"", "UPSTASH_REDIS_REST_TOKEN": "'SECRET-TOKEN-XYZ'\n"})
+    assert isinstance(store, UpstashStore)
+    assert store._url == "https://x.upstash.io" and store._token == "SECRET-TOKEN-XYZ"
     text = logged(caplog)
-    assert "wrapped in quotes" in text and "contains a newline" in text and "whitespace" in text
+    assert "UPSTASH_REDIS_REST_URL had surrounding quotes or whitespace, which were removed" in text
+    assert "UPSTASH_REDIS_REST_TOKEN had surrounding quotes or whitespace, which were removed" in text
+    assert "wrapped in quotes" in text and "contains a newline" in text      # the raw shape is still reported
     assert "SECRET-TOKEN-XYZ" not in text
+    assert "no http:// or https://" not in text                              # the cleaned URL is fine
+
+
+def test_a_cleaned_store_actually_works_against_the_cleaned_url():
+    seen = []
+
+    def handler(req):
+        seen.append((str(req.url), req.headers["authorization"]))
+        return httpx.Response(200, json={"result": "OK"})
+
+    store = store_from_env({"UPSTASH_REDIS_REST_URL": " \"https://x.upstash.io\" ", "UPSTASH_REDIS_REST_TOKEN": "\"TOK\""})
+    store._transport = httpx.MockTransport(handler)
+    assert store.take_lock("k", 10) is True
+    assert seen == [("https://x.upstash.io", "Bearer TOK")]
+
+
+def test_a_value_that_is_only_quotes_counts_as_missing():
+    assert store_from_env({"UPSTASH_REDIS_REST_URL": "\"\"", "UPSTASH_REDIS_REST_TOKEN": "t"}) is None
 
 
 def test_a_good_configuration_logs_the_host_and_never_the_token(caplog):

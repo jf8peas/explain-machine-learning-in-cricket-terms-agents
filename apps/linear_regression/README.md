@@ -12,6 +12,16 @@ The page has two tabs, **Working** (the agent graph, results and try-your-own) a
 - `web/src/tab-set/` (`<tab-set>`) and `web/src/data-grid/` (`<data-grid>`) are reusable and know nothing about cricket or regression; see their READMEs. The grid library (Tabulator) is imported only in `data-grid/grid-adapter.ts`.
 - Spec, plan and tasks: `specs/002-data-tab/`. Feature 004: `specs/004-llm-feature-selection/`.
 
+## How good is the reference?
+
+Every prediction is scored against actual final totals in the same four ways: the **average miss** in runs, the **hit rate** (the share of innings within 10 and within 20 runs), the **miss as a share of a typical total**, and the **bias** (whether it guesses too high or too low). `backend/linreg/accuracy.py` does the sums (generic, unrounded, one rounding step for display); `accuracy_text.py` puts them into cricket words.
+
+- **Four methods, defined once** in `backend/linreg/methods.py`: the know-nothing guess (the training years' average total, `evaluation.know_nothing_guess`), the TV projection, the language model's model and forward selection's model. The **goal** (beat the TV projection by at least `MARGIN_RUNS` runs) and the verdict are defined once in `goal.py`; the introduction, the verdict and the explanation all take their wording from there, so nothing about the goal is typed in `web/index.html`.
+- **Before a run**: `GET /api/reference` gives the introduction the two references' figures on the **training years only** (`reference_api.py`; changing the validation or test year changes nothing in it).
+- **At the end**: `final_test` scores all four methods once on the test year (`scoring.py`) and adds the figures, the verdict, the findings and the chart points to the final state; the page shows a side-by-side table, a predicted-versus-actual chart (`web/src/page/accuracy-chart.ts`, hand-built SVG) and the explanation compares the winner with all three references.
+- A pair of methods can predict identically; both stay in the results and on the chart. If every method that uses the score at 10 overs leans the same way by a lot (`LARGE_BIAS_SHARE` in `accuracy.py`), the results say so.
+- Spec, plan and tasks: `specs/006-reference-accuracy/`.
+
 ## Machine learning stages
 
 Every step of the agent belongs to one of eight stages of a machine learning project (prepare the data, split the data, understand the data, frame the problem, choose the setup, fit the model, final assessment, interpret and communicate, numbered 1 to 8 in the order a run first reaches them). The graph shows each node's stage with a numbered, coloured badge, groups neighbouring nodes of a stage in labelled bands, and has a legend that highlights one stage. The detail panel and the timeline show the stage too.

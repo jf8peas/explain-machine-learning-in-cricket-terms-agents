@@ -48,6 +48,7 @@ class RunState(TypedDict, total=False):
     split: dict[str, Any]
     explore: dict[str, Any]             # training years only
     baseline_validation_mae: float
+    reference_validation: dict[str, Any]   # the know-nothing guess and the TV projection on the validation year
     proposal: dict[str, Any] | None     # the latest proposal: features, reason (verbatim), finished
     rounds: Annotated[list[RoundNote], operator.add]
     rejections: Annotated[list[dict], operator.add]
@@ -58,6 +59,7 @@ class RunState(TypedDict, total=False):
     forward_set: list[str]
     forward_best: Attempt | None
     features: list[str]                 # the model in focus; at the end, the winner's
+    chart_points: dict[str, Any]        # test-year actual and predicted totals for the chart (one decimal, for transport)
     coefficients: dict[str, float]
     intercept: float
     feature_iqr: dict[str, float]

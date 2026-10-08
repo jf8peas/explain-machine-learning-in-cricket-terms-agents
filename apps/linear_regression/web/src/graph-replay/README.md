@@ -24,6 +24,10 @@ A framework-free web component that draws any agent graph and replays a run of i
 
 Draws the whole graph before a run (dashed, labelled conditional edges); Play, Pause/Resume, Step, Back, Reset, a speed control, a clickable timeline of steps reached, and ← / → keys. Fetching is separate from display: events are buffered and shown at the chosen pace, and Back, jumping and the timeline replay from the buffer without rerunning the agent. Play and Reset are disabled while a run is streaming and come back when it ends (nothing is aborted and restarted). A node with `actor: "llm"` in the structure is drawn with a dashed outline and a small tag, and its events are marked in the event panel; `actor` is optional and means nothing beyond styling. If the server refuses a start (a non-2xx response with a JSON `message`), the message is shown, earlier results stay visible, and a `refused` event (`detail.message`) is emitted. Travelling-marker animation is switched off under `prefers-reduced-motion`.
 
+## The state panel
+
+Each state value is shown as formatted JSON, except that an array longer than 20 items is shown as "N items" (`state-view.ts`), so a long list (a chart's points, say) does not swamp the panel. The panel knows nothing about what the values are.
+
 ## Stages (optional)
 
 If the structure response has `stages`, the component shows which stage of a project each step belongs to. It holds

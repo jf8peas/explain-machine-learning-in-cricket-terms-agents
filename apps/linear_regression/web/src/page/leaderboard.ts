@@ -42,7 +42,7 @@ export function renderLeaderboard(attempts: Attempt[], baseline: number | undefi
   const table = h("table", { class: "attempts" },
     h("thead", {}, h("tr", {}, ...["Feature set", "Proposed by", "Validation error (runs)", "Result"].map((t) => h("th", { scope: "col" }, t)))),
     body);
-  section.append(table);
+  section.append(h("div", { class: "table-scroll" }, table));   // scrolls inside its own box on a phone
   return section;
 }
 

@@ -27,9 +27,14 @@ export const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${J
 
 export const timelineItems = (page: Page) => page.getByTestId("timeline-item");
 
+/** Wait until the run in progress has been shown to the end (it does not press Play). */
+export async function finishRun(page: Page) {
+  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId("pause")).toBeDisabled();
+}
+
 /** Press Play and wait until the whole run has been shown. */
 export async function playToEnd(page: Page) {
   await page.getByTestId("play").click();
-  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });
-  await expect(page.getByTestId("pause")).toBeDisabled();
+  await finishRun(page);
 }

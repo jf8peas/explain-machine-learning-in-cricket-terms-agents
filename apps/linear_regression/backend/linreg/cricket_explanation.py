@@ -12,8 +12,12 @@ def _runs(x: float) -> float:
     return round(float(x), 1)
 
 
-def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]],
-                      margin_runs: float) -> dict[str, Any]:
+def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], margin_runs: float,
+                      comparison_sentences: list[str] | None = None,
+                      verdict_sentence: str | None = None) -> dict[str, Any]:
+    """`comparison_sentences` (how the winner compares with the other references) are placed before the final
+    comparison with the TV projection, and `verdict_sentence`, when given, replaces the built-in verdict: both are
+    worded by the caller from figures in the state, so this module needs no knowledge of them."""
     final = state["final"]
     split = state["split"]
     features: list[str] = state["features"]            # the winning model's features
@@ -126,6 +130,7 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]],
             f"{'on top of' if c >= 0 else 'but, oddly, less than nothing beside'} the other things the model knows."
         )
 
+    sentences.extend(comparison_sentences or [])
     sentences.append(
         f"On the final test the winning model's prediction was {_runs(winner_mae)} runs away from the real total on "
         f"average, against {_runs(tv)} runs for the TV projected score."
@@ -137,7 +142,7 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]],
     else:
         verdict = (f"The winning model did not beat the TV projection: it was {_runs(abs(improvement))} runs worse "
                    f"on average.")
-    sentences.append(verdict)
+    sentences.append(verdict_sentence or verdict)
 
     return {
         "sentences": sentences,

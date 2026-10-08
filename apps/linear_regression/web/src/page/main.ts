@@ -5,6 +5,7 @@ import type { ReplayChangeDetail } from "../graph-replay/graph-replay";
 import type { Model } from "./predict";
 import { loadCatalogue, setupCatalogue } from "./catalogue";
 import { setupModels } from "./models";
+import { setupReference } from "./reference";
 import { renderResults } from "./results";
 import { setupTryIt } from "./tryit";
 
@@ -35,6 +36,7 @@ replay.addEventListener("replaychange", (ev) => {
 renderResults(results, {});
 setupModels(document.querySelector("[data-testid=model-picker]") as HTMLElement, replay);
 setupCatalogue(document.querySelector("[data-testid=catalogue]") as HTMLElement);
+void setupReference(document.querySelector("[data-testid=goal]") as HTMLElement, document.querySelector("[data-testid=reference]") as HTMLElement);
 void loadCatalogue().then(() => renderResults(results, shown)); // feature wording arrives with the catalogue
 
 // The Data tab loads the first time it is shown (or straight away at #data); the Working tab never waits on it.

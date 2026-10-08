@@ -20,6 +20,7 @@ from linreg.limit_store import LimitStore  # noqa: E402
 from linreg.llm_client import LlmClient, OpenRouterClient  # noqa: E402
 from linreg.llm_fake import FAKE_MODEL_OPTIONS, default_fake  # noqa: E402
 from linreg.model_options import ModelOptions  # noqa: E402
+from linreg.reference_api import create_router as create_reference_router  # noqa: E402
 from linreg.run_gate import RunGate  # noqa: E402
 from linreg.stage_info import structure_extras  # noqa: E402
 from linreg.state import RECURSION_LIMIT  # noqa: E402
@@ -41,6 +42,7 @@ def create_app(llm: LlmClient, options: ModelOptions, environ: Mapping[str, str]
                        prefix="/api")
     app.include_router(create_data_router(build_table), prefix="/api")
     app.include_router(create_catalogue_router(), prefix="/api")
+    app.include_router(create_reference_router(), prefix="/api")
 
     @app.get("/api/models")
     def models() -> JSONResponse:

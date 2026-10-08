@@ -22,3 +22,9 @@ def broadcaster_projection(runs_at_10):
     Works for a single number or a pandas Series.
     """
     return runs_at_10 / 10 * 20
+
+
+def know_nothing_guess(train_totals, n: int):
+    """The floor any useful prediction must beat: every item is predicted to be the average of the training totals, whatever
+    its own state. `train_totals` are the training years' final totals and nothing else is read; `n` is how many to predict."""
+    return np.full(int(n), float(np.mean(np.asarray(train_totals, dtype=float))))
