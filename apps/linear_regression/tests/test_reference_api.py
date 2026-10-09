@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from api.index import app
 from linreg import reference_api
 from linreg.data_loading import DEFAULT_PATH
-from linreg.goal import goal
+from linreg.goal import goal, meter
 from linreg.methods import method_defs
 
 client = TestClient(app)
@@ -38,7 +38,7 @@ def independent(path=DEFAULT_PATH):
 
 def test_the_response_has_the_goal_the_four_methods_the_training_years_and_both_references():
     body = client.get("/api/reference").json()
-    assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "message"}
+    assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message"}
     assert body["goal"] == goal()
     assert body["methods"] == method_defs()
     assert set(body["figures"]) == {"know_nothing", "broadcaster"}
@@ -109,7 +109,7 @@ def test_when_the_data_cannot_be_read_the_goal_and_methods_are_still_sent(tmp_pa
     body = r.json()
     assert r.status_code == 200
     assert body["goal"] == goal() and body["methods"] == method_defs()
-    for key in ("training", "figures", "gap", "finding", "words", "sentences"):
+    for key in ("training", "figures", "gap", "finding", "words", "sentences", "meter"):
         assert body[key] is None
     assert "could not be loaded" in body["message"]
 
@@ -160,3 +160,22 @@ def test_the_bias_words_come_from_the_wording_module_in_full_and_short_form():
         assert body["words"][method]["bias"] == accuracy_text.bias_words(figures["bias"])
         assert body["words"][method]["bias_short"] == accuracy_text.bias_short(figures["bias"])
     assert body["words"]["broadcaster"]["bias_short"].endswith("too low")
+
+
+def test_the_meter_equals_an_independent_calculation_from_the_training_years():
+    body = client.get("/api/reference").json()
+    figures, training = independent()
+    tv, kn = figures["broadcaster"]["average_miss"], figures["know_nothing"]["average_miss"]
+    m = body["meter"]
+    assert {x["id"]: x["value"] for x in m["marks"]} == {"know_nothing": kn, "broadcaster": tv,
+                                                          "goal": round(tv - body["goal"]["margin_runs"], 1)}
+    assert m == meter(kn, tv, training)
+    assert m["scale"]["min"] < min(x["value"] for x in m["marks"]) and max(x["value"] for x in m["marks"]) < m["scale"]["max"]
+
+
+def test_the_lead_is_sent_even_when_the_figures_are_not(tmp_path):
+    api = FastAPI()
+    api.include_router(reference_api.create_router(data_path=tmp_path / "nope.csv"), prefix="/api")
+    body = TestClient(api).get("/api/reference").json()
+    assert body["meter"] is None
+    assert body["goal"]["lead"] == goal()["lead"]

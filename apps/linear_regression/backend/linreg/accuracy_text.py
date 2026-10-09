@@ -35,6 +35,23 @@ def bias_short(bias: float) -> str:
     return f"{_runs(bias)} too {'high' if bias > 0 else 'low'}"
 
 
+def meter_label(method_name: str) -> str:
+    """A method's name as a mark's label: "the TV projection" becomes "TV projection"."""
+    name = method_name[4:] if method_name.startswith("the ") else method_name
+    return name[:1].upper() + name[1:]
+
+
+def meter_caption(first_year: int, last_year: int, innings: int) -> str:
+    return f"Average miss, runs · {first_year} to {last_year}, {innings:,} innings"
+
+
+def meter_text(know_nothing_name: str, know_nothing: float, projection_name: str, projection: float,
+               goal_value: float) -> str:
+    """The meter's text equivalent: all three values and which way is better."""
+    return (f"Average miss, lower is better: {know_nothing_name} {know_nothing:.1f}, {projection_name} "
+            f"{projection:.1f}, the goal {goal_value:.1f} or less.")
+
+
 def hit_rate_words(figures: Mapping[str, Any]) -> str:
     return (f"{figures['within_10']:.1f}% of its guesses land within 10 runs of the real total (a boundary or two), "
             f"and {figures['within_20']:.1f}% within 20 runs")

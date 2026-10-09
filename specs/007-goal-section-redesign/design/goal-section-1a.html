@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Goal section 1a — reference</title>
+<style>body{margin:0;background:#fff;color:#1b2230;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}a{color:#1d6fe0}summary{cursor:pointer;color:#1d6fe0}</style>
+</head><body><main style="max-width:1100px;margin:0 auto;">
+<div>
+      <div style="background: #ffffff; padding: 24px 16px 28px;">
+        <div style="color: #5b6678; font-size: .85rem; margin: 0 0 4px;">Part of <a href="#">Explain Machine Learning in Cricket Terms</a> · App 1 of 8: linear regression</div>
+        <h1 style="font-size: 1.6rem; margin: 0 0 6px;">Can an agent beat the TV projected score?</h1>
+        <p style="margin: 0 0 20px; color: #5b6678; max-width: 70ch;">At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, and miss by 3 runs less on average.</p>
+
+        <div style="border: 1px solid #d5d9e0; border-radius: 10px; padding: 18px 20px 14px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: .8rem; color: #5b6678;"><span>← better</span><span>Average miss, runs · 2005 to 2024, 4,036 innings</span><span>worse →</span></div>
+          <div style="position: relative; height: 92px;">
+            <div style="position: absolute; left: 0; width: 22.4%; top: 30px; height: 14px; background: #e4f3ea; border: 1px solid #1f7a46; border-radius: 4px 0 0 4px;"></div>
+            <div style="position: absolute; left: 0; right: 0; top: 36px; height: 2px; background: #d5d9e0;"></div>
+            <div style="position: absolute; left: 22.4%; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: .8rem; font-weight: 600; color: #1f7a46; white-space: nowrap;">The goal</span>
+              <span style="width: 2px; height: 32px; background: #1f7a46; margin-top: 2px;"></span>
+              <span style="font-size: 1.4rem; font-weight: 700; color: #1f7a46; line-height: 1.2; font-variant-numeric: tabular-nums;">18.8</span>
+            </div>
+            <div style="position: absolute; left: 40%; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: .8rem; font-weight: 600; white-space: nowrap;">TV projection</span>
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: #1b2230; margin-top: 12px;"></span>
+              <span style="font-size: 1.4rem; font-weight: 700; line-height: 1.2; margin-top: 10px; font-variant-numeric: tabular-nums;">21.8</span>
+            </div>
+            <div style="position: absolute; left: 84.7%; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+              <span style="font-size: .8rem; font-weight: 600; color: #5b6678; white-space: nowrap;">Know-nothing guess</span>
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: #5b6678; margin-top: 12px;"></span>
+              <span style="font-size: 1.4rem; font-weight: 700; line-height: 1.2; margin-top: 10px; color: #5b6678; font-variant-numeric: tabular-nums;">29.4</span>
+            </div>
+          </div>
+          <div style="font-size: .85rem; color: #5b6678; border-top: 1px solid #d5d9e0; padding-top: 10px; margin-top: 4px;"><strong style="color: #1b2230;">3 runs</strong> better than TV, on the latest calendar year, which nothing was trained or chosen on.</div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: .9rem;">
+          <span style="border: 1px solid #d5d9e0; border-radius: 999px; padding: 3px 12px; white-space: nowrap;"><strong>Agent</strong> <span style="color: #5b6678;">a LangGraph graph of steps</span></span>
+          <span style="border: 1px solid #1d6fe0; border-radius: 999px; padding: 3px 12px; white-space: nowrap;"><strong style="color: #1d6fe0;">Language model</strong> <span style="color: #5b6678;">picks features</span></span>
+          <span style="border: 1px solid #d5d9e0; border-radius: 999px; padding: 3px 12px; white-space: nowrap;"><strong>Code</strong> <span style="color: #5b6678;">makes every number</span></span>
+          <span style="border: 1px solid #d5d9e0; border-radius: 999px; padding: 3px 12px; white-space: nowrap;"><strong>Linear regression</strong> <span style="color: #5b6678;">runs per unit</span></span>
+          <span style="border: 1px solid #d5d9e0; border-radius: 999px; padding: 3px 12px; white-space: nowrap;"><strong>Rival</strong> <span style="color: #5b6678;">forward selection</span></span>
+        </div>
+        <details style="margin-top: 12px; font-size: .95rem;">
+          <summary>How this works, in full</summary>
+          <div style="color: #5b6678; margin-top: 8px; max-width: 75ch; display: flex; flex-direction: column; gap: 8px;">
+            <p style="margin: 0;">This app uses LangGraph to build an <strong style="color: #1b2230;">agent</strong>: a <strong style="color: #1b2230;">graph</strong> of steps, each doing one job and passing its results on. Press Play to watch it work one step at a time. One step is different from the rest: a <strong style="color: #1b2230;">language model</strong> decides which features to try next, using what it knows about cricket and the results so far. Every other step is ordinary code, and <strong style="color: #1b2230;">every number you see comes from that code</strong>, never from the language model.</p>
+            <p style="margin: 0;">The problem: predict a T20 first innings' final total after 10 overs, from measurements taken at that point (runs, wickets, boundaries, the current partnership and more) in past men's T20 internationals, IPL and BBL innings. <strong style="color: #1b2230;">Linear regression</strong> fits a straight line, so each feature gets a simple "runs per unit" effect we can explain in cricket terms. <strong style="color: #1b2230;">Forward selection</strong>, a simple mechanical method, runs alongside as a rival.</p>
+          </div>
+        </details>
+        <details style="margin-top: 6px; font-size: .95rem;">
+          <summary>Full figures for the two simple guesses</summary>
+          <table style="border-collapse: collapse; width: 100%; max-width: 720px; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 8px;">
+            <thead><tr>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: left; color: #5b6678; font-weight: 600;">Method</th>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right; color: #5b6678; font-weight: 600;">Average miss</th>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right; color: #5b6678; font-weight: 600;">Within 10 runs</th>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right; color: #5b6678; font-weight: 600;">Within 20 runs</th>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right; color: #5b6678; font-weight: 600;">Miss as % of total</th>
+              <th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right; color: #5b6678; font-weight: 600;">Bias</th>
+            </tr></thead>
+            <tbody>
+              <tr><th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: left; font-weight: 600;">the know-nothing guess</th><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">29.4</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">22.8%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">43.1%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">18.9%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">0.0</td></tr>
+              <tr><th style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: left; font-weight: 600;">the TV projection</th><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">21.8</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">29.4%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">55.3%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">14.1%</td><td style="padding: 2px 6px; border-bottom: 1px solid #d5d9e0; text-align: right;">12.1 too low</td></tr>
+            </tbody>
+          </table>
+          <p style="margin: 6px 0 0; font-size: .85rem; color: #5b6678; max-width: 70ch;">The TV projection misses by 21.8 runs on average, against 29.4 for the know-nothing guess, which ignores the score at 10 overs. Knowing the score at 10 overs is worth 7.6 runs (25.9%), and 6.6 more innings in every 100 land within 10 runs.</p>
+        </details>
+      </div>
+    </div>
+</main></body></html>

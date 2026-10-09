@@ -6,7 +6,7 @@ import { open, playToEnd, serveRun, sse, timelineItems } from "./helpers";
 
 interface Figures { n: number; average_miss: number; within_10: number; within_20: number; miss_percent: number; bias: number }
 interface Reference {
-  goal: { reference: string; margin_runs: number; text: string };
+  goal: { reference: string; margin_runs: number; text: string; lead: string };
   methods: { id: string; name: string; note: string; marker: string }[];
   training: { first_year: number; last_year: number; innings: number } | null;
   figures: { know_nothing: Figures; broadcaster: Figures } | null;
@@ -14,12 +14,22 @@ interface Reference {
   finding: string | null;
   sentences: { headline: string; gap: string; finding: string; bias: string } | null;
   words: Record<string, { bias: string; bias_short: string }> | null;
+  meter: Meter | null;
   message: string | null;
 }
+interface Mark { id: string; label: string; value: number }
+interface Meter { scale: { min: number; max: number }; marks: Mark[]; caption: string; text: string }
 
 const reference = async (page: Page) => (await (await page.request.get("/api/reference")).json()) as Reference;
 const row = (page: Page, method: string) => page.locator(`[data-testid="reference-row"][data-method="${method}"]`);
 const cell = (page: Page, method: string, col: string) => row(page, method).locator(`[data-col="${col}"]`);
+
+/** Open the section of full figures (it is closed on a fresh load). */
+async function openFigures(page: Page) {
+  await expect(page.getByTestId("reference-details")).toBeVisible();
+  await page.getByTestId("reference-details").locator("summary").click();
+  await expect(page.getByTestId("reference-table")).toBeVisible();
+}
 
 /** Answer /api/reference with the real response changed by `change`. */
 async function serveReference(page: Page, change: (body: Reference) => Reference) {
@@ -32,7 +42,7 @@ async function serveReference(page: Page, change: (body: Reference) => Reference
 test("before any run the introduction shows both references with every measure, equal to the server's figures", async ({ page }) => {
   await page.goto("/");
   const ref = await reference(page);
-  await expect(page.getByTestId("reference-table")).toBeVisible();
+  await openFigures(page);
   for (const method of ["know_nothing", "broadcaster"] as const) {
     const f = ref.figures![method];
     const name = ref.methods.find((m) => m.id === method)!.name;
@@ -50,6 +60,7 @@ test("the introduction says how good the bar is, and what knowing the score at 1
   await page.goto("/");
   const ref = await reference(page);
   expect(ref.finding).toBe("clearly_better");
+  await openFigures(page);
   await expect(page.getByTestId("reference-lead")).toHaveText(ref.sentences!.headline);
   await expect(page.getByTestId("reference-note")).toContainText(ref.sentences!.gap);
   await expect(page.getByTestId("reference-note")).not.toContainText("only slightly better");
@@ -61,6 +72,7 @@ test("when the projection is barely better than, or worse than, knowing nothing 
   for (const finding of ["slightly_better", "no_better"]) {
     await serveReference(page, (b) => ({ ...b, finding, sentences: { ...b.sentences!, finding: `FINDING ${finding}: beating it means little.` } }));
     await page.goto("/");
+    await openFigures(page);
     await expect(page.getByTestId("reference-note")).toContainText(`FINDING ${finding}`);
     await expect(page.getByTestId("reference-note")).toContainText(((await reference(page)).sentences!.gap));
     await page.unroute("**/api/reference");
@@ -78,7 +90,7 @@ test("the goal comes from the server and is in the introduction", async ({ page 
 test("in a 1280 by 800 window Play is still in view without scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await open(page);
-  await expect(page.getByTestId("reference-table")).toBeVisible();                       // the block has arrived
+  await expect(page.getByTestId("meter")).toBeVisible();                                 // the block has arrived
   const play = await page.evaluate(() => {
     const b = document.querySelector("graph-replay")!.shadowRoot!.querySelector("[data-testid=play]")!.getBoundingClientRect();
     return { top: b.top, bottom: b.bottom, scrolled: window.scrollY };
@@ -90,7 +102,7 @@ test("in a 1280 by 800 window Play is still in view without scrolling", async ({
 
 test("with the figures missing the introduction still shows the goal and says the figures could not be loaded", async ({ page }) => {
   await serveReference(page, (b) => ({ ...b, training: null, figures: null, gap: null, finding: null, sentences: null, words: null,
-    message: "The accuracy figures could not be loaded." }));
+    meter: null, message: "The accuracy figures could not be loaded." }));
   await page.goto("/");
   await expect(page.getByTestId("goal")).toContainText("at least 3 runs");
   await expect(page.getByTestId("reference-error")).toContainText("could not be loaded");
@@ -109,7 +121,9 @@ test("if the request fails the introduction says so briefly and the rest of the 
 test("at phone width the introduction's figures do not make the page scroll sideways", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.getByTestId("reference-table")).toBeVisible();
+  await expect(page.getByTestId("meter")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await openFigures(page);                                                                // and not with the table open either
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
@@ -511,10 +525,369 @@ test("the page itself holds no hand-written goal", async ({ page }) => {
 test("in a 1280 window the introduction's table fits without scrolling or clipping any column", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
-  await expect(page.getByTestId("reference-table")).toBeVisible();
+  await openFigures(page);
   const sizes = await page.evaluate(() => {
     const box = document.querySelector('[data-testid="reference-table"]')!.closest(".table-scroll") as HTMLElement;
     return { scroll: box.scrollWidth, client: box.clientWidth };
   });
   expect(sizes.scroll).toBeLessThanOrEqual(sizes.client);
+});
+
+
+// ---------------- 007: the lighter goal section (the miss meter) ----------------
+
+const OLD_PARAGRAPHS = [
+  "This app uses LangGraph to build an agent: a graph of steps, each doing one job and passing its results on. Press Play to " +
+    "watch it work one step at a time. One step is different from the rest: a language model decides which features to try " +
+    "next, using what it knows about cricket and the results so far. Every other step is ordinary code, and every number you " +
+    "see comes from that code, never from the language model.",
+  "The problem: predict a T20 first innings' final total after 10 overs, from measurements taken at that point (runs, wickets, " +
+    "boundaries, the current partnership and more) in past men's T20 internationals, IPL and BBL innings. Linear regression " +
+    "fits a straight line, so each feature gets a simple \"runs per unit\" effect we can explain in cricket terms. Forward " +
+    "selection, a simple mechanical method, runs alongside as a rival.",
+];
+const squash = (t: string) => t.replace(/\s+/g, " ").trim();
+const mark = (page: Page, id: string) => page.locator(`[data-testid="meter-mark"][data-mark="${id}"]`);
+const numbersIn = (t: string) => (t.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+
+interface Box { x: number; y: number; width: number; height: number }
+async function boxOf(locator: ReturnType<Page["locator"]>): Promise<Box> {
+  const b = await locator.boundingBox();
+  expect(b).not.toBeNull();
+  return b as Box;
+}
+const right = (b: Box) => b.x + b.width;
+const bottom = (b: Box) => b.y + b.height;
+const overlap = (a: Box, b: Box) => a.x < right(b) - 0.5 && b.x < right(a) - 0.5 && a.y < bottom(b) - 0.5 && b.y < bottom(a) - 0.5;
+const inside = (inner: Box, outer: Box) => inner.x >= outer.x - 0.5 && right(inner) <= right(outer) + 0.5 &&
+  inner.y >= outer.y - 0.5 && bottom(inner) <= bottom(outer) + 0.5;
+
+/** Each mark's centre is where the server's scale puts it, inside the track. */
+async function expectMarksOnScale(page: Page, meter: Meter) {
+  const track = await boxOf(page.locator(".meter-track"));
+  const span = meter.scale.max - meter.scale.min;
+  let last = -Infinity;
+  for (const m of [...meter.marks].sort((a, b) => a.value - b.value)) {
+    const shape = await boxOf(mark(page, m.id).locator(".mark-shape"));
+    const centre = shape.x + shape.width / 2;
+    expect(Math.abs(centre - (track.x + ((m.value - meter.scale.min) / span) * track.width)), `${m.id} position`).toBeLessThanOrEqual(1.5);
+    expect(centre).toBeGreaterThanOrEqual(track.x - 0.5);
+    expect(centre).toBeLessThanOrEqual(right(track) + 0.5);
+    expect(centre, "a lower value is further left").toBeGreaterThan(last);
+    last = centre;
+  }
+}
+
+/** Nothing clips, nothing overlaps, and the page does not scroll sideways. */
+async function expectMeterFits(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scroll").toBe(true);
+  const card = await boxOf(page.getByTestId("meter"));
+  const parts: { what: string; box: Box }[] = [];
+  for (const m of await page.getByTestId("meter-mark").all()) {
+    const id = await m.getAttribute("data-mark");
+    for (const part of ["mark-name", "mark-value"]) parts.push({ what: `${id} ${part}`, box: await boxOf(m.locator(`.${part}`)) });
+  }
+  for (const p of parts) expect(inside(p.box, card), `${p.what} inside the card`).toBe(true);
+  for (let i = 0; i < parts.length; i++) {
+    for (let j = i + 1; j < parts.length; j++) expect(overlap(parts[i].box, parts[j].box), `${parts[i].what} and ${parts[j].what} overlap`).toBe(false);
+  }
+}
+
+// --- US1: the lead line and the meter, equal to the server's figures
+
+test("the lead line is the server's sentence and the meter's marks equal the server's figures", async ({ page }) => {
+  await page.goto("/");
+  const ref = await reference(page);
+  const meter = ref.meter!;
+  await expect(page.getByTestId("intro-lead")).toHaveText(ref.goal.lead);
+  await expect(page.getByTestId("meter-mark")).toHaveCount(3);
+  for (const m of meter.marks) {
+    await expect(mark(page, m.id).locator(".mark-name")).toHaveText(m.label);
+    await expect(mark(page, m.id).locator(".mark-value")).toHaveText(m.value.toFixed(1));
+  }
+  const goal = meter.marks.find((m) => m.id === "goal")!.value;
+  const tv = ref.figures!.broadcaster.average_miss;
+  expect(goal).toBe(Math.round((tv - ref.goal.margin_runs) * 10) / 10);                    // 21.8 less the margin, as displayed
+  await expect(mark(page, "broadcaster").locator(".mark-value")).toHaveText(tv.toFixed(1));
+  await expect(mark(page, "know_nothing").locator(".mark-value")).toHaveText(ref.figures!.know_nothing.average_miss.toFixed(1));
+});
+
+test("each mark sits where the scale puts it and the shaded zone runs from the left end to the goal", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  const meter = (await reference(page)).meter!;
+  await expect(page.getByTestId("meter")).toBeVisible();
+  await expectMarksOnScale(page, meter);
+  const track = await boxOf(page.locator(".meter-track"));
+  const zone = await boxOf(page.getByTestId("meter-zone"));
+  const goal = await boxOf(mark(page, "goal").locator(".mark-shape"));
+  expect(Math.abs(zone.x - track.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(right(zone) - (goal.x + goal.width / 2))).toBeLessThanOrEqual(1.5);
+});
+
+test("the caption and the footer are the server's, and the meter shows no number the server did not send", async ({ page }) => {
+  await page.goto("/");
+  const ref = await reference(page);
+  await expect(page.getByTestId("meter-caption")).toHaveText(ref.meter!.caption);
+  await expect(page.getByTestId("goal")).toContainText("The goal:");
+  await expect(page.getByTestId("goal")).toContainText(ref.goal.text);
+  const sent = new Set(numbersIn(JSON.stringify(ref)));
+  for (const n of numbersIn(await page.getByTestId("meter").innerText())) expect(sent.has(n), `${n} was sent by the server`).toBe(true);
+});
+
+// --- US2: the chips and the two closed sections
+
+test("five chips, in order, with the language-model chip in the accent colour", async ({ page }) => {
+  await page.goto("/");
+  const chips = page.getByTestId("chips").locator("li");
+  await expect(chips).toHaveCount(5);
+  const terms = await chips.locator("strong").allTextContents();
+  expect(terms).toEqual(["Agent", "Language model", "Code", "Linear regression", "Rival"]);
+  await expect(chips.nth(1)).toContainText("picks features");
+  const colours = await page.evaluate(() => {
+    const llm = document.querySelector(".chip-llm strong") as HTMLElement;
+    const link = document.querySelector(".eyebrow a") as HTMLElement;                      // links use the accent colour
+    const other = document.querySelectorAll(".chip strong")[0] as HTMLElement;
+    return { llm: getComputedStyle(llm).color, accent: getComputedStyle(link).color, other: getComputedStyle(other).color };
+  });
+  expect(colours.llm).toBe(colours.accent);
+  expect(colours.other).not.toBe(colours.accent);
+});
+
+test("both sections are closed on a fresh load and what is inside them is not visible", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  for (const id of ["intro-full", "reference-details"]) {
+    await expect(page.getByTestId(id)).toBeVisible();
+    expect(await page.getByTestId(id).evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+  }
+  await expect(page.getByTestId("intro-full").locator("p").first()).toBeHidden();
+  await expect(page.getByTestId("reference-table")).toBeHidden();
+  await expect(page.getByTestId("reference-lead")).toBeHidden();
+});
+
+test("opening the first section shows the two original paragraphs word for word", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("intro-full").locator("summary").click();
+  const paragraphs = await page.getByTestId("intro-full").locator("p").allInnerTexts();
+  expect(paragraphs.map(squash)).toEqual(OLD_PARAGRAPHS);
+});
+
+test("opening the second section shows the headline, the table and the note, equal to the server's", async ({ page }) => {
+  await page.goto("/");
+  const ref = await reference(page);
+  await openFigures(page);
+  await expect(page.getByTestId("reference-lead")).toHaveText(ref.sentences!.headline);
+  await expect(page.getByTestId("reference-row")).toHaveCount(2);
+  await expect(page.getByTestId("reference-note")).toContainText(ref.sentences!.gap);
+  await expect(page.getByTestId("reference-details").getByRole("columnheader")).toHaveCount(6);
+});
+
+test("with both sections closed the section is short, and Play stays high in a 1280 by 800 window", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await open(page);
+  await expect(page.getByTestId("meter")).toBeVisible();
+  const words = await page.evaluate(() => {
+    const count = (el: Element | null) => ((el as HTMLElement | null)?.innerText ?? "").split(/\s+/).filter(Boolean).length;
+    return count(document.querySelector("section.intro")) - count(document.querySelector(".eyebrow")) - count(document.querySelector("#intro-title"));
+  });
+  expect(words).toBeLessThanOrEqual(120);                                                  // about 292 before the redesign
+  const play = await page.evaluate(() => document.querySelector("graph-replay")!.shadowRoot!.querySelector("[data-testid=play]")!.getBoundingClientRect().bottom);
+  expect(play).toBeLessThanOrEqual(750);                                                   // no lower than before the redesign
+});
+
+test("opening and closing a section animates nothing and leaves the meter alone", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  const before = await page.getByTestId("meter").innerText();
+  await page.getByTestId("intro-full").locator("summary").click();
+  await page.getByTestId("reference-details").locator("summary").click();
+  expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+  expect(await page.getByTestId("meter").innerText()).toBe(before);
+  await page.getByTestId("intro-full").locator("summary").click();
+  expect(await page.evaluate(() => (document.querySelector("[data-testid=intro-full]") as HTMLDetailsElement).open)).toBe(false);
+});
+
+// --- US3: everyone can read it
+
+test("the meter is one labelled image with the server's text, its parts are hidden and the footer is outside it", async ({ page }) => {
+  await page.goto("/");
+  const meter = (await reference(page)).meter!;
+  const figure = page.getByTestId("meter-figure");
+  await expect(figure).toHaveAttribute("role", "img");
+  await expect(figure).toHaveAttribute("aria-label", meter.text);
+  const label = (await figure.getAttribute("aria-label")) ?? "";
+  for (const m of meter.marks) expect(label).toContain(m.value.toFixed(1));
+  await expect(figure.locator(".meter-track")).toHaveAttribute("aria-hidden", "true");
+  await expect(figure.locator("[data-testid=goal]")).toHaveCount(0);
+  await expect(page.getByTestId("goal")).toBeVisible();
+  await expect(page.getByTestId("reference")).toHaveAttribute("aria-live", "polite");
+});
+
+test("the marks are told apart by shape as well as colour: a dot for each reference, a line for the goal", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  await expect(mark(page, "know_nothing")).toHaveAttribute("data-shape", "dot");
+  await expect(mark(page, "broadcaster")).toHaveAttribute("data-shape", "dot");
+  await expect(mark(page, "goal")).toHaveAttribute("data-shape", "line");
+  const shapes = await page.evaluate(() => ["know_nothing", "goal"].map((id) => {
+    const el = document.querySelector(`[data-mark=${id}] .mark-shape`) as HTMLElement;
+    const after = getComputedStyle(el, "::after");
+    return { radius: getComputedStyle(el).borderTopLeftRadius, afterWidth: after.width, afterContent: after.content };
+  }));
+  expect(shapes[0].radius).not.toBe("0px");                                                // a round dot
+  expect(shapes[1].afterWidth).toBe("2px");                                                // a thin vertical line
+});
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`in ${scheme} mode the marks, the line and the zone stand out from the card`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/");
+    await expect(page.getByTestId("meter")).toBeVisible();
+    const c = await page.evaluate(() => {
+      const css = (sel: string, prop: string, pseudo?: string) => getComputedStyle(document.querySelector(sel)!, pseudo)[prop as never] as string;
+      return {
+        card: css("[data-testid=meter]", "backgroundColor"),
+        dot: css("[data-mark=broadcaster] .mark-shape", "backgroundColor"),
+        goalLine: css("[data-mark=goal] .mark-shape", "backgroundColor", "::after"),
+        zone: css("[data-testid=meter-zone]", "backgroundColor"),
+        zoneBorder: css("[data-testid=meter-zone]", "borderTopColor"),
+        line: css(".meter-line", "backgroundColor"),
+        know: css("[data-mark=know_nothing] .mark-shape", "backgroundColor"),
+      };
+    });
+    for (const k of ["dot", "goalLine", "zoneBorder", "line", "know"] as const) expect(c[k], `${k} differs from the card`).not.toBe(c.card);
+    expect(c.zone).not.toBe(c.card);
+    expect(c.goalLine).not.toBe(c.dot);
+  });
+}
+
+test("each section can be reached and toggled from the keyboard and shows a focus outline", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("reference-details")).toBeVisible();
+  const summary = page.getByTestId("intro-full").locator("summary");
+  for (let i = 0; i < 30 && !(await summary.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Tab");
+  expect(await summary.evaluate((el) => el === document.activeElement)).toBe(true);
+  const outline = await summary.evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: s.outlineWidth }; });
+  expect(outline.style).not.toBe("none");
+  expect(parseFloat(outline.width)).toBeGreaterThan(0);
+  await page.keyboard.press("Enter");
+  expect(await page.getByTestId("intro-full").evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+  await page.keyboard.press("Space");
+  expect(await page.getByTestId("intro-full").evaluate((el) => (el as HTMLDetailsElement).open)).toBe(false);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Space");
+  expect(await page.getByTestId("reference-details").evaluate((el) => (el as HTMLDetailsElement).open)).toBe(true);
+});
+
+// --- US4: phones
+
+const ref007 = (known: number, tv: number, goal: number, scale: { min: number; max: number }, labels?: [string, string, string]) =>
+  (b: Reference): Reference => ({
+    ...b,
+    meter: {
+      ...b.meter!, scale,
+      marks: [
+        { id: "know_nothing", label: labels?.[0] ?? "Know-nothing guess", value: known },
+        { id: "broadcaster", label: labels?.[1] ?? "TV projection", value: tv },
+        { id: "goal", label: labels?.[2] ?? "The goal", value: goal },
+      ],
+    },
+  });
+
+const CRAFTED: [string, (b: Reference) => Reference][] = [
+  ["the real figures", (b) => b],
+  ["the projection worse than knowing nothing", ref007(20.0, 25.0, 22.0, { min: 17, max: 28 })],
+  ["a goal below zero", ref007(30.0, 2.0, -1.0, { min: -8, max: 37 })],
+  ["two references with close values", ref007(22.5, 21.8, 18.8, { min: 15, max: 26 })],
+  ["the goal and the projection close on a wide scale", ref007(40.0, 22.0, 19.0, { min: 14, max: 45 })],
+  ["long names", ref007(29.4, 21.8, 18.8, { min: 15, max: 33 },
+    ["The know-nothing guess: always the average", "The TV projection: run rate times twenty", "The goal: a few runs better"])],
+];
+
+for (const width of [360, 390, 768, 1280]) {
+  for (const [name, change] of CRAFTED) {
+    if (name === "long names" && width >= 760) continue;     // names wrap below 760 px; on wide screens they are one line and short
+    test(`at ${width} px, ${name}: every name and value is inside the card, none overlap, and each mark is on the scale`, async ({ page }) => {
+      await serveReference(page, change);
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+      await expect(page.getByTestId("meter")).toBeVisible();
+      await expectMeterFits(page);
+      await expectMarksOnScale(page, (await page.evaluate(async () => (await (await fetch("/api/reference")).json()).meter)) as Meter);
+    });
+  }
+}
+
+test("below 760 px the end labels go, the values shrink, the goal sits above the line and the references below", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  for (const end of await page.locator(".meter-end").all()) await expect(end).toBeHidden();
+  expect(await page.locator("[data-mark=goal] .mark-value").evaluate((el) => getComputedStyle(el).fontSize)).toBe("17.6px");
+  const line = await boxOf(page.locator(".meter-line"));
+  const goal = await boxOf(mark(page, "goal"));
+  expect(bottom(goal)).toBeLessThanOrEqual(line.y + 8);
+  for (const id of ["know_nothing", "broadcaster"]) expect((await boxOf(mark(page, id).locator(".mark-name"))).y).toBeGreaterThan(line.y);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const end of await page.locator(".meter-end").all()) await expect(end).toBeVisible();
+  expect(await page.locator("[data-mark=goal] .mark-value").evaluate((el) => getComputedStyle(el).fontSize)).toBe("22.4px");
+});
+
+test("at 360 px the chips wrap and the opened table scrolls inside its own box", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  const tops = new Set(await page.getByTestId("chips").locator("li").evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
+  expect(tops.size).toBeGreaterThan(1);
+  await openFigures(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.locator(".table-scroll").evaluate((el) => getComputedStyle(el).overflowX)).toBe("auto");
+});
+
+test("with the text size increased the meter still has no overlap or clipping", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto("/");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  await page.evaluate(() => { document.documentElement.style.fontSize = "150%"; });
+  await expectMeterFits(page);
+});
+
+// --- US5: honest when the figures are missing
+
+test("when the request fails there is no lead, meter or goal, only the message; the chips and the first section remain", async ({ page }) => {
+  await page.route("**/api/reference", (route) => route.abort());
+  await page.goto("/");
+  await expect(page.getByTestId("reference-error")).toContainText("could not be loaded");
+  for (const id of ["intro-lead", "meter", "goal", "reference-details"]) await expect(page.getByTestId(id)).toBeHidden();
+  await expect(page.getByTestId("chips")).toBeVisible();
+  await expect(page.getByTestId("intro-full").locator("summary")).toBeVisible();
+  await expect(page.getByTestId("play")).toBeEnabled();
+});
+
+test("when the server has no figures the lead and a plain goal line show but the meter and the figures section do not", async ({ page }) => {
+  await serveReference(page, (b) => ({ ...b, training: null, figures: null, gap: null, finding: null, sentences: null, words: null,
+    meter: null, message: "The accuracy figures could not be loaded." }));
+  await page.goto("/");
+  const ref = await reference(page);
+  await expect(page.getByTestId("reference-error")).toContainText("could not be loaded");
+  await expect(page.getByTestId("intro-lead")).toHaveText(ref.goal.lead);
+  await expect(page.getByTestId("goal")).toContainText(ref.goal.text);
+  await expect(page.getByTestId("meter")).toHaveCount(0);
+  await expect(page.getByTestId("reference-details")).toBeHidden();
+  await expect(page.getByTestId("chips")).toBeVisible();
+  await expect(page.getByTestId("play")).toBeEnabled();
+});
+
+test("until the figures arrive the meter area is empty and shows no number", async ({ page }) => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/reference", async (route) => { await gate; await route.continue(); });
+  await page.goto("/");
+  await expect(page.getByTestId("chips")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(((await page.getByTestId("reference").textContent()) ?? "").trim()).toBe("");
+  await expect(page.getByTestId("meter")).toHaveCount(0);
+  release();
+  await expect(page.getByTestId("meter")).toBeVisible();
 });

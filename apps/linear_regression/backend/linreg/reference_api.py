@@ -17,7 +17,7 @@ from . import accuracy_text
 from .accuracy import accuracy, display
 from .data_loading import load_innings
 from .evaluation import broadcaster_projection, know_nothing_guess
-from .goal import goal, reference_finding
+from .goal import goal, meter, reference_finding
 from .methods import method_defs
 from .season_split import split_three_ways
 
@@ -34,10 +34,11 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
     projected = display(accuracy(actual, broadcaster_projection(train["runs_at_10"])))
     years = sorted(int(y) for y in train["match_date"].dt.year.unique())
     finding = reference_finding(known["average_miss"], projected["average_miss"])
+    training = {"first_year": years[0], "last_year": years[-1], "innings": len(train)}
     return {
         "goal": goal(),
         "methods": method_defs(),
-        "training": {"first_year": years[0], "last_year": years[-1], "innings": len(train)},
+        "training": training,
         "figures": {"know_nothing": known, "broadcaster": projected},
         "gap": {"average_miss_runs": finding["gap_runs"], "average_miss_percent": finding["gap_percent"],
                 "within_10_points": round(projected["within_10"] - known["within_10"], 1)},
@@ -50,13 +51,14 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
             "finding": accuracy_text.finding_sentence(finding["finding"], finding["gap_runs"], finding["gap_percent"]),
             "bias": accuracy_text.projection_bias_sentence(projected["bias"]),
         },
+        "meter": meter(known["average_miss"], projected["average_miss"], training),
         "message": None,
     }
 
 
 def _unavailable() -> dict[str, Any]:
     return {"goal": goal(), "methods": method_defs(), "training": None, "figures": None, "gap": None,
-            "finding": None, "words": None, "sentences": None, "message": NOT_LOADED}
+            "finding": None, "words": None, "sentences": None, "meter": None, "message": NOT_LOADED}
 
 
 def create_router(data_path: str | Path | None = None) -> APIRouter:

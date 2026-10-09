@@ -6,16 +6,21 @@ reader can reproduce any verdict from the page.
 """
 from __future__ import annotations
 
-from typing import Any
+import math
+from typing import Any, Mapping
 
+from . import accuracy_text
+from .methods import BY_ID
 from .state import MARGIN_RUNS
 
 REFERENCE = "broadcaster"            # the method the goal is measured against
 CLEARLY_BETTER_SHARE = 0.10          # the projection is "clearly better" than knowing nothing at this much lower miss
+SCALE_MIN_PAD = 3                    # the meter's scale leaves at least this many runs either side of the marks
+SCALE_PAD_SHARE = 0.2                # ... or this share of the spread between them, whichever is more
 
 
 def goal() -> dict[str, Any]:
-    """The goal: the reference, the margin in runs, and its wording."""
+    """The goal: the reference, the margin in runs, its wording and the page's one-sentence lead."""
     margin = MARGIN_RUNS
     shown = int(margin) if float(margin).is_integer() else margin
     return {
@@ -23,6 +28,31 @@ def goal() -> dict[str, Any]:
         "margin_runs": margin,
         "text": (f"beat the TV projection by at least {shown} runs of average miss, on the latest calendar year, "
                  f"which nothing was trained or chosen on."),
+        "lead": (f"At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, "
+                 f"and miss by {shown} {'run' if shown == 1 else 'runs'} less on average."),
+    }
+
+
+def meter(know_nothing_miss: float, projection_miss: float, training: Mapping[str, int]) -> dict[str, Any]:
+    """The miss meter: three marks on one scale of average miss, worked out from the displayed one-decimal figures.
+
+    The goal's value is the projection's displayed miss minus the margin, to one decimal. The scale is whole runs and
+    holds all three values, in any order, with room either side."""
+    goal_value = round(projection_miss - MARGIN_RUNS, 1)
+    values = (know_nothing_miss, projection_miss, goal_value)
+    low, high = min(values), max(values)
+    pad = max(SCALE_MIN_PAD, math.ceil(round(SCALE_PAD_SHARE * (high - low), 6)))
+    know_nothing_name, projection_name = BY_ID["know_nothing"].name, BY_ID[REFERENCE].name
+    return {
+        "scale": {"min": math.floor(round(low - pad, 6)), "max": math.ceil(round(high + pad, 6))},
+        "marks": [
+            {"id": "know_nothing", "label": accuracy_text.meter_label(know_nothing_name), "value": know_nothing_miss},
+            {"id": REFERENCE, "label": accuracy_text.meter_label(projection_name), "value": projection_miss},
+            {"id": "goal", "label": "The goal", "value": goal_value},
+        ],
+        "caption": accuracy_text.meter_caption(training["first_year"], training["last_year"], training["innings"]),
+        "text": accuracy_text.meter_text(know_nothing_name, know_nothing_miss, projection_name, projection_miss,
+                                         goal_value),
     }
 
 

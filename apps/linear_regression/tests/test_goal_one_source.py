@@ -22,10 +22,14 @@ def names_margin(text, n):
     return re.search(rf"(?<![\d.]){n}(?:-run| runs)", text) is not None
 
 
-def reference_text():
+def reference_goal():
     api = FastAPI()
     api.include_router(reference_api.create_router(), prefix="/api")
-    return TestClient(api).get("/api/reference").json()["goal"]["text"]
+    return TestClient(api).get("/api/reference").json()["goal"]
+
+
+def reference_text():
+    return reference_goal()["text"]
 
 
 def run(run_graph, write_csv):
@@ -73,3 +77,19 @@ def test_the_percentage_in_the_verdict_can_be_checked_by_hand_from_the_displayed
     assert v["winner_miss"] == f["accuracy"][f["winner"]]["average_miss"]
     assert v["improvement_runs"] == round(v["reference_miss"] - v["winner_miss"], 1)
     assert v["improvement_percent"] == round(v["improvement_runs"] / v["reference_miss"] * 100, 1)
+
+
+def test_the_lead_follows_the_margin_in_the_endpoint_as_the_goal_text_does(monkeypatch):
+    monkeypatch.setattr(goal_module, "MARGIN_RUNS", 5)
+    g = reference_goal()
+    assert "at least 5 runs" in g["text"] and "miss by 5 runs less" in g["lead"]
+    assert not names_margin(g["lead"], 3)
+
+
+def test_no_word_of_the_lead_is_typed_in_the_page():
+    lead = goal()["lead"]
+    page = (APP / "web" / "index.html").read_text(encoding="utf-8") + " ".join(
+        p.read_text(encoding="utf-8") for p in (APP / "web" / "src" / "page").glob("*.ts"))
+    assert "projected score. the agent tries" not in page.lower()
+    assert "less on average" not in page.lower()
+    assert lead  # the sentence exists on the server

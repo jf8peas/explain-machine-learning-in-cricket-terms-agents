@@ -11,6 +11,9 @@ test("the intro is visible and links back to the main site in the same tab", asy
   await expect(link).toBeVisible();
   await expect(link).toHaveAttribute("href", siteUrl);
   await expect(link).not.toHaveAttribute("target", /.+/);
+  await expect(page.getByTestId("intro-lead")).toContainText("miss by 3 runs less on average");
+  await expect(page.getByTestId("meter")).toBeVisible();
+  await expect(page.getByTestId("chips").locator("li")).toHaveCount(5);
   await expect(page.getByTestId("goal")).toContainText("at least 3 runs");
 });
 

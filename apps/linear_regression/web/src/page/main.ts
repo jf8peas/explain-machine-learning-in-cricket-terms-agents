@@ -36,7 +36,7 @@ replay.addEventListener("replaychange", (ev) => {
 renderResults(results, {});
 setupModels(document.querySelector("[data-testid=model-picker]") as HTMLElement, replay);
 setupCatalogue(document.querySelector("[data-testid=catalogue]") as HTMLElement);
-void setupReference(document.querySelector("[data-testid=goal]") as HTMLElement, document.querySelector("[data-testid=reference]") as HTMLElement);
+void setupReference(document.querySelector("[data-testid=reference]") as HTMLElement, document.querySelector("[data-testid=reference-details]") as HTMLElement);
 void loadCatalogue().then(() => renderResults(results, shown)); // feature wording arrives with the catalogue
 
 // The Data tab loads the first time it is shown (or straight away at #data); the Working tab never waits on it.
