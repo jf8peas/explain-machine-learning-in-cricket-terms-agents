@@ -68,3 +68,15 @@ test("a dropped connection keeps the received steps and says so", async ({ page 
   await timelineItems(page).first().click();
   await expect(page.getByTestId("event-node")).toHaveText("load_data");
 });
+
+test("Play stays disabled until the graph has been drawn", async ({ page }) => {
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/structure", async (route) => { await gate; await route.continue(); });
+  await page.goto("/");
+  await expect(page.getByTestId("play")).toBeDisabled();
+  await expect(page.locator('[data-node="load_data"]')).toHaveCount(0);
+  release();
+  await expect(page.locator('[data-node="load_data"]')).toBeVisible();
+  await expect(page.getByTestId("play")).toBeEnabled();
+});

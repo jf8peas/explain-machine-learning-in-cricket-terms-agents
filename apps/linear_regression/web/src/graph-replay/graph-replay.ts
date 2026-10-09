@@ -44,6 +44,8 @@ export class GraphReplay extends HTMLElement {
   /** True from pressing Play until the stream ends (or is refused): Play is disabled meanwhile. */
   private running = false;
   private starting = false;
+  /** True once the graph has been drawn: Play stays disabled until then. */
+  private ready = false;
   private message = "";
   private messageIsError = false;
   private markerCursor = -1;
@@ -66,7 +68,7 @@ export class GraphReplay extends HTMLElement {
       <style>${styles}</style>
       <div class="wrap" part="wrap" role="group" aria-label="Agent run replay" data-testid="replay">
         <div class="toolbar" role="toolbar" aria-label="Playback controls">
-          <button class="primary" data-act="play" data-testid="play">Play</button>
+          <button class="primary" data-act="play" data-testid="play" disabled>Play</button>
           <button data-act="pause" data-testid="pause">Pause</button>
           <button data-act="back" data-testid="back" aria-keyshortcuts="ArrowLeft">Back</button>
           <button data-act="step" data-testid="step" aria-keyshortcuts="ArrowRight">Step</button>
@@ -131,6 +133,7 @@ export class GraphReplay extends HTMLElement {
       this.layout = layoutGraph(this.structure);
       this.drawGraph();
       this.setupLegend();
+      this.ready = true;
       requestAnimationFrame(() => this.measureStartHeight());
       this.update();
     } catch {
@@ -349,7 +352,7 @@ export class GraphReplay extends HTMLElement {
   private startRun() {
     const url = this.getAttribute("run-url");
     if (!url) return;
-    if (this.running) return; // one run at a time: Play is disabled while a run is in progress
+    if (this.running || !this.ready) return; // one run at a time: Play is disabled while a run is in progress
     this.abort = new AbortController();
     const signal = this.abort.signal;
     this.running = true;
@@ -449,7 +452,7 @@ export class GraphReplay extends HTMLElement {
 
     // buttons
     const hasEvents = b.events.length > 0;
-    (this.$('[data-act="play"]') as HTMLButtonElement).disabled = this.running; // no second run while one is going
+    (this.$('[data-act="play"]') as HTMLButtonElement).disabled = this.running || !this.ready; // no second run while one is going; none before the graph is drawn
     this.setAttribute("data-running", String(this.running));
     (this.$('[data-act="pause"]') as HTMLButtonElement).textContent = b.playing ? "Pause" : "Resume";
     (this.$('[data-act="pause"]') as HTMLButtonElement).disabled = !hasEvents && !b.playing || b.atEnd;
