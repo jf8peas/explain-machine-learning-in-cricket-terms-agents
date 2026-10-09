@@ -47,7 +47,7 @@
       "stage": "choose"
     },
     {
-      "id": "forward_selection",
+      "id": "grid_search",
       "kind": "node",
       "actor": "code",
       "stage": "choose"
@@ -96,7 +96,7 @@
     },
     {
       "source": "check_proposal",
-      "target": "forward_selection",
+      "target": "grid_search",
       "conditional": true,
       "branch": "finished"
     },
@@ -108,7 +108,7 @@
     },
     {
       "source": "evaluate",
-      "target": "forward_selection",
+      "target": "grid_search",
       "conditional": true,
       "branch": "stop"
     },
@@ -137,16 +137,10 @@
       "branch": null
     },
     {
-      "source": "forward_selection",
+      "source": "grid_search",
       "target": "final_test",
-      "conditional": true,
-      "branch": "done"
-    },
-    {
-      "source": "forward_selection",
-      "target": "forward_selection",
-      "conditional": true,
-      "branch": "again"
+      "conditional": false,
+      "branch": null
     },
     {
       "source": "load_data",
@@ -242,9 +236,10 @@
     "choose": "choose"
   },
   "notes": {
-    "general": "Every time the agent tries a new setup (stage 5) it fits the model again (stage 6), so the two stages form a loop. Parameters are learned from the training years (2005 to 2024). The setup is chosen using the validation year (2025). The test year (2026) is used once, at the end.",
+    "general": "Every time the agent tries a new setup (stage 5) it fits the model again (stage 6), so the two stages form a loop. Parameters are learned from the years before each check year. The setup is chosen using the three check years (2023, 2024 and 2025), each judged by a model that learned only from earlier years. The test year (2026) is used once, at the end.",
     "stages": {
-      "choose": "In this app, Choose the setup means feature selection only. Plain linear regression has no hyperparameters to tune; hyperparameter tuning appears in later apps."
+      "choose": "In this app, Choose the setup means picking the features and the hyperparameters. Two of the choices here, how many past seasons to learn from (the training window) and how much recent seasons count (the recency weighting), are hyperparameters: settings chosen before fitting, not learned from the data. This is the first app on the site to tune them, and the rival does it by trying every combination, which is called a grid search.",
+      "split": "The data is split by calendar year, never at random. Instead of one validation year there are three check years: each is judged by a model that learned only from the years before it, and the three errors are averaged, so one odd year cannot decide the winner. The latest year is kept for one final test. Only IPL and BBL innings and T20 internationals between ICC full members are scored."
     }
   },
   "items": [
@@ -258,11 +253,11 @@
         "rows": [
           {
             "label": "Excluded: No result",
-            "value": "97"
+            "value": "98"
           },
           {
             "label": "Excluded: Rain-affected (DLS)",
-            "value": "182"
+            "value": "183"
           },
           {
             "label": "Excluded: Reduced overs",
@@ -270,15 +265,15 @@
           },
           {
             "label": "Excluded: Innings ended before 10 overs",
-            "value": "27"
+            "value": "28"
           },
           {
             "label": "Columns measured from the ball-by-ball data",
-            "value": "12"
+            "value": "14"
           },
           {
             "label": "Columns worked out from those",
-            "value": "4"
+            "value": "5"
           },
           {
             "label": "Competition columns",

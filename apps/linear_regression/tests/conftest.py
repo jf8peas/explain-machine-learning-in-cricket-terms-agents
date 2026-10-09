@@ -16,7 +16,7 @@ from linreg.graph import build_graph
 from linreg.state import RECURSION_LIMIT
 
 
-def make_table(years=(2020, 2021, 2022, 2023), per_year=150, mode="noisy", seed=1) -> pd.DataFrame:
+def make_table(years=(2019, 2020, 2021, 2022, 2023, 2024, 2025), per_year=150, mode="noisy", seed=1) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     rows = []
     n = 0
@@ -51,6 +51,14 @@ def make_table(years=(2020, 2021, 2022, 2023), per_year=150, mode="noisy", seed=
     df["extras_at_10"] = extra.poisson(3, n)
     df["partnership_runs"] = np.minimum(df["runs_at_10"], extra.poisson(25, n))
     df["balls_since_last_wicket"] = np.minimum(60, extra.poisson(20, n))
+    # Teams and population: league sides are franchises (flags 0); the internationals are between two full members, so
+    # every innings is in the test population unless a test says otherwise.
+    international = df["competition"] == "t20i"
+    df["batting_team"] = np.where(international, "India", "Franchise A")
+    df["bowling_team"] = np.where(international, "Australia", "Franchise B")
+    df["batting_full_member"] = international.astype(int)
+    df["bowling_full_member"] = international.astype(int)
+    df["in_test_population"] = 1
     return add_derived(df)  # wickets in hand, runs x wickets in hand and the competition dummies, from the recipes
 
 

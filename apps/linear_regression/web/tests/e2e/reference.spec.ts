@@ -59,11 +59,12 @@ test("before any run the introduction shows both references with every measure, 
 test("the introduction says how good the bar is, and what knowing the score at 10 overs is worth", async ({ page }) => {
   await page.goto("/");
   const ref = await reference(page);
-  expect(ref.finding).toBe("clearly_better");
   await openFigures(page);
   await expect(page.getByTestId("reference-lead")).toHaveText(ref.sentences!.headline);
   await expect(page.getByTestId("reference-note")).toContainText(ref.sentences!.gap);
-  await expect(page.getByTestId("reference-note")).not.toContainText("only slightly better");
+  // plainly: when the projection is not clearly better than knowing nothing, the note says so before the gap
+  if (ref.finding === "clearly_better") await expect(page.getByTestId("reference-note")).not.toContainText("only slightly better");
+  else await expect(page.getByTestId("reference-note")).toContainText(ref.sentences!.finding);
   await expect(page.getByTestId("reference-lead")).toContainText(String(ref.training!.first_year));
   await expect(page.getByTestId("reference-lead")).toContainText(String(ref.training!.last_year));
 });
@@ -691,7 +692,9 @@ test("with both sections closed the section is short, and Play stays high in a 1
     const count = (el: Element | null) => ((el as HTMLElement | null)?.innerText ?? "").split(/\s+/).filter(Boolean).length;
     return count(document.querySelector("section.intro")) - count(document.querySelector(".eyebrow")) - count(document.querySelector("#intro-title"));
   });
-  expect(words).toBeLessThanOrEqual(120);                                                  // about 292 before the redesign
+  // 120 when feature 007 shipped (about 104 words); feature 008 added the one-sentence description of what the agent is tested
+  // on (15 words), so the limit is 135, still under half of the roughly 292 words the introduction had before 007.
+  expect(words).toBeLessThanOrEqual(135);
   const play = await page.evaluate(() => document.querySelector("graph-replay")!.shadowRoot!.querySelector("[data-testid=play]")!.getBoundingClientRect().bottom);
   expect(play).toBeLessThanOrEqual(750);                                                   // no lower than before the redesign
 });
@@ -890,4 +893,26 @@ test("until the figures arrive the meter area is empty and shows no number", asy
   await expect(page.getByTestId("meter")).toHaveCount(0);
   release();
   await expect(page.getByTestId("meter")).toBeVisible();
+});
+
+
+// ---------------- 008: the test population ----------------
+
+test("the introduction says what the agent is tested on, in words only", async ({ page }) => {
+  await page.goto("/");
+  const sentence = page.getByTestId("intro-population");
+  await expect(sentence).toBeVisible();
+  await expect(sentence).toContainText("IPL");
+  await expect(sentence).toContainText("BBL");
+  await expect(sentence).toContainText("T20 internationals");
+  await expect(sentence).toContainText("ICC full members");
+  expect(((await sentence.textContent()) ?? "").replace(/T20/g, "")).not.toMatch(/\d/);
+});
+
+test("the reference figures are on the test population before the first check year and equal the server's", async ({ page }) => {
+  await page.goto("/");
+  const ref = await reference(page);
+  await expect(page.getByTestId("meter")).toBeVisible();
+  expect(ref.training!.innings).toBeLessThan(4000);                      // fewer than all the early innings (about 4,000)
+  await expect(page.getByTestId("meter-caption")).toContainText(ref.training!.innings.toLocaleString("en-US"));
 });

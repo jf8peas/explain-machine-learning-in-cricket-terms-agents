@@ -1,5 +1,5 @@
 {
-  "download_date": "2026-10-04",
+  "download_date": "2026-10-09",
   "sources": [
     {
       "competition": "t20i",
@@ -16,17 +16,18 @@
   ],
   "counts": {
     "t20i": {
-      "matches_read": 3558,
+      "matches_read": 3592,
       "excluded": {
         "women": 0,
-        "no_result": 77,
-        "dls": 127,
+        "no_result": 78,
+        "dls": 128,
         "reduced_overs": 11,
         "super_over": 0,
-        "ended_before_10_overs": 26,
-        "no_first_innings": 0
+        "ended_before_10_overs": 27,
+        "no_first_innings": 0,
+        "no_team_names": 0
       },
-      "innings_kept": 3317
+      "innings_kept": 3348
     },
     "ipl": {
       "matches_read": 1243,
@@ -37,7 +38,8 @@
         "reduced_overs": 0,
         "super_over": 0,
         "ended_before_10_overs": 1,
-        "no_first_innings": 0
+        "no_first_innings": 0,
+        "no_team_names": 0
       },
       "innings_kept": 1210
     },
@@ -50,11 +52,12 @@
         "reduced_overs": 0,
         "super_over": 0,
         "ended_before_10_overs": 0,
-        "no_first_innings": 0
+        "no_first_innings": 0,
+        "no_team_names": 0
       },
       "innings_kept": 619
     },
-    "total_innings": 5146
+    "total_innings": 5177
   },
   "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License.",
   "dummies": {
@@ -113,6 +116,18 @@
         "wickets_in_hand"
       ]
     },
+    "batting_full_member": {
+      "measured": true
+    },
+    "bowling_full_member": {
+      "measured": true
+    },
+    "both_full_members": {
+      "product": [
+        "batting_full_member",
+        "bowling_full_member"
+      ]
+    },
     "is_ipl": {
       "indicator": {
         "column": "competition",
@@ -123,6 +138,42 @@
       "indicator": {
         "column": "competition",
         "equals": "bbl"
+      }
+    }
+  },
+  "full_members": [
+    "Afghanistan",
+    "Australia",
+    "Bangladesh",
+    "England",
+    "India",
+    "Ireland",
+    "New Zealand",
+    "Pakistan",
+    "South Africa",
+    "Sri Lanka",
+    "West Indies",
+    "Zimbabwe"
+  ],
+  "team_aliases": {},
+  "absent_full_members": [
+    "Afghanistan"
+  ],
+  "population": {
+    "in": 2867,
+    "out": 2310,
+    "by_competition": {
+      "t20i": {
+        "in": 1038,
+        "out": 2310
+      },
+      "ipl": {
+        "in": 1210,
+        "out": 0
+      },
+      "bbl": {
+        "in": 619,
+        "out": 0
       }
     }
   }

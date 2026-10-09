@@ -1,4 +1,4 @@
-"""The feature catalogue: the 16 candidates, their descriptions and recipes, and the prepared column order."""
+"""The feature catalogue: the 19 candidates, their descriptions and recipes, and the prepared column order."""
 import pandas as pd
 import pytest
 
@@ -11,12 +11,20 @@ from linreg.state import SET_LIMIT
 EXPECTED_IDS = ["runs_at_10", "wickets_at_10", "powerplay_runs", "powerplay_wickets", "runs_overs_7_10",
                 "wickets_overs_7_10", "fours_at_10", "sixes_at_10", "dot_balls_at_10", "extras_at_10",
                 "partnership_runs", "balls_since_last_wicket", "wickets_in_hand", "runs_x_wickets_in_hand",
-                "is_ipl", "is_bbl"]
+                "batting_full_member", "bowling_full_member", "both_full_members", "is_ipl", "is_bbl"]
 
 
-def test_the_catalogue_has_the_16_candidates_in_order():
+def test_the_catalogue_has_the_19_candidates_in_order():
     assert features.IDS == EXPECTED_IDS
-    assert len(features.CATALOGUE) == 16
+    assert len(features.CATALOGUE) == 19
+
+
+def test_the_team_candidates_and_the_clash_with_the_league_columns():
+    assert features.BY_ID["batting_full_member"]["source"] == {"measured": True}
+    assert features.BY_ID["both_full_members"]["source"]["recipe"] == {
+        "product": ["batting_full_member", "bowling_full_member"]}
+    assert "'not an IPL or BBL innings'" in features.BY_ID["both_full_members"]["description"]
+    assert features.measured_inputs("both_full_members") == ["batting_full_member", "bowling_full_member"]
 
 
 def test_every_candidate_has_wording_a_unit_and_bounds():
@@ -58,9 +66,10 @@ def test_inputs_follow_recipes_down_to_measured_columns():
 
 def test_the_prepared_columns_order():
     cols = features.PREPARED_COLUMNS
-    assert cols[:7] == ["match_id", "match_date", "season", "competition", "is_ipl", "is_bbl", "venue"]
-    assert cols[-1] == "final_total"
-    assert cols[7:-1] == [i for i in EXPECTED_IDS if i not in DUMMIES]
+    assert cols[:9] == ["match_id", "match_date", "season", "competition", "is_ipl", "is_bbl", "venue",
+                        "batting_team", "bowling_team"]
+    assert cols[-2:] == ["in_test_population", "final_total"]
+    assert cols[9:-2] == [i for i in EXPECTED_IDS if i not in DUMMIES]
     assert len(set(cols)) == len(cols)
 
 
@@ -72,8 +81,10 @@ def good_frame(n=5) -> pd.DataFrame:
 
 
 def test_add_candidates_computes_every_derived_column_from_its_recipe():
-    base = pd.DataFrame({"competition": ["ipl", "bbl", "t20i"], "runs_at_10": [80, 70, 55], "wickets_at_10": [0, 3, 9]})
+    base = pd.DataFrame({"competition": ["ipl", "bbl", "t20i"], "runs_at_10": [80, 70, 55], "wickets_at_10": [0, 3, 9],
+                         "batting_full_member": [0, 0, 1], "bowling_full_member": [0, 0, 1]})
     out = features.add_derived(base)
+    assert out["both_full_members"].tolist() == [0, 0, 1]
     assert out["wickets_in_hand"].tolist() == [10, 7, 1]
     assert out["runs_x_wickets_in_hand"].tolist() == [800, 490, 55]
     assert out[["is_ipl", "is_bbl"]].values.tolist() == [[1, 0], [0, 1], [0, 0]]

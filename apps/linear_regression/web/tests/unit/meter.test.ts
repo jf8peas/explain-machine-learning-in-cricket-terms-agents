@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NARROW_CLOSE, WIDE_CLOSE, layoutRows, position, zoneWidth } from "../../src/page/meter";
+import { NARROW_CLOSE, WIDE_CLOSE, XWIDE_CLOSE, layoutRows, position, zoneWidth } from "../../src/page/meter";
 
 const SCALE = { min: 15, max: 33 };
 const MARKS = [
@@ -51,6 +51,15 @@ describe("layoutRows", () => {
   it("leaves marks exactly at the wide threshold in the same row", () => {
     const rows = layoutRows(at({ know_nothing: 90, broadcaster: 50, goal: 50 - WIDE_CLOSE }));
     expect(rows.goal.rowWide).toBe(rows.broadcaster.rowWide);
+  });
+  it("uses a smaller threshold on extra-wide screens", () => {
+    const apart = WIDE_CLOSE - 2;                                    // closer than WIDE_CLOSE but not than XWIDE_CLOSE
+    expect(apart).toBeGreaterThan(XWIDE_CLOSE);
+    const rows = layoutRows(at({ know_nothing: 90, broadcaster: 50, goal: 50 - apart }));
+    expect(rows.goal.rowWide).not.toBe(rows.broadcaster.rowWide);
+    expect(rows.goal.rowXWide).toBe(rows.broadcaster.rowXWide);
+    const closer = layoutRows(at({ know_nothing: 90, broadcaster: 50, goal: 50 - (XWIDE_CLOSE - 1) }));
+    expect(closer.goal.rowXWide).not.toBe(closer.broadcaster.rowXWide);
   });
   it("puts the goal above the line and the references below on narrow screens", () => {
     const rows = layoutRows(at({ know_nothing: 80, broadcaster: 37.8, goal: 21.1 }));

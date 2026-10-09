@@ -38,13 +38,15 @@ def check_numbers(state):
 def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10", "wickets_in_hand"),
               coefs=None, took_part=True, failure=None, model="Fast"):
     both = llm_mae is not None
-    winner = "llm" if both and llm_mae < forward_mae else "forward"
+    winner = "forward" if (not both or forward_mae < llm_mae) else "llm"          # a tie goes to the language model
     won = llm_mae if winner == "llm" else forward_mae
     coefs = coefs or {"runs_at_10": 1.2, "wickets_in_hand": 6.5}
     return {
         "model_name": model, "llm_status": "ok" if took_part else "failed", "llm_failure": failure,
-        "split": {"train_n": 4036, "validation_n": 595, "test_n": 515, "validation_year": 2025, "test_year": 2026,
-                  "train_years": [2005, 2024]},
+        "split": {"test_year": 2026, "test_n": 515, "first_year": 2005,
+                  "checks": [{"year": 2023, "n": 176, "earlier_years": [2005, 2022]},
+                             {"year": 2024, "n": 196, "earlier_years": [2005, 2023]},
+                             {"year": 2025, "n": 196, "earlier_years": [2005, 2024]}]},
         "rounds_used": 4, "attempts": [{"features": ["runs_at_10"], "proposer": "llm", "validation_mae": 19.0,
                                         "validation_r2": 0.6, "improved": True, "round": 1},
                                        {"features": ["runs_at_10"], "proposer": "forward_selection", "validation_mae": 19.0,
@@ -52,6 +54,7 @@ def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10
         "features": list(features_), "coefficients": coefs, "feature_iqr": {f: 20.0 for f in features_},
         "final": {"test_mae": {"llm": llm_mae, "forward": forward_mae, "tv": tv}, "winner": winner,
                   "winner_name": "the language model" if winner == "llm" else "forward selection",
+                  "validation_mae": {"llm": llm_mae, "forward": forward_mae}, "winner_chosen_on": "validation",
                   "margin": abs(llm_mae - forward_mae) if both else None, "winner_mae": won, "winner_r2": 0.7,
                   "llm_took_part": took_part},
     }
@@ -80,14 +83,16 @@ def test_every_number_in_the_scripted_cases_is_in_the_state():
 
 def test_the_winner_is_named_with_both_errors_and_the_gap():
     t = text(explain(state_for(llm_mae=18.0, forward_mae=17.0)))
-    assert "forward selection won" in t and "17.0" in t and "18.0" in t and "gap of 1.0 runs" in t
+    assert "forward selection had the lower average miss (17.0 runs against 18.0" in t and "chosen before the test year" in t
+    assert "forward selection missed by 17.0 runs" in t and "by 18.0" in t
     t = text(explain(state_for(llm_mae=16.0, forward_mae=17.5)))
-    assert "the language model's choice won" in t and "16.0" in t and "17.5" in t and "gap of 1.5" in t
+    assert "the language model's choice had the lower average miss (16.0 runs against 17.5" in t
+    assert "the language model's choice missed by 16.0 runs" in t and "by 17.5" in t
 
 
-def test_a_tie_goes_to_forward_selection_and_says_so():
+def test_a_tie_on_the_check_years_goes_to_the_language_model_and_says_so():
     t = text(explain(state_for(llm_mae=17.0, forward_mae=17.0)))
-    assert "tied" in t and "forward selection" in t and "simpler" in t
+    assert "tied" in t and "language model" in t and "before the test year was touched" in t
 
 
 def test_the_explanation_says_plainly_when_the_language_model_did_not_take_part():
@@ -145,3 +150,27 @@ def test_a_run_where_the_model_fails_still_explains(run_graph, write_csv):
     state = merged_state(run_graph({"data_path": write_csv(make_table())}, llm=llm))
     assert state["llm_status"] == "failed" and "did not take part" in text(state["explanation"])
     check_numbers(state)
+
+
+def test_the_winning_setup_is_stated_in_cricket_language_from_the_settings_labels(run_graph, write_csv):
+    from linreg import setup_settings as cfg
+    llm = FakeLlm({"fake/steady": [reply(["runs_at_10", "wickets_in_hand"], "a", window="last_5", weighting="gentle",
+                                         training_innings="all"), reply(["runs_at_10"], "done", True)]})
+    state = merged_state(run_graph({"data_path": write_csv(make_table())}, llm=llm))
+    best = state["llm_best"] if state["final"]["winner"] == "llm" else state["forward_best"]
+    expected = f"The winning setup {cfg.setup_words(best['window'], best['weighting'], best['training_innings'])}."
+    assert expected in state["explanation"]["sentences"]
+    assert state["final"]["setups"][state["final"]["winner"]] == {
+        "features": best["features"], "window": best["window"], "weighting": best["weighting"],
+        "training_innings": best["training_innings"]}
+    check_numbers(state)                                   # a number in the setup sentence (the window) is in the figures
+
+
+def test_the_example_sentence_from_the_brief_is_what_the_labels_give():
+    from linreg import setup_settings as cfg
+    assert cfg.setup_words("last_5", "gentle", "population").startswith("learned from the last 5 seasons, with recent seasons")
+    assert cfg.setup_words("last_5", "gentle", "population").endswith("using full-member and league innings only")
+
+
+def test_a_scripted_state_without_the_setup_still_explains_without_that_sentence():
+    assert "The winning setup" not in text(explain(state_for()))

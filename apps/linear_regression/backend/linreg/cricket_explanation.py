@@ -14,10 +14,13 @@ def _runs(x: float) -> float:
 
 def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], margin_runs: float,
                       comparison_sentences: list[str] | None = None,
-                      verdict_sentence: str | None = None) -> dict[str, Any]:
+                      verdict_sentence: str | None = None, setup_sentence: str | None = None,
+                      setup_figures: dict[str, float] | None = None) -> dict[str, Any]:
     """`comparison_sentences` (how the winner compares with the other references) are placed before the final
     comparison with the TV projection, and `verdict_sentence`, when given, replaces the built-in verdict: both are
-    worded by the caller from figures in the state, so this module needs no knowledge of them."""
+    worded by the caller from figures in the state, so this module needs no knowledge of them. `setup_sentence` (the winning
+    setup's parts other than its features, worded by the caller from the settings labels) follows the list of features, and
+    `setup_figures` holds any number that sentence uses."""
     final = state["final"]
     split = state["split"]
     features: list[str] = state["features"]            # the winning model's features
@@ -34,10 +37,10 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], 
     importance = {f: _runs(abs(coefs[f] * iqr[f])) for f in features}
     most = max(features, key=lambda f: abs(coefs[f] * iqr[f]))
 
+    checks = split["checks"]
     figures: dict[str, float] = {
-        "train_n": split["train_n"], "validation_n": split["validation_n"], "test_n": split["test_n"],
-        "train_first_year": split["train_years"][0], "train_last_year": split["train_years"][1],
-        "validation_year": split["validation_year"], "test_year": split["test_year"],
+        "test_n": split["test_n"], "test_year": split["test_year"],
+        **{f"check_{i}_{key}": c[key] for i, c in enumerate(checks, 1) for key in ("year", "n")},
         "winner_mae": _runs(winner_mae), "tv_mae": _runs(tv), "improvement": _runs(abs(improvement)),
         "margin_runs": _runs(margin_runs), "r2": round(float(final["winner_r2"]), 2),
         "n_features": len(features), "importance_runs": importance[most], "importance_iqr": _runs(iqr[most]),
@@ -56,10 +59,11 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], 
     unit = lambda f: labels[f]["unit"]  # noqa: E731
     sentences: list[str] = []
 
+    years = ", ".join(f"{c['year']} ({c['n']} innings)" for c in checks[:-1]) + f" and {checks[-1]['year']} ({checks[-1]['n']})"
     sentences.append(
-        f"We trained on {split['train_n']} innings from {split['train_years'][0]} to {split['train_years'][1]}, chose "
-        f"features using {split['validation_n']} innings from {split['validation_year']}, and kept "
-        f"{split['test_year']} ({split['test_n']} innings) for one final test that nothing was chosen from."
+        f"We judged every setup on three check years, {years}, each time learning only from the years before the one "
+        f"being checked, and kept {split['test_year']} ({split['test_n']} innings) for one final test that nothing was "
+        f"chosen from."
     )
 
     model = state.get("model_name")
@@ -82,18 +86,25 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], 
         )
 
     if mae["llm"] is not None and mae["forward"] is not None:
-        loser = "forward" if final["winner"] == "llm" else "llm"
+        winner = final["winner"]
+        loser = "forward" if winner == "llm" else "llm"
         name = {"llm": "the language model's choice", "forward": "forward selection"}
-        if final["margin"] == 0:
+        won_on, lost_on = final["validation_mae"][winner], final["validation_mae"][loser]
+        figures["winner_validation_mae"], figures["loser_validation_mae"] = _runs(won_on), _runs(lost_on)
+        if won_on == lost_on:
             sentences.append(
-                f"On the final test the two tied at {_runs(winner_mae)} runs of average miss, so forward selection, "
-                f"the simpler method, takes it."
+                f"On the check years the two best setups tied at {_runs(won_on)} runs of average miss, so the language "
+                f"model's choice was taken, before the test year was touched."
             )
         else:
             sentences.append(
-                f"On the final test {name[final['winner']]} won: its average miss was {_runs(winner_mae)} runs against "
-                f"{_runs(mae[loser])} for {name[loser]}, a gap of {_runs(final['margin'])} runs."
+                f"On the check years {name[winner]} had the lower average miss ({_runs(won_on)} runs against "
+                f"{_runs(lost_on)} for {name[loser]}), so it was chosen before the test year was touched."
             )
+        sentences.append(
+            f"On the final test {name[winner]} missed by {_runs(winner_mae)} runs on average and {name[loser]} by "
+            f"{_runs(mae[loser])}."
+        )
     else:
         sentences.append(
             f"On the final test the chosen set missed by {_runs(winner_mae)} runs on average."
@@ -104,6 +115,9 @@ def build_explanation(state: dict[str, Any], labels: dict[str, dict[str, str]], 
         + (lab(features[0]) if len(features) == 1 else ", ".join(lab(f) for f in features[:-1]) + " and " + lab(features[-1]))
         + "."
     )
+    if setup_sentence:
+        sentences.append(setup_sentence)
+        figures.update(setup_figures or {})
     sentences.append(
         f"The biggest factor was {lab(most)}: a typical difference of {_runs(iqr[most])} {unit(most)} moves the "
         f"predicted final total by about {importance[most]} runs."

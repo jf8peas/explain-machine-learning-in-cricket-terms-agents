@@ -31,7 +31,7 @@ def random_reply(rng: random.Random) -> str:
 def test_no_fitted_set_is_ever_outside_the_catalogue(run_graph, write_csv, seed):
     rng = random.Random(seed)
     llm = FakeLlm({"fake/steady": [random_reply(rng) for _ in range(ROUND_CAP + 2)]})
-    state = merged_state(run_graph({"data_path": write_csv(make_table(years=(2020, 2021, 2022, 2023), per_year=110))}, llm=llm))
+    state = merged_state(run_graph({"data_path": write_csv(make_table(per_year=110))}, llm=llm))
     assert state["attempts"], "forward selection always produces attempts"
     for a in state["attempts"]:
         assert set(a["features"]) <= set(NAMES)                         # only catalogue names

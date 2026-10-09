@@ -81,7 +81,7 @@ describe("bands for this app's real graph", () => {
   it("gives Choose the setup two bands, with Fit the model between them", () => {
     const choose = bandsOf("choose");
     expect(choose.length).toBe(2);
-    expect(choose.map((b) => b.nodes).flat().sort()).toEqual(["check_proposal", "evaluate", "forward_selection", "propose_features"]);
+    expect(choose.map((b) => b.nodes).flat().sort()).toEqual(["check_proposal", "evaluate", "grid_search", "propose_features"]);
     expect(bandsOf("fit")).toHaveLength(1);
   });
 

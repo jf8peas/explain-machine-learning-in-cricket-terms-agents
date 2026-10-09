@@ -35,13 +35,13 @@ def test_structure_matches_schema_and_has_branch_labels():
     assert conditional == {
         ("load_data", "split", "ok"), ("load_data", "__end__", "stop"),
         ("check_proposal", "fit_model", "fit"), ("check_proposal", "propose_features", "rejected"),
-        ("check_proposal", "forward_selection", "finished"),
-        ("evaluate", "propose_features", "continue"), ("evaluate", "forward_selection", "stop"),
-        ("forward_selection", "forward_selection", "again"), ("forward_selection", "final_test", "done"),
+        ("check_proposal", "grid_search", "finished"),
+        ("evaluate", "propose_features", "continue"), ("evaluate", "grid_search", "stop"),
     }
+    assert ("grid_search", "final_test") in {(e["source"], e["target"]) for e in body["edges"] if not e["conditional"]}
     assert {n["id"] for n in body["nodes"]} == {
         "__start__", "__end__", "load_data", "split", "explore", "baseline", "propose_features", "check_proposal",
-        "fit_model", "evaluate", "forward_selection", "final_test", "explain_in_cricket_terms"}
+        "fit_model", "evaluate", "grid_search", "final_test", "explain_in_cricket_terms"}
 
 
 def test_only_propose_features_is_marked_as_the_language_model_step():
@@ -70,8 +70,8 @@ def test_run_streams_valid_ordered_events_then_done():
     nodes = [s["node"] for s in steps]
     assert nodes[: len(NODE_ORDER_PREFIX)] == NODE_ORDER_PREFIX
     assert nodes[-2:] == ["final_test", "explain_in_cricket_terms"]
-    # attempts arrive accumulated: one more entry after each evaluation and each forward-selection step
-    counts = [len(s["changes"]["attempts"]) for s in steps if s["node"] in ("evaluate", "forward_selection")
+    # attempts arrive accumulated: one more entry after each evaluation and the grid search's best setup
+    counts = [len(s["changes"]["attempts"]) for s in steps if s["node"] in ("evaluate", "grid_search")
               and "attempts" in s["changes"]]
     assert counts == list(range(1, len(counts) + 1))
 

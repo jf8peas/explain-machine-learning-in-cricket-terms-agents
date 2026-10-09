@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
 import { countRunRequests, open, playToEnd, timelineItems } from "./helpers";
 
-const TOTAL = 5146; // manifest total_innings; checked against the agent's load_data step below
+const TOTAL = 5177; // manifest total_innings; checked against the agent's load_data step below
 
 const count = (page: Page) => page.getByTestId("data-count");
 const cell = (page: Page, row: number, field: string) =>
@@ -406,45 +406,73 @@ test.describe("sort, search and filter", () => {
   });
 });
 
-test.describe("training, validation and test", () => {
+test.describe("training, training and validation, and test", () => {
   const slice = async (page: Page, value: string) => {
     await page.getByTestId("filter-used_for").selectOption(value);
     return Number(((await count(page).innerText()).match(/Showing ([\d,]+)/) as RegExpMatchArray)[1].replace(/,/g, ""));
   };
 
-  test("the Used for filter offers Training, Validation and Test", async ({ page }) => {
+  test("the Used for filter offers Training, Training and validation and Test", async ({ page }) => {
     await openData(page);
-    await expect(page.getByTestId("filter-used_for").locator("option")).toHaveText(["All", "Test", "Training", "Validation"]);
+    await expect(page.getByTestId("filter-used_for").locator("option")).toHaveText(["All", "Test", "Training", "Training and validation"]);
   });
 
-  test("each slice shows rows from the right years and its count matches the summary", async ({ page }) => {
+  test("each use shows rows from the right years and its count matches the summary", async ({ page }) => {
     await openData(page);
-    const summary = await (await page.request.get("/api/data")).json();
-    const section = summary.summary.sections.find((x: { title: string }) => x.title.startsWith("Slices"));
-    const shown = Object.fromEntries(section.rows.map((r: { label: string; value: string }) =>
-      [r.label.split(" ")[0], Number(r.value.replace(/,/g, ""))]));
-    const years = [...new Set(summary.rows.map((r: string[]) => Number(r[1].slice(0, 4))))].sort() as number[];
-    const [testYear, validationYear] = [years[years.length - 1], years[years.length - 2]];
+    const body = await (await page.request.get("/api/data")).json();
+    const section = body.summary.sections.find((x: { title: string }) => x.title === "How the years are used");
+    const [training, checks, tests] = section.rows.map((r: { value: string }) => Number(r.value.replace(/,/g, "")));
+    const years = [...new Set(body.rows.map((r: string[]) => Number(r[1].slice(0, 4))))].sort() as number[];
+    const testYear = years[years.length - 1];
 
-    expect(await slice(page, "test")).toBe(shown.Test);
+    expect(await slice(page, "test")).toBe(tests);
     await expect(cell(page, 0, "used_for")).toHaveText("Test");
     await expect(cell(page, 0, "match_date")).toContainText(String(testYear));
-    expect(await slice(page, "validation")).toBe(shown.Validation);
-    await expect(cell(page, 0, "used_for")).toHaveText("Validation");
-    await expect(cell(page, 0, "match_date")).toContainText(String(validationYear));
-    expect(await slice(page, "training")).toBe(shown.Training);
+    expect(await slice(page, "training_validation")).toBe(checks);
+    await expect(cell(page, 0, "used_for")).toHaveText("Training and validation");
+    const checkYears = [testYear - 3, testYear - 2, testYear - 1].map(String);
+    expect(checkYears.some((y) => section.rows[1].label.includes(y))).toBe(true);
+    expect(await slice(page, "training")).toBe(training);
     await expect(cell(page, 0, "used_for")).toHaveText("Training");
-    expect(shown.Training + shown.Validation + shown.Test).toBe(TOTAL);
+    expect(training + checks + tests).toBe(TOTAL);
+    expect(section.rows[2].label).toContain(String(testYear));
   });
 
-  test("the agent's own split step agrees on the test year's count", async ({ page }) => {
+  test("the agent's own split step agrees on the test year's population count and the check years", async ({ page }) => {
     await openData(page);
     const steps = await runSteps(page);
+    await page.getByTestId("filter-in_test_population").selectOption("1");
     expect(await slice(page, "test")).toBe(steps.split.split.test_n);
     await expect(cell(page, 0, "match_date")).toContainText(String(steps.split.split.test_year));
+    const years = steps.split.split.checks.map((c: { year: number }) => c.year);
+    expect(years).toEqual([1, 2, 3].map((k) => steps.split.split.test_year - 4 + k));
+    await page.getByTestId("filter-in_test_population").selectOption("");
   });
 
-  test("the new candidate columns have headings and descriptions on focus", async ({ page }) => {
+  test("the new columns have headings and descriptions on focus and filter by value", async ({ page }) => {
+    await openData(page);
+    for (const [field, heading_, words] of [
+      ["batting_team", "Batting team", "batting first"],
+      ["bowling_team", "Bowling team", "bowling first"],
+      ["batting_full_member", "Batting team a full member (0/1)", "franchises"],
+      ["both_full_members", "Both teams full members (0/1)", "IPL or BBL"],
+      ["in_test_population", "In test population", "ICC full members"],
+    ] as const) {
+      await expect(heading(page, field)).toContainText(heading_);
+      await heading(page, field).focus();
+      await expect(page.getByTestId("heading-help")).toContainText(heading_);
+      await expect(page.getByTestId("heading-help")).toContainText(words);
+    }
+    const inside = await (async () => {
+      await page.getByTestId("filter-in_test_population").selectOption("1");
+      return Number(((await count(page).innerText()).match(/Showing ([\d,]+)/) as RegExpMatchArray)[1].replace(/,/g, ""));
+    })();
+    const body = await (await page.request.get("/api/data")).json();
+    const section = body.summary.sections.find((x: { title: string }) => x.title === "Test population");
+    expect(inside).toBe(Number(section.rows[0].value.replace(/,/g, "")));
+  });
+
+  test("the new candidate columns from before still have headings and descriptions on focus", async ({ page }) => {
     await openData(page);
     for (const [field, heading_, words] of [
       ["powerplay_wickets", "Powerplay wickets (overs 1-6)", "powerplay"],
@@ -473,6 +501,8 @@ test.describe("summary", () => {
     const exclusionNote = summary.getByTestId("section-note").filter({ hasText: "prepare_data.py" });
     await expect(exclusionNote).toContainText("before the agent runs");
     await expect(summary).toContainText("Innings per competition");
+    await expect(summary).toContainText("How the years are used");
+    await expect(summary).toContainText("Test population");
     await expect(page.getByTestId("attribution-foot")).toContainText("Open Data Commons Attribution License");
     await expect(page.getByTestId("attribution-download")).toContainText("Cricsheet");
   });

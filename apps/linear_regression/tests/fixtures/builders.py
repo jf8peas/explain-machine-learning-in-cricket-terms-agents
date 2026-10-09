@@ -56,15 +56,18 @@ def six_dot_overs(count: int) -> list[list[dict]]:
 
 def make_match(innings: list[dict], *, gender: str = "male", result: str | None = None,
                method: str | None = None, overs: int = 20, date: str = "2023-05-01",
-               season: str = "2023", venue: str = "Ground") -> dict:
-    outcome: dict = {"winner": "X"}
+               season: str = "2023", venue: str = "Ground", teams: tuple[str, str] = ("X", "Y")) -> dict:
+    """A match; `teams` is (batting first, bowling first) and sets the first innings' team and info.teams."""
+    if innings:
+        innings = [{**innings[0], "team": teams[0]}, *innings[1:]]
+    outcome: dict = {"winner": teams[0]}
     if result:
         outcome = {"result": result}
     if method:
         outcome["method"] = method
     return {
         "info": {"gender": gender, "dates": [date], "season": season, "venue": venue,
-                 "overs": overs, "outcome": outcome, "teams": ["X", "Y"]},
+                 "overs": overs, "outcome": outcome, "teams": list(teams)},
         "innings": innings,
     }
 

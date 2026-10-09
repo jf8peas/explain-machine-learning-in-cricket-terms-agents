@@ -8,24 +8,34 @@ from linreg.stages import CHOOSE_STAGE, FIT_STAGE, STAGES
 
 # ---- notes for stages ----
 
-def test_the_choose_note_says_it_is_feature_selection_only_in_this_app():
-    note = structure_extras()["notes"]["stages"]["choose"].lower()
-    assert "feature selection only" in note
-    assert "no hyperparameters" in note
-    assert "later apps" in note
+def test_the_choose_note_explains_hyperparameters_and_says_this_is_the_first_time_they_are_tuned():
+    from linreg import setup_settings
+    note = structure_extras()["notes"]["stages"]["choose"]
+    low = note.lower()
+    assert "training window" in low and "recency weighting" in low
+    assert "hyperparameters" in low and "chosen before fitting" in low and "not learned from the data" in low
+    assert "first app on the site to tune them" in low and "grid search" in low
+    assert setup_settings.HYPERPARAMETER_NOTE in note                      # one wording, shared with the grid's caption
+    assert "feature selection only" not in low and "later apps" not in low and "no hyperparameters" not in low
+
+
+def test_the_split_note_describes_the_three_checks():
+    note = structure_extras()["notes"]["stages"]["split"].lower()
+    assert "three check years" in note and "only from the years before it" in note and "averaged" in note
+    assert "final test" in note and "never at random" in note and "full members" in note
 
 
 def test_every_stage_has_a_node_in_this_app_so_no_stage_needs_a_reason():
     assert {s.id for s in STAGES} == set(NODE_STAGES.values())
     notes = structure_extras()["notes"]["stages"]
-    assert set(notes) == {"choose"}                      # only the stage that has something to say
+    assert set(notes) == {"choose", "split"}             # only the stages that have something to say
 
 
 def test_a_stage_with_no_node_gets_its_reason_as_its_note():
     mapping = {k: v for k, v in NODE_STAGES.items() if v != "understand"}
     notes = stage_notes(mapping, {"understand": "This agent does not explore the data."})
     assert notes["understand"] == "This agent does not explore the data."
-    assert "choose" in notes
+    assert "choose" in notes and "split" in notes
 
 
 def test_a_stage_with_no_node_and_no_reason_is_an_error_so_it_cannot_ship_silently():
@@ -124,27 +134,26 @@ def test_the_item_is_plain_text():
 # ---- the loop explanation ----
 
 from linreg.data_loading import load_innings  # noqa: E402
-from linreg.season_split import split_three_ways  # noqa: E402
+from linreg.season_split import rolling_checks  # noqa: E402
 
 
 def general_note():
     return client.get("/api/structure").json()["notes"]["general"]
 
 
-def test_the_loop_note_names_the_real_years_from_the_three_way_split():
-    slices = split_three_ways(load_innings())
-    years = sorted(int(y) for y in slices.train["match_date"].dt.year.unique())
+def test_the_loop_note_names_the_real_years_from_the_rolling_checks():
+    rolling = rolling_checks(load_innings())
+    checks = [str(c.year) for c in rolling.checks]
     note = general_note()
-    assert f"({years[0]} to {years[-1]})" in note                       # the training years
-    assert f"validation year ({slices.validation_year})" in note
-    assert f"test year ({slices.test_year})" in note
+    assert f"check years ({checks[0]}, {checks[1]} and {checks[2]})" in note
+    assert f"test year ({rolling.test_year})" in note
 
 
 def test_the_loop_note_explains_the_two_loops_in_plain_words():
     note = general_note().lower()
     assert "new setup (stage 5)" in note and "fits the model again (stage 6)" in note
-    assert "parameters are learned from the training years" in note
-    assert "the setup is chosen using the validation year" in note
+    assert "parameters are learned from the years before each check year" in note
+    assert "each judged by a model that learned only from earlier years" in note
     assert "used once" in note and "at the end" in note
     assert "<" not in note and ">" not in note
 
@@ -153,7 +162,7 @@ def test_with_the_data_unreadable_the_note_is_sent_without_any_year(tmp_path):
     bad = tmp_path / "innings.csv"
     bad.write_text("not,a,table\n1,2,3\n", encoding="utf-8")
     note = structure_extras(data_path=bad)["notes"]["general"]
-    assert "training years" in note and "validation year" in note and "test year" in note
+    assert "check years" in note and "test year" in note
     assert not any(ch.isdigit() for ch in note.replace("stage 5", "").replace("stage 6", ""))
     missing = structure_extras(data_path=tmp_path / "nope.csv")["notes"]["general"]
     assert missing == note

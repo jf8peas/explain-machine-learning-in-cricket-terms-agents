@@ -22,12 +22,13 @@ from .methods import METHODS, method_defs
 USES_THE_SCORE_AT_10 = ("broadcaster", "llm", "forward")
 
 
-def predictions(train, test, fitted_models: Mapping[str, dict]) -> dict[str, np.ndarray]:
+def predictions(know_nothing_totals, test, fitted_models: Mapping[str, dict]) -> dict[str, np.ndarray]:
     """The unrounded predictions for the test innings, for each method present, in display order.
 
-    `fitted_models` maps "llm" and/or "forward" to the fitted model (coefficients and intercept)."""
+    `know_nothing_totals` are the final totals the know-nothing guess averages (the test-population innings before the
+    year scored); `fitted_models` maps "llm" and/or "forward" to the fitted model (coefficients and intercept)."""
     preds: dict[str, np.ndarray] = {
-        "know_nothing": know_nothing_guess(train["final_total"], len(test)),
+        "know_nothing": know_nothing_guess(know_nothing_totals, len(test)),
         "broadcaster": np.asarray(broadcaster_projection(test["runs_at_10"]), dtype=float),
     }
     for key, fitted in fitted_models.items():
@@ -65,10 +66,11 @@ def chart_points(actual, preds: Mapping[str, np.ndarray]) -> dict[str, Any]:
             "predicted": {m: [round(float(x), 1) for x in p] for m, p in preds.items()}}
 
 
-def final_scoring(train, test, fitted_models: Mapping[str, dict], winner: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def final_scoring(know_nothing_totals, test, fitted_models: Mapping[str, dict],
+                  winner: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """Everything `final_test` adds: (the additions to `final`, the chart points)."""
     actual = test["final_total"]
-    preds = predictions(train, test, fitted_models)
+    preds = predictions(know_nothing_totals, test, fitted_models)
     acc = score(actual, preds)
     finding = reference_finding(acc["know_nothing"]["average_miss"], acc["broadcaster"]["average_miss"])
     finding["sentence"] = accuracy_text.finding_sentence(finding["finding"], finding["gap_runs"], finding["gap_percent"])

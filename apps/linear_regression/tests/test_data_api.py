@@ -11,7 +11,8 @@ from linreg import features
 from linreg.data_api import create_router
 from linreg.data_loading import DEFAULT_PATH, DataError, load_innings
 from linreg.data_table import COLUMN_KEYS, build_table
-from linreg.season_split import split_three_ways
+from linreg.population import population_counts
+from linreg.season_split import rolling_checks
 from tests.conftest import make_table
 
 client = TestClient(app)
@@ -35,36 +36,79 @@ def test_rows_equal_innings_csv_plus_used_for():
         assert [str(v) for v in row[:-1]] == [src[k] for k in keys[:-1]]
 
 
-def test_used_for_agrees_with_the_three_slices():
+def year_of(row):
+    return int(row[COLUMN_KEYS.index("match_date")][:4])
+
+
+def test_used_for_agrees_with_the_rolling_checks():
     body = get_data()
-    s = split_three_ways(load_innings())
+    rolling = rolling_checks(load_innings())
+    check_years = {c.year for c in rolling.checks}
     used = {r[0]: r[-1] for r in body["rows"]}
-    assert all(used[int(m)] == "test" for m in s.test["match_id"])
-    assert all(used[int(m)] == "validation" for m in s.validation["match_id"])
-    assert all(used[int(m)] == "training" for m in s.train["match_id"])
-    counts = [r[-1] for r in body["rows"]]
-    assert (counts.count("training"), counts.count("validation"), counts.count("test")) == (
-        len(s.train), len(s.validation), len(s.test))
+    df = load_innings()
+    years = df["match_date"].dt.year
+    for match_id, year in zip(df["match_id"], years):
+        want = "test" if year == rolling.test_year else "training_validation" if year in check_years else "training"
+        assert used[int(match_id)] == want, (match_id, year)
 
 
-def test_latest_year_is_test_the_one_before_is_validation_and_earlier_years_are_training():
+def test_the_latest_year_is_test_the_three_before_it_are_training_and_validation_and_earlier_years_are_training():
     body = get_data()
-    i = COLUMN_KEYS.index("match_date")
-    years = sorted({int(r[i][:4]) for r in body["rows"]})
-    test_year, validation_year = years[-1], years[-2]
+    years = sorted({year_of(r) for r in body["rows"]})
+    test_year = years[-1]
     for r in body["rows"]:
-        year = int(r[i][:4])
-        assert r[-1] == ("test" if year == test_year else "validation" if year == validation_year else "training")
+        year = year_of(r)
+        assert r[-1] == ("test" if year == test_year else "training_validation" if test_year - 3 <= year < test_year else "training")
 
 
-def test_slice_counts_in_the_summary_equal_the_rows():
+def test_the_years_summary_counts_equal_the_rows():
     body = get_data()
-    section = next(s for s in body["summary"]["sections"] if s["title"].startswith("Slices"))
-    shown = {r["label"].split(" ")[0]: int(r["value"].replace(",", "")) for r in section["rows"]}
+    section = next(s for s in body["summary"]["sections"] if s["title"] == "How the years are used")
+    shown = [int(r["value"].replace(",", "")) for r in section["rows"]]
     counts = [r[-1] for r in body["rows"]]
-    assert shown == {"Training": counts.count("training"), "Validation": counts.count("validation"),
-                     "Test": counts.count("test")}
-    assert sum(shown.values()) == len(body["rows"])
+    assert shown == [counts.count("training"), counts.count("training_validation"), counts.count("test")]
+    assert sum(shown) == len(body["rows"])
+    labels = " ".join(r["label"] for r in section["rows"])
+    rolling = rolling_checks(load_innings())
+    assert f"Test ({rolling.test_year})" in labels
+    assert f"{rolling.checks[0].year}, {rolling.checks[1].year} and {rolling.checks[2].year}" in labels
+
+
+def test_the_population_section_equals_the_data_and_the_manifest():
+    body = get_data()
+    section = next(s for s in body["summary"]["sections"] if s["title"] == "Test population")
+    counts = population_counts(load_innings())
+    values = {r["label"]: int(r["value"].replace(",", "")) for r in section["rows"][:2]}
+    per_competition = {r["label"]: r["value"] for r in section["rows"][2:]}
+    assert per_competition["T20 International: in the population"] == (
+        f"{counts['by_competition']['t20i']['in']:,} of "
+        f"{counts['by_competition']['t20i']['in'] + counts['by_competition']['t20i']['out']:,}")
+    assert values["In the test population"] == counts["in"] == MANIFEST["population"]["in"]
+    assert values["Outside it"] == counts["out"] == MANIFEST["population"]["out"]
+    in_rows = sum(1 for r in body["rows"] if r[COLUMN_KEYS.index("in_test_population")] == 1)
+    assert in_rows == counts["in"]
+    assert "ICC full members" in section["note"]
+
+
+def test_the_new_columns_are_there_with_descriptions_and_filters():
+    cols = {c["key"]: c for c in get_data()["columns"]}
+    for key in ("batting_team", "bowling_team", "batting_full_member", "bowling_full_member", "both_full_members",
+                "in_test_population"):
+        assert cols[key]["label"] and len(cols[key]["description"]) > 20, key
+    assert cols["in_test_population"]["filter"] == "select" and cols["in_test_population"]["labels"] == {"1": "In", "0": "Out"}
+    assert cols["batting_full_member"]["filter"] == "select"
+    order = [c["key"] for c in get_data()["columns"]]
+    assert order.index("in_test_population") == len(order) - 3 and order[-1] == "used_for" and order[-2] == "final_total"
+
+
+def test_every_row_has_its_teams_and_flags_and_the_flags_agree_with_the_population():
+    body = get_data()
+    k = {key: i for i, key in enumerate(COLUMN_KEYS)}
+    for r in body["rows"]:
+        assert r[k["batting_team"]] and r[k["bowling_team"]]
+        both = r[k["batting_full_member"]] * r[k["bowling_full_member"]]
+        assert r[k["both_full_members"]] == both
+        assert r[k["in_test_population"]] == int(r[k["competition"]] != "t20i" or both == 1)
 
 
 def test_every_candidate_column_has_the_catalogue_heading_and_description():
@@ -81,7 +125,8 @@ def test_columns_have_labels_and_filters():
     assert cols["competition"]["labels"] == {"t20i": "T20 International", "ipl": "IPL", "bbl": "BBL"}
     assert cols["competition"]["filter"] == "select"
     assert cols["match_date"]["filter"] == "year" and cols["match_date"]["type"] == "date"
-    assert cols["used_for"]["labels"] == {"training": "Training", "validation": "Validation", "test": "Test"}
+    assert cols["used_for"]["labels"] == {"training": "Training", "training_validation": "Training and validation",
+                                          "test": "Test"}
     assert cols["used_for"]["filter"] == "select"
     assert cols["runs_at_10"]["label"] == "Runs at 10 overs"
 
@@ -137,16 +182,16 @@ def test_cache_header_set():
 def test_tricky_venue_values_survive_json(tmp_path):
     csv = tmp_path / "innings.csv"
     manifest = tmp_path / "manifest.json"
-    table = make_table(years=(2022, 2023, 2024), per_year=1)  # one row a year, every candidate column
-    table["venue"] = ['Ground, "North" End', "Köln Ground", "Plain Ground"]
-    table["competition"] = "ipl"
-    features.add_derived(table).to_csv(csv, index=False)
+    table = make_table()                                       # enough innings in every year for the rolling checks
+    table["venue"] = "Plain Ground"
+    table.loc[0, "venue"], table.loc[1, "venue"] = 'Ground, "North" End', "Köln Ground"
+    table.to_csv(csv, index=False)
     manifest.write_text(json.dumps({**MANIFEST, "counts": {**MANIFEST["counts"], "total_innings": 2}}), encoding="utf-8")
     test_app = FastAPI()
     test_app.include_router(create_router(lambda: build_table(csv, manifest)), prefix="/api")
     body = TestClient(test_app).get("/api/data").json()
     venues = [r[COLUMN_KEYS.index("venue")] for r in body["rows"]]
-    assert venues == ['Ground, "North" End', "Köln Ground", "Plain Ground"]
+    assert venues[:3] == ['Ground, "North" End', "Köln Ground", "Plain Ground"]
 
 
 def test_missing_data_file_returns_500_with_message(tmp_path):

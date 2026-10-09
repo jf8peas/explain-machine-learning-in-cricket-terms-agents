@@ -1,6 +1,7 @@
 """GET /api/reference: how good the two references are, for the introduction. App-specific.
 
-Worked out on the training years only, so the validation and test years stay unseen. The result is computed once per
+Worked out on the test-population innings in the years before the first check year (test year - 3), so the check years and
+the test year stay unseen and every method is scored on the kind of innings the whole app is judged on. The result is computed once per
 process and kept; a failure is not kept, so the next request tries again. If the data cannot be read the goal and the
 method names are still sent, with a message, so the page can show the goal and say the figures could not be loaded.
 """
@@ -19,7 +20,7 @@ from .data_loading import load_innings
 from .evaluation import broadcaster_projection, know_nothing_guess
 from .goal import goal, meter, reference_finding
 from .methods import method_defs
-from .season_split import split_three_ways
+from .season_split import rolling_checks
 
 log = logging.getLogger("linreg.reference")
 CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400"   # the same as /api/data
@@ -28,7 +29,9 @@ NOT_LOADED = "The accuracy figures could not be loaded."
 
 def build_reference(path: str | Path | None = None) -> dict[str, Any]:
     """The whole response for the training years of the data at `path` (default: the committed data)."""
-    train = split_three_ways(load_innings(path)).train          # only the training slice is used from here on
+    rolling = rolling_checks(load_innings(path))
+    # only test-population innings before the first check year are read from here on (never a check year or the test year)
+    train = rolling.training_rows(rolling.checks[0], "all", "population")
     actual = train["final_total"]
     known = display(accuracy(actual, know_nothing_guess(actual, len(train))))
     projected = display(accuracy(actual, broadcaster_projection(train["runs_at_10"])))

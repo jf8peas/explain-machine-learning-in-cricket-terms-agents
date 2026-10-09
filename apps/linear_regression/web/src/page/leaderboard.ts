@@ -1,10 +1,15 @@
 // The leaderboard and the model's reasoning, built from the accumulated run state (app-specific).
-import { labelFor } from "./catalogue";
+import { labelFor, menuLabel } from "./catalogue";
 import { fmt, h } from "./dom";
+import { checkLabels, setupChips, type CheckError } from "./setup";
 
 export interface Attempt {
   features: string[];
   proposer: "llm" | "forward_selection";
+  window?: string;
+  weighting?: string;
+  training_innings?: string;
+  checks?: CheckError[];
   validation_mae: number;
   validation_r2: number;
   improved: boolean;
@@ -13,6 +18,9 @@ export interface Attempt {
 export interface RoundNote {
   round: number;
   features: string[];
+  window?: string | null;
+  weighting?: string | null;
+  training_innings?: string | null;
   reason: string;
   finished: boolean;
   outcome: "fit" | "rejected" | "finished" | "failed";
@@ -22,25 +30,33 @@ export interface RoundNote {
 const who = (p: Attempt["proposer"]) => (p === "llm" ? "Language model" : "Forward selection");
 const names = (ids: string[]) => ids.map(labelFor).join(", ");
 
+/** The parts of a setup other than its features, as small labelled chips. */
+function chips(setup: Parameters<typeof setupChips>[0]): HTMLElement {
+  return h("ul", { class: "setup-chips" }, ...setupChips(setup, menuLabel).map((c) =>
+    h("li", { class: "setup-chip", "data-testid": "setup-chip", "data-part": c.part }, c.text)));
+}
+
 export function renderLeaderboard(attempts: Attempt[], baseline: number | undefined): HTMLElement {
   const section = h("section", { "data-testid": "leaderboard", "aria-label": "Leaderboard" });
   section.append(h("h3", {}, "Leaderboard"),
-    h("p", { class: "muted" }, "Every feature set that was fitted, scored on the validation year (the average miss in runs; lower is better). Code does the fitting and the scoring, whoever proposed the set."));
+    h("p", { class: "muted" }, "Every setup that was fitted, judged on three check years (the average miss in runs over the three, and each year's own miss; lower is better). Code does the fitting and the scoring, whoever proposed the setup."));
   if (!attempts.length) return section;
   const body = h("tbody");
   if (baseline !== undefined) {
     body.append(h("tr", { class: "baseline" }, h("th", { scope: "row" }, "TV projected score (run rate x 20 overs)"),
-      h("td", {}, "Broadcaster"), h("td", {}, fmt(baseline)), h("td", {}, "–")));
+      h("td", {}, "Broadcaster"), h("td", {}, fmt(baseline)), h("td", {}, "–"), h("td", {}, "–")));
   }
   attempts.forEach((a, i) => {
     body.append(h("tr", { "data-testid": "attempt-row", "data-proposer": a.proposer },
-      h("th", { scope: "row" }, `${i + 1}. ${names(a.features)}`),
+      h("th", { scope: "row" }, `${i + 1}. ${names(a.features)}`, chips(a)),
       h("td", {}, who(a.proposer)),
       h("td", {}, fmt(a.validation_mae)),
+      h("td", { class: "check-errors" }, ...(a.checks ?? []).map((c, k) =>
+        h("span", { "data-testid": "check-error", "data-year": String(c.year) }, checkLabels([c])[0]))),
       h("td", {}, a.improved ? "improved" : "no better")));
   });
   const table = h("table", { class: "attempts" },
-    h("thead", {}, h("tr", {}, ...["Feature set", "Proposed by", "Validation error (runs)", "Result"].map((t) => h("th", { scope: "col" }, t)))),
+    h("thead", {}, h("tr", {}, ...["Setup", "Proposed by", "Average error (runs)", "Each check year (runs)", "Result"].map((t) => h("th", { scope: "col" }, t)))),
     body);
   section.append(h("div", { class: "table-scroll" }, table));   // scrolls inside its own box on a phone
   return section;
@@ -57,7 +73,7 @@ export function renderRounds(rounds: RoundNote[], modelName: string | null | und
       : r.outcome === "rejected" ? `Rejected by code: ${r.message ?? ""}`
       : r.outcome === "finished" ? "The model said it is finished" : `Not used: ${r.message ?? ""}`;
     list.append(h("li", { "data-testid": "round-item", "data-outcome": r.outcome },
-      h("strong", {}, r.features.length ? names(r.features) : "No features proposed"),
+      h("strong", {}, r.features.length ? names(r.features) : "No features proposed"), chips(r),
       h("span", { class: "tag" }, "The model's reasoning:"),
       h("blockquote", { class: "reason", "data-testid": "model-reason" }, r.reason), // the model's words, verbatim, as text
       h("span", { class: `outcome ${r.outcome}` }, outcome)));

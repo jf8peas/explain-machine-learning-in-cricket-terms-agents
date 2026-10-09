@@ -9,24 +9,29 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from . import features
+from . import features, setup_settings
 from .competition_dummies import DUMMIES
 from .data_table import DEFAULT_MANIFEST, exclusion_rows
 from .data_loading import DataError, load_innings
 from .graph import NODE_STAGES
-from .season_split import split_three_ways
+from .season_split import rolling_checks
 from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, stage_set
 
-CHOOSE_NOTE = ("In this app, Choose the setup means feature selection only. Plain linear regression has no "
-               "hyperparameters to tune; hyperparameter tuning appears in later apps.")
+SPLIT_STAGE = "split"
+CHOOSE_NOTE = ("In this app, Choose the setup means picking the features and the hyperparameters. "
+               + setup_settings.HYPERPARAMETER_NOTE)
+SPLIT_NOTE = ("The data is split by calendar year, never at random. Instead of one validation year there are three check "
+              "years: each is judged by a model that learned only from the years before it, and the three errors are "
+              "averaged, so one odd year cannot decide the winner. The latest year is kept for one final test. Only IPL "
+              "and BBL innings and T20 internationals between ICC full members are scored.")
 
 # A stage with no node in this agent must say why. Every stage has a node today, so this is empty.
 NO_NODE_REASONS: dict[str, str] = {}
 
 
 def stage_notes(mapping: Mapping[str, str] = NODE_STAGES, reasons: Mapping[str, str] = NO_NODE_REASONS) -> dict[str, str]:
-    """A note per stage: the choose statement, and for each stage with no node the reason there is none."""
-    notes = {CHOOSE_STAGE: CHOOSE_NOTE}
+    """A note per stage: the choose and split statements, and for each stage with no node the reason there is none."""
+    notes = {CHOOSE_STAGE: CHOOSE_NOTE, SPLIT_STAGE: SPLIT_NOTE}
     used = set(mapping.values())
     for stage in STAGES:
         if stage.id in used:
@@ -63,19 +68,19 @@ def prepare_item(manifest_path: str | Path | None = None) -> dict[str, Any]:
 
 
 def loop_note(data_path: str | Path | None = None) -> str:
-    """The two loops in plain words. The years come from the same three-way split the agent uses; if the data cannot be
+    """The two loops in plain words. The years come from the same rolling checks the agent uses; if the data cannot be
     read the note is sent without any year rather than with a guess."""
     first = (f"Every time the agent tries a new setup (stage {STAGE_NUMBER[CHOOSE_STAGE]}) it fits the model again "
              f"(stage {STAGE_NUMBER[FIT_STAGE]}), so the two stages form a loop.")
     try:
-        slices = split_three_ways(load_innings(data_path, required=["match_date"]))
-        years = sorted(int(y) for y in slices.train["match_date"].dt.year.unique())
-        training, validation = f" ({years[0]} to {years[-1]})", f" ({slices.validation_year})"
-        test = f" ({slices.test_year})"
+        rolling = rolling_checks(load_innings(data_path, required=["match_date", "in_test_population"]))
+        years = [str(c.year) for c in rolling.checks]
+        checks, test = f" ({years[0]}, {years[1]} and {years[2]})", f" ({rolling.test_year})"
     except (DataError, IndexError, KeyError, ValueError):
-        training = validation = test = ""
-    return (f"{first} Parameters are learned from the training years{training}. The setup is chosen using the "
-            f"validation year{validation}. The test year{test} is used once, at the end.")
+        checks = test = ""
+    return (f"{first} Parameters are learned from the years before each check year. The setup is chosen using the three "
+            f"check years{checks}, each judged by a model that learned only from earlier years. The test year{test} is "
+            f"used once, at the end.")
 
 
 def structure_extras(manifest_path: str | Path | None = None, data_path: str | Path | None = None) -> dict[str, Any]:

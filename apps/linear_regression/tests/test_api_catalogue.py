@@ -42,3 +42,17 @@ def test_it_has_a_cache_header_and_nothing_secret():
     r = client.get("/api/catalogue")
     assert "s-maxage" in r.headers["cache-control"]
     assert "key" not in r.text.lower().replace("keys", "")  # no credential-looking fields
+
+
+def test_the_setup_menus_carry_the_ids_and_labels_the_page_shows():
+    from linreg import setup_settings
+    body = get()
+    assert body["setup_menus"] == setup_settings.public_menus()
+    assert [m["id"] for m in body["setup_menus"]["window"]] == setup_settings.WINDOW_IDS
+    assert all(m["label"].strip() for group in body["setup_menus"].values() for m in group)
+
+
+def test_the_two_team_candidates_are_in_the_catalogue_with_their_inputs():
+    by_id = {f["id"]: f for f in get()["features"]}
+    assert by_id["batting_full_member"]["source"] == {"measured": True}
+    assert by_id["both_full_members"]["inputs"] == ["batting_full_member", "bowling_full_member"]

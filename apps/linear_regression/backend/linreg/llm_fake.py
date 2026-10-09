@@ -19,9 +19,13 @@ from .llm_client import LlmRequest, LlmTimeout, LlmUnavailable
 Script = list | Callable[[LlmRequest], str]
 
 
-def reply(features: list[str], reason: str = "A sensible next thing to try.", finished: bool = False) -> str:
-    """A well-formed reply in the shape the agent asks for."""
-    return json.dumps({"features": features, "reason": reason, "finished": finished})
+def reply(features: list[str], reason: str = "A sensible next thing to try.", finished: bool = False, *,
+          window: str = "all", weighting: str = "none", training_innings: str = "population",
+          omit: tuple[str, ...] = ()) -> str:
+    """A well-formed reply in the shape the agent asks for: a full setup. `omit` leaves parts out, to script a bad reply."""
+    body = {"features": features, "window": window, "weighting": weighting, "training_innings": training_innings,
+            "reason": reason, "finished": finished}
+    return json.dumps({k: v for k, v in body.items() if k not in omit})
 
 
 def round_of(request: LlmRequest) -> int:
@@ -71,15 +75,31 @@ class FakeLlm:
 
 STEADY = [
     reply(["runs_at_10"], "Runs at the halfway mark is the obvious place to start for a final total."),
-    reply(["runs_at_10", "wickets_in_hand"], "A side with wickets in hand can swing harder in the last ten overs."),
-    reply(["runs_at_10", "wickets_in_hand", "sixes_at_10"], "Sixes already hit suggest the batters are set to go big."),
-    reply(["runs_at_10", "wickets_in_hand", "sixes_at_10"], "Let me try that once more."),  # a repeat: rejected by code
+    reply(["runs_at_10", "wickets_in_hand"], "A side with wickets in hand can swing harder in the last ten overs, and the "
+          "last ten seasons are closer to today's game.", window="last_10", weighting="gentle"),
+    reply(["runs_at_10", "wickets_in_hand", "sixes_at_10"], "Sixes already hit suggest the batters are set to go big, and "
+          "scoring has risen lately, so recent seasons should count for more.", window="last_5", weighting="gentle",
+          training_innings="all"),
+    reply(["runs_at_10", "wickets_in_hand", "sixes_at_10"], "Let me try that once more.",   # a repeat: rejected by code
+          window="last_5", weighting="gentle", training_innings="all"),
     reply(["runs_at_10", "wickets_in_hand"], "I think that is as good as it gets.", finished=True),
 ]
 QUICK = [
     reply(["runs_at_10", "wickets_in_hand"], "Runs and wickets in hand say most of it."),
     reply(["runs_at_10", "wickets_in_hand"], "That is enough for me.", finished=True),
 ]
+# One bad reply for each way code rejects a proposal, for tests that need to see every reason (not a model the server lists).
+BAD_REPLIES = {
+    "missing_part": reply(["runs_at_10"], "No weighting named.", omit=("weighting",)),
+    "unknown_window": reply(["runs_at_10"], "A window that is not on the menu.", window="last_7"),
+    "unknown_weighting": reply(["runs_at_10"], "A weighting that is not on the menu.", weighting="extreme"),
+    "unknown_training_innings": reply(["runs_at_10"], "Innings that are not on the menu.", training_innings="leagues"),
+    "unknown_feature": reply(["net_run_rate"], "Not in the catalogue."),
+    "empty": reply([], "No features at all."),
+    "too_many": reply(["runs_at_10", "wickets_at_10", "fours_at_10", "sixes_at_10", "dot_balls_at_10", "extras_at_10",
+                       "partnership_runs", "balls_since_last_wicket", "powerplay_runs"], "Nine is too many."),
+    "redundant": reply(["wickets_at_10", "wickets_in_hand"], "These say the same thing."),
+}
 MARKUP = [
     reply(["runs_at_10"], '<b>bold</b> <script>window.__pwned = true</script> & "quotes" <img src=x onerror=alert(1)>'),
     reply(["runs_at_10"], "Done.", finished=True),

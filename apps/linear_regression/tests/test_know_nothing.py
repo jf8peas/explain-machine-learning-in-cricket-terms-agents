@@ -4,7 +4,7 @@ import pandas as pd
 
 from linreg.data_loading import load_innings
 from linreg.evaluation import know_nothing_guess
-from linreg.season_split import split_three_ways
+from linreg.season_split import rolling_checks
 
 
 def test_it_returns_the_mean_of_the_training_totals_once_for_each_innings_to_predict():
@@ -29,13 +29,22 @@ def test_it_has_no_randomness():
     assert all(np.array_equal(first, know_nothing_guess([101, 199, 175, 133], 5)) for _ in range(3))
 
 
-def test_on_the_real_data_it_is_the_mean_final_total_of_the_training_slice():
-    slices = split_three_ways(load_innings())
-    guess = know_nothing_guess(slices.train["final_total"], len(slices.test))
-    assert len(guess) == len(slices.test)
-    assert np.allclose(guess, slices.train["final_total"].mean())
-    # and the validation and test years play no part in it
-    assert not np.isclose(slices.test["final_total"].mean(), 0)
+def test_on_the_real_data_it_is_the_mean_of_the_test_population_innings_before_the_year_scored():
+    rolling = rolling_checks(load_innings())
+    for spec in (*rolling.checks, rolling.final):
+        before = rolling.training_rows(spec, "all", "population")
+        assert before["in_test_population"].eq(1).all() and (before["match_date"].dt.year < spec.year).all()
+        guess = know_nothing_guess(before["final_total"], 5)
+        assert np.allclose(guess, before["final_total"].mean())
+
+
+def test_associate_innings_and_later_years_play_no_part_in_the_guess():
+    rolling = rolling_checks(load_innings())
+    spec = rolling.checks[1]
+    everything = rolling.training_rows(spec, "all", "all")["final_total"].mean()
+    population = know_nothing_guess(rolling.training_rows(spec, "all", "population")["final_total"], 1)[0]
+    assert population != everything                          # the associate innings would have moved it
+    assert not np.isclose(population, rolling.check_rows(spec)["final_total"].mean())
 
 
 def test_asking_for_no_predictions_gives_an_empty_result():

@@ -27,12 +27,15 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
+import pandas as pd
+
 APP_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = APP_DIR / "data"
 sys.path.insert(0, str(APP_DIR / "backend"))
 
-from linreg import features  # noqa: E402
-from linreg.competition_dummies import dummy_values, manifest_entry  # noqa: E402
+from linreg import features, setup_settings  # noqa: E402
+from linreg.competition_dummies import REFERENCE, dummy_values, manifest_entry  # noqa: E402
+from linreg.population import population_counts  # noqa: E402
 
 SOURCES = {
     "t20i": "https://cricsheet.org/downloads/t20s_male_json.zip",
@@ -51,13 +54,25 @@ LAST_OVER = 9            # the 10th over: nothing after it is ever used by a can
 class PrepareError(Exception):
     """The requested rebuild cannot be done from the data on hand."""
 EXCLUSIONS = ["women", "no_result", "dls", "reduced_overs", "super_over",
-              "ended_before_10_overs", "no_first_innings"]
+              "ended_before_10_overs", "no_first_innings", "no_team_names"]
 
 
-def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | None, str | None]:
+def _teams(match: dict, aliases: dict[str, str] | None) -> tuple[str, str] | None:
+    """(batting team, bowling team) after the alias map, or None if the match does not name both."""
+    batting = ((match.get("innings") or [{}])[0]).get("team")
+    named = [t for t in match.get("info", {}).get("teams", []) if t]
+    others = [t for t in named if t != batting]
+    if not batting or not others:
+        return None
+    return setup_settings.canonical_team(batting, aliases), setup_settings.canonical_team(others[0], aliases)
+
+
+def rollup_match(match: dict, competition: str, match_id: str,
+                 aliases: dict[str, str] | None = None) -> tuple[dict | None, str | None]:
     """Return (row, None) for a kept first innings or (None, reason) when excluded.
 
-    An unrecognised competition raises UnknownCompetition, even if the match would be excluded.
+    An unrecognised competition raises UnknownCompetition, even if the match would be excluded. `aliases` maps a team's
+    spelling in the source to its canonical name (default: the settings module's map).
     """
     dummies = dummy_values(competition)  # raises for an unknown competition, before anything else
     info = match.get("info", {})
@@ -76,6 +91,9 @@ def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | N
     first = innings[0]
     if first.get("super_over"):
         return None, "super_over"
+    teams = _teams(match, aliases)
+    if teams is None:
+        return None, "no_team_names"
 
     runs_10 = powerplay = total = wickets_10 = 0
     pp_wickets = runs_7_10 = wickets_7_10 = fours = sixes = dots = extras = 0
@@ -112,8 +130,18 @@ def rollup_match(match: dict, competition: str, match_id: str) -> tuple[dict | N
     if last_over < LAST_OVER or wickets_10 >= 10:
         return None, "ended_before_10_overs"
 
+    # Franchises are not national teams: the full-member flags are 0 for the leagues, and every league innings is in the
+    # test population; a T20 international is in it only when both teams are full members.
+    is_international = competition == REFERENCE
+    batting_member = int(is_international and setup_settings.is_full_member(teams[0], aliases))
+    bowling_member = int(is_international and setup_settings.is_full_member(teams[1], aliases))
     row = features.derive_row({
         "match_id": match_id,
+        "batting_team": teams[0],
+        "bowling_team": teams[1],
+        "batting_full_member": batting_member,
+        "bowling_full_member": bowling_member,
+        "in_test_population": int(not is_international or (batting_member and bowling_member)),
         "match_date": info["dates"][0],
         "season": str(info.get("season", "")),
         "competition": competition,
@@ -179,6 +207,41 @@ def write_outputs(rows: list[dict], manifest: dict, data_dir: Path) -> None:
             tmp.unlink(missing_ok=True)
 
 
+def _international_teams(rows: list[dict]) -> Counter:
+    """How many kept T20 international innings each team took part in (as batting or bowling side)."""
+    seen: Counter = Counter()
+    for r in rows:
+        if r["competition"] == REFERENCE:
+            seen[r["batting_team"]] += 1
+            seen[r["bowling_team"]] += 1
+    return seen
+
+
+def team_manifest(rows: list[dict]) -> dict:
+    """What the manifest records about the test population: the member list, the aliases, who is absent and the counts."""
+    seen = _international_teams(rows)
+    return {"full_members": list(setup_settings.FULL_MEMBERS), "team_aliases": dict(setup_settings.TEAM_ALIASES),
+            "absent_full_members": [m for m in setup_settings.FULL_MEMBERS if m not in seen],
+            "population": population_counts(pd.DataFrame(rows))}
+
+
+def print_team_report(rows: list[dict]) -> None:
+    """Every T20 international team classified as not a full member, so a missed alias can be spotted, and a warning for
+    any full member that never appears in the data."""
+    seen = _international_teams(rows)
+    others = sorted(((t, n) for t, n in seen.items() if t not in setup_settings.FULL_MEMBERS), key=lambda x: (-x[1], x[0]))
+    print("Not full members in the T20I data (team: innings). Check none is a spelling of a full member; if one is, "
+          "add it to TEAM_ALIASES in linreg/setup_settings.py:")
+    for team, n in others:
+        print(f"  {team}: {n}")
+    absent = [m for m in setup_settings.FULL_MEMBERS if m not in seen]
+    if absent:
+        documented = set(absent) == set(setup_settings.ABSENT_FROM_SOURCE)
+        print(f"Warning: these full members never appear in the T20I data: {', '.join(absent)}."
+              + (f" This is the documented gap ({setup_settings.ABSENT_REASON})" if documented else
+                 " That is not the documented gap: check the aliases and the source."))
+
+
 def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
                  fetch: Callable[[str], bytes] = fetch_zip, today: str | None = None) -> None:
     """Download every source, roll up the matches and write the data files."""
@@ -202,6 +265,8 @@ def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
     manifest["counts"]["total_innings"] = len(all_rows)
     manifest["dummies"] = manifest_entry()
     manifest["features"] = features.manifest_entry()
+    manifest.update(team_manifest(all_rows))
+    print_team_report(all_rows)
     write_outputs(all_rows, manifest, data_dir)
     print(f"Wrote {len(all_rows)} innings")
 

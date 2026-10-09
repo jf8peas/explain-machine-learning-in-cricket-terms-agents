@@ -30,11 +30,20 @@ def test_header_only_file_stops(run_graph, write_csv):
     assert_stopped(run_graph({"data_path": write_csv(df)}))
 
 
+def years_table(counts: dict[int, int], seed=5):
+    """One synthetic table with the given number of innings in each year."""
+    return pd.concat([make_table(years=(y,), per_year=n, seed=seed + i) for i, (y, n) in enumerate(counts.items())],
+                     ignore_index=True)
+
+
+FULL = {y: 150 for y in (2019, 2020, 2021, 2022, 2023, 2024)}                    # 2019 to 2024, so a test year of 2025 gives checks 2022 to 2024
+
+
 def test_too_few_test_innings_stops(run_graph, write_csv):
-    older = make_table(years=(2020, 2021), per_year=150)
-    tiny = make_table(years=(2022,), per_year=99, seed=5)
-    df = pd.concat([older, tiny], ignore_index=True)
-    assert_stopped(run_graph({"data_path": write_csv(df)}), "fewer than")
+    df = years_table({**FULL, 2025: 99})
+    events = run_graph({"data_path": write_csv(df)})
+    assert_stopped(events, "2025")
+    assert "fewer than" in events[0][1]["data_error"] and "test the model" in events[0][1]["data_error"]
 
 
 def test_single_year_stops(run_graph, write_csv):
@@ -43,9 +52,8 @@ def test_single_year_stops(run_graph, write_csv):
 
 
 def test_exactly_100_test_innings_is_ok(run_graph, write_csv):
-    older = make_table(years=(2020, 2021), per_year=150)
-    test = make_table(years=(2022,), per_year=100, seed=5)
-    events = run_graph({"data_path": write_csv(pd.concat([older, test], ignore_index=True))})
+    df = years_table({**FULL, 2025: 100})
+    events = run_graph({"data_path": write_csv(df)})
     assert events[0][1]["decision"]["branch"] == "ok"
     assert events[-1][0] == "explain_in_cricket_terms"
 
@@ -99,19 +107,35 @@ def test_good_dummies_run_normally(run_graph, write_csv):
 
 # --- three slices and the candidate columns (feature 004) ---
 
-def test_too_few_validation_innings_stops(run_graph, write_csv):
-    parts = [make_table(years=(2020, 2021), per_year=150), make_table(years=(2022,), per_year=99, seed=5),
-             make_table(years=(2023,), per_year=150, seed=6)]
-    events = run_graph({"data_path": write_csv(pd.concat(parts, ignore_index=True))})
-    assert_stopped(events, "2022")
-    assert "fewer than" in events[0][1]["data_error"] and "validat" in events[0][1]["data_error"]
+def test_too_few_innings_in_a_check_year_stops_and_names_the_year(run_graph, write_csv):
+    for thin_year in (2022, 2023, 2024):
+        df = years_table({**FULL, thin_year: 99, 2025: 150})
+        events = run_graph({"data_path": write_csv(df)})
+        assert_stopped(events, str(thin_year))
+        assert "fewer than" in events[0][1]["data_error"] and "validate" in events[0][1]["data_error"]
 
 
-def test_too_few_test_innings_stops(run_graph, write_csv):
-    parts = [make_table(years=(2020, 2021, 2022), per_year=150), make_table(years=(2023,), per_year=99, seed=6)]
-    events = run_graph({"data_path": write_csv(pd.concat(parts, ignore_index=True))})
-    assert_stopped(events, "2023")
-    assert "fewer than" in events[0][1]["data_error"] and "test" in events[0][1]["data_error"]
+def test_associate_innings_do_not_count_towards_a_check_years_minimum(run_graph, write_csv):
+    df = years_table({**FULL, 2025: 150})
+    in_2024 = pd.to_datetime(df["match_date"]).dt.year == 2024
+    df.loc[df.index[in_2024][:80], "in_test_population"] = 0          # 70 population innings left in 2024
+    df.loc[df.index[in_2024][:80], ["batting_full_member", "bowling_full_member", "both_full_members"]] = 0
+    df.loc[df.index[in_2024][:80], "competition"] = "t20i"
+    df.loc[df.index[in_2024][:80], ["is_ipl", "is_bbl"]] = 0
+    assert_stopped(run_graph({"data_path": write_csv(df)}), "2024")
+
+
+def test_too_little_to_learn_from_before_the_first_check_stops(run_graph, write_csv):
+    df = years_table({2021: 20, 2022: 150, 2023: 150, 2024: 150, 2025: 150})
+    events = run_graph({"data_path": write_csv(df)})
+    assert_stopped(events, "before 2022")
+    assert "learn from" in events[0][1]["data_error"]
+
+
+def test_a_population_column_that_disagrees_with_the_flags_stops(run_graph, write_csv):
+    df = make_table()
+    df.loc[0, "in_test_population"] = 0
+    assert_stopped(run_graph({"data_path": write_csv(df)}), "in_test_population")
 
 
 def test_two_calendar_years_are_not_enough(run_graph, write_csv):

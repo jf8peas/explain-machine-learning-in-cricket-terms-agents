@@ -61,6 +61,16 @@ CATALOGUE: list[dict] = [
      "description": "Runs at 10 overs multiplied by wickets in hand. It is high only when a side is scoring fast and "
                     "still has plenty of wickets to attack with.",
      "source": _recipe({"product": ["runs_at_10", "wickets_in_hand"]})},
+    {"id": "batting_full_member", "label": "batting team is a full member", "unit": "0/1", "bounds": {"min": 0, "max": 1},
+     "description": "1 if the batting side is an ICC full member playing a T20 international, otherwise 0. IPL and BBL "
+                    "sides are franchises, not national teams, so every league innings has 0.", "source": _measured()},
+    {"id": "bowling_full_member", "label": "bowling team is a full member", "unit": "0/1", "bounds": {"min": 0, "max": 1},
+     "description": "1 if the bowling side is an ICC full member playing a T20 international, otherwise 0. Every league "
+                    "innings has 0.", "source": _measured()},
+    {"id": "both_full_members", "label": "both teams are full members", "unit": "0/1", "bounds": {"min": 0, "max": 1},
+     "description": "1 if both sides are ICC full members. Among the innings the agent is judged on this is the same as "
+                    "'not an IPL or BBL innings', so it repeats what the two league columns say together.",
+     "source": _recipe({"product": ["batting_full_member", "bowling_full_member"]})},
 ] + [
     {"id": column, "label": f"innings played in {_NAMES[comp]}", "unit": "0/1", "bounds": {"min": 0, "max": 1},
      "description": f"1 if the innings was played in {_NAMES[comp]}, otherwise 0. A T20 international innings has 0 in "
@@ -78,6 +88,8 @@ _HEADINGS = {
     "dot_balls_at_10": "Dot balls at 10 overs", "extras_at_10": "Extras at 10 overs",
     "partnership_runs": "Partnership runs at 10 overs", "balls_since_last_wicket": "Balls since last wicket",
     "wickets_in_hand": "Wickets in hand", "runs_x_wickets_in_hand": "Runs x wickets in hand",
+    "batting_full_member": "Batting team a full member (0/1)", "bowling_full_member": "Bowling team a full member (0/1)",
+    "both_full_members": "Both teams full members (0/1)",
     **{column: f"{comp.upper()} (0/1)" for column, comp in DUMMIES.items()},
 }
 for _f in CATALOGUE:
@@ -88,10 +100,12 @@ BY_ID: dict[str, dict] = {f["id"]: f for f in CATALOGUE}
 MEASURED: list[str] = [f["id"] for f in CATALOGUE if f["source"].get("measured")]
 DERIVED: list[str] = [f["id"] for f in CATALOGUE if "recipe" in f["source"]]
 
-# The prepared table's columns, in order: the identifying columns, competition and its dummies, venue, the other
-# candidates in catalogue order, then the target.
-PREPARED_COLUMNS: list[str] = (["match_id", "match_date", "season", "competition", *DUMMIES, "venue"]
-                               + [i for i in IDS if i not in DUMMIES] + ["final_total"])
+# The prepared table's columns, in order: the identifying columns, competition and its dummies, venue, the two team
+# names, the other candidates in catalogue order, whether the innings is in the test population, then the target.
+TEAM_COLUMNS: list[str] = ["batting_team", "bowling_team"]
+POPULATION_COLUMN = "in_test_population"
+PREPARED_COLUMNS: list[str] = (["match_id", "match_date", "season", "competition", *DUMMIES, "venue", *TEAM_COLUMNS]
+                               + [i for i in IDS if i not in DUMMIES] + [POPULATION_COLUMN, "final_total"])
 
 
 def recipe_of(feature_id: str) -> dict | None:

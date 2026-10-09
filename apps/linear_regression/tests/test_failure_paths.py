@@ -24,7 +24,7 @@ def run(run_graph, path, *script):
 def assert_completes_without_the_model(events, state):
     names = nodes_of(events)
     assert names[-2:] == ["final_test", "explain_in_cricket_terms"]
-    assert "forward_selection" in names and "fit_model" not in names
+    assert "grid_search" in names and "fit_model" not in names
     assert state["final"]["llm_took_part"] is False and state["final"]["winner"] == "forward"
     assert state["final"]["test_mae"]["llm"] is None
     assert "did not take part" in " ".join(state["explanation"]["sentences"])

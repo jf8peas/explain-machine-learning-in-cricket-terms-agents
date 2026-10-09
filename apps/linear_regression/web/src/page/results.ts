@@ -4,7 +4,11 @@ import { labelFor } from "./catalogue";
 import { fmt, h } from "./dom";
 import { renderAccuracy, type FinalAccuracy } from "./accuracy";
 import type { ChartPoints } from "./accuracy-chart";
+import { renderGrid } from "./grid-view";
+import type { Grid } from "./grid";
 import { renderLeaderboard, renderRounds, type Attempt, type RoundNote } from "./leaderboard";
+import { menuLabel } from "./catalogue";
+import { setupChips } from "./setup";
 
 interface Final {
   test_mae: { llm: number | null; forward: number | null; tv: number };
@@ -17,6 +21,8 @@ interface Final {
   improvement: number;
   llm_took_part: boolean;
   sets: { llm?: string[]; forward?: string[] };
+  setups?: Record<string, { features: string[]; window: string; weighting: string; training_innings: string }>;
+  winner_reason?: string;
   verdict_sentence?: string;
 }
 type FinalState = Final & Partial<FinalAccuracy>;
@@ -40,7 +46,8 @@ function finalComparison(f: FinalState, explanation: Explanation | undefined, fa
   const verdict = explanation?.comparison;
   box.append(h("p", { class: "winner", "data-testid": "winner" },
     f.llm_took_part
-      ? `${f.winner_name.charAt(0).toUpperCase()}${f.winner_name.slice(1)} won` + (f.margin ? ` by ${fmt(f.margin)} runs.` : ", on a tie.")
+      ? `${f.winner_name.charAt(0).toUpperCase()}${f.winner_name.slice(1)} was chosen on the three check years: ` +
+        `${f.winner_reason ?? "it had the lower average error"}, before the test year was touched.`
       : `The language model did not take part${failure ? ` (${failure.replace(/\.$/, "")})` : ""}, so forward selection's set is the result.`));
   box.append(h("p", { class: "verdict", "data-testid": "verdict" },
     f.verdict_sentence ??
@@ -79,6 +86,8 @@ export function renderResults(target: HTMLElement, state: Record<string, unknown
         : `The language model did not take part in this run${failure ? `: ${failure}` : "."} Forward selection, the mechanical method, carried on alone.`));
   }
   parts.push(renderLeaderboard(attempts, baseline));
+  const grid = state.grid as Grid | undefined;
+  if (grid) parts.push(renderGrid(grid));
   const roundsEl = renderRounds(rounds, modelName);
   if (roundsEl) parts.push(roundsEl);
   if (final) {
@@ -87,8 +96,12 @@ export function renderResults(target: HTMLElement, state: Record<string, unknown
       parts.push(...renderAccuracy(final as FinalAccuracy, (state.split as { test_year?: number } | undefined)?.test_year,
         state.chart_points as ChartPoints | undefined));
     }
-    if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best set: ${final.sets.llm.map(labelFor).join(", ")}.`));
-    if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's set: ${final.sets.forward.map(labelFor).join(", ")}.`));
+    const setupText = (key: "llm" | "forward") => {
+      const s = final.setups?.[key];
+      return s ? ` (${setupChips(s, menuLabel).map((c) => c.text).join("; ")})` : "";
+    };
+    if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best setup: ${final.sets.llm.map(labelFor).join(", ")}${setupText("llm")}.`));
+    if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's best setup: ${final.sets.forward.map(labelFor).join(", ")}${setupText("forward")}.`));
   }
   if (expl) {
     parts.push(h("h3", {}, "In cricket terms"),

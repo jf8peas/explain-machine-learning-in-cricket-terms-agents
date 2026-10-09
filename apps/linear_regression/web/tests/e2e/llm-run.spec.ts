@@ -13,7 +13,7 @@ test("the language-model node looks different from the code nodes", async ({ pag
   await expect(llm).toHaveClass(/actor-llm/);
   await expect(llm.locator(".actor-tag")).toHaveText("LLM");
   await expect(page.locator(".node.actor-llm")).toHaveCount(1);   // only this one
-  for (const id of ["load_data", "check_proposal", "fit_model", "evaluate", "forward_selection", "final_test"]) {
+  for (const id of ["load_data", "check_proposal", "fit_model", "evaluate", "grid_search", "final_test"]) {
     await expect(page.locator(`[data-node="${id}"]`)).not.toHaveClass(/actor-llm/);
   }
   const dash = (id: string) => page.locator(`[data-node="${id}"] rect`).first().evaluate((r) => getComputedStyle(r).strokeDasharray);
@@ -47,7 +47,7 @@ test("a rejected proposal is shown with the code's reason, and the model tries a
   await playToEnd(page);
   const rejected = page.locator('[data-testid=round-item][data-outcome="rejected"]');
   await expect(rejected).toHaveCount(1);
-  await expect(rejected).toContainText("Rejected by code: That set of features was already tried.");
+  await expect(rejected).toContainText("Rejected by code: That setup was already tried");
   await expect(rejected.getByTestId("model-reason")).toHaveText("Let me try that once more.");
 });
 
@@ -76,22 +76,21 @@ test("the leaderboard builds step by step: every attempt, who proposed it, its v
   await timelineItems(page).nth(SECOND_EVALUATE).click();
   expect(await count()).toBe(2);
   await timelineItems(page).last().click();
-  expect(await count()).toBe(3 + 8);                              // three language-model sets and eight forward-selection steps
+  expect(await count()).toBe(3 + 1);                              // three language-model setups and the rival's best setup
   const proposers = await page.getByTestId("attempt-row").evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.proposer));
-  expect(proposers).toEqual([...Array(3).fill("llm"), ...Array(8).fill("forward_selection")]);
+  expect(proposers).toEqual([...Array(3).fill("llm"), "forward_selection"]);
   await expect(page.getByTestId("leaderboard")).toContainText("TV projected score");
 });
 
-test("forward selection's steps are visible one feature at a time", async ({ page }) => {
+test("the rival is one grid-search step with one row on the leaderboard", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const names = await timelineItems(page).allTextContents();
-  expect(names.filter((n) => n.includes("forward_selection"))).toHaveLength(8);
+  expect(names.filter((n) => n.includes("grid_search"))).toHaveLength(1);
+  expect(names.filter((n) => n.includes("forward_selection"))).toHaveLength(0);
   const forward = page.locator('[data-testid=attempt-row][data-proposer="forward_selection"]');
-  await expect(forward).toHaveCount(8);
+  await expect(forward).toHaveCount(1);
   await expect(forward.first()).toContainText("Forward selection");
-  const sizes = await forward.evaluateAll((rows) => rows.map((r) => (r.querySelector("th")?.textContent ?? "").split(",").length));
-  expect(sizes).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 });
 
 test("the final results compare the three test-year errors and name the winner", async ({ page }) => {
@@ -101,8 +100,9 @@ test("the final results compare the three test-year errors and name the winner",
   await expect(page.getByTestId("final-llm")).toContainText(final.test_mae.llm.toFixed(1));
   await expect(page.getByTestId("final-forward")).toContainText(final.test_mae.forward.toFixed(1));
   await expect(page.getByTestId("final-tv")).toContainText(final.test_mae.tv.toFixed(1));
-  await expect(page.getByTestId("winner")).toContainText(/won/);
+  await expect(page.getByTestId("winner")).toContainText(/was chosen/);                 // on the check years, before the test year
   await expect(page.getByTestId("winner")).toContainText(final.winner === "llm" ? "language model" : "forward selection", { ignoreCase: true });
+  await expect(page.getByTestId("winner")).toContainText("before the test year was touched");
   await expect(page.getByTestId("model-used")).toContainText("Fast");
 });
 
@@ -200,7 +200,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
   await open(page);
   await playToEnd(page);                                               // run 1 of the 5 allowed an hour
   const rows = await page.getByTestId("attempt-row").count();
-  expect(rows).toBe(11);
+  expect(rows).toBe(4);
   for (let i = 0; i < 4; i++) expect((await page.request.get("/api/run")).status()).toBe(200);   // runs 2 to 5
   await page.getByTestId("play").click();                              // the sixth start
   await expect(page.getByTestId("status")).toContainText("You can start another run", { timeout: 15_000 });
@@ -208,7 +208,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
   await expect(page.getByTestId("play")).toBeEnabled();                // nothing is running, so Play is available again
   expect(await page.getByTestId("attempt-row").count()).toBe(rows);    // the earlier results are untouched
   await expect(page.getByTestId("explanation")).toBeVisible();
-  await expect(page.getByTestId("timeline-item")).toHaveCount(30);
+  await expect(page.getByTestId("timeline-item")).toHaveCount(23);
 });
 
 test("the limit is per visitor: another visitor can still run", async ({ page, browser }) => {
@@ -237,7 +237,7 @@ test("an unreliable model: a clear failure, forward selection still completes, a
   await expect(page.getByTestId("event-summary")).toContainText("could not take part");
   await timelineItems(page).last().click();
   const rows = page.getByTestId("attempt-row");
-  await expect(rows).toHaveCount(8);                                           // forward selection alone
+  await expect(rows).toHaveCount(1);                                           // the rival alone
   expect(await rows.evaluateAll((r) => r.every((x) => (x as HTMLElement).dataset.proposer === "forward_selection"))).toBe(true);
   await timelineItems(page).last().click();
   await expect(page.getByTestId("winner")).toContainText("did not take part");
@@ -251,7 +251,7 @@ test("a model that times out is explained in plain words", async ({ page }) => {
   await picker(page).selectOption({ label: "Sluggish" });
   await playToEnd(page);
   await expect(page.getByTestId("llm-notice")).toContainText("did not reply in time");
-  await expect(page.getByTestId("attempt-row")).toHaveCount(8);
+  await expect(page.getByTestId("attempt-row")).toHaveCount(1);
   await expect(page.getByTestId("verdict")).toBeVisible();                     // the run still reached its conclusion
 });
 
@@ -261,7 +261,7 @@ test("the unreliable model's run can be followed by a normal one", async ({ page
   await playToEnd(page);
   await picker(page).selectOption({ label: "Fast" });
   await page.getByTestId("play").click();
-  await expect(page.getByTestId("attempt-row")).toHaveCount(11, { timeout: 45_000 });  // the new run replaced the old one
+  await expect(page.getByTestId("attempt-row")).toHaveCount(4, { timeout: 45_000 });  // the new run replaced the old one
   await expect(page.getByTestId("llm-notice")).toHaveCount(0);
 });
 
@@ -286,4 +286,96 @@ test("a note says runs can differ because a language model is involved, and that
   await expect(note).toBeVisible();
   await expect(note).toContainText("runs can differ each time");
   await expect(note).toContainText("expected");
+});
+
+
+// --- feature 008: setups on the leaderboard, the rival's grid, the winner chosen on the check years ---
+
+interface CheckError { year: number; mae: number }
+interface RunAttempt { features: string[]; window: string; weighting: string; training_innings: string; validation_mae: number; checks: CheckError[] }
+interface RunCell { training_innings: string; window: string; weighting: string; allowed: boolean; validation_mae: number | null }
+interface RunGrid { caption: string; cells: RunCell[]; best: RunCell; build_up: { feature: string; validation_mae: number }[] }
+interface RunSetupState { attempts: RunAttempt[]; grid: RunGrid }
+
+/** The state the server sends for a whole run with the default model (deterministic, so it matches what the page shows). */
+async function runState(page: import("./fixtures").Page): Promise<RunSetupState> {
+  const text = await (await page.request.get("/api/run")).text();
+  const state: Record<string, unknown> = {};
+  for (const block of text.trim().split("\n\n")) {
+    const [event, data] = block.split("\n");
+    if (event === "event: step") Object.assign(state, JSON.parse(data.replace("data: ", "")).changes);
+  }
+  return state as unknown as RunSetupState;
+}
+const menuLabel = async (page: import("./fixtures").Page) => {
+  const menus = (await (await page.request.get("/api/catalogue")).json()).setup_menus as Record<string, { id: string; label: string }[]>;
+  return (menu: string, id: string) => menus[menu].find((o) => o.id === id)!.label;
+};
+
+test("every leaderboard entry shows the setup chips, its average error and the error in each of the three checks", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  const state = await runState(page);
+  const label = await menuLabel(page);
+  const rows = page.getByTestId("attempt-row");
+  await expect(rows).toHaveCount(state.attempts.length);
+  for (const [i, a] of state.attempts.entries()) {
+    const row = rows.nth(i);
+    expect(await row.getByTestId("setup-chip").allTextContents()).toEqual(
+      [label("window", a.window), label("weighting", a.weighting), label("training_innings", a.training_innings)]);
+    expect(await row.getByTestId("check-error").allTextContents()).toEqual(a.checks.map((c) => `${c.year}: ${c.mae.toFixed(1)}`));
+    expect(a.checks).toHaveLength(3);
+    await expect(row.locator("td").nth(1)).toHaveText(a.validation_mae.toFixed(1));
+  }
+});
+
+test("the rival's grid shows every combination in two grids with the best cell outlined, and its build-up", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  const state = await runState(page);
+  const label = await menuLabel(page);
+  const tables = page.getByTestId("grid-table");
+  await expect(tables).toHaveCount(2);
+  await expect(page.getByTestId("grid-cell")).toHaveCount(24);
+  await expect(page.getByTestId("grid-caption")).toHaveText(state.grid.caption);
+  expect(state.grid.caption).toContain("hyperparameters");
+  for (const t of await tables.all()) {
+    expect(await t.locator("tbody tr").count()).toBe(4);                         // the four windows
+    expect(await t.locator("thead th").count()).toBe(1 + 3);                     // the row heading and the three weightings
+  }
+  expect(await page.getByTestId("grid-table").evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.innings))).toEqual(
+    [...new Set(state.grid.cells.map((c) => c.training_innings))]);
+  const best = page.locator('[data-testid="grid-cell"][data-best="true"]');
+  await expect(best).toHaveCount(1);
+  await expect(best).toHaveText(state.grid.best.validation_mae!.toFixed(1));
+  const style = await best.evaluate((el) => { const s = getComputedStyle(el); return { width: s.outlineWidth, style: s.outlineStyle, weight: s.fontWeight }; });
+  expect(style.style).not.toBe("none");                                          // an outline, so it does not rely on colour
+  expect(parseFloat(style.width)).toBeGreaterThanOrEqual(2);
+  expect(Number(style.weight)).toBeGreaterThanOrEqual(600);
+  const plain = await page.locator('[data-testid="grid-cell"]:not([data-best="true"])').first().evaluate((el) => getComputedStyle(el).outlineStyle);
+  expect(plain).toBe("none");
+  const steps = await page.getByTestId("grid-build-up").locator("li").allTextContents();
+  expect(steps).toHaveLength(state.grid.build_up.length);
+  expect(steps[steps.length - 1]).toContain(state.grid.best.validation_mae!.toFixed(1));
+  expect(label("window", state.grid.best.window)).toBeTruthy();
+});
+
+test("the grid appears only when the grid step is reached", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  const items = timelineItems(page);
+  const at = async (name: string) => (await items.allTextContents()).findIndex((t) => t.includes(name));
+  await items.nth(await at("evaluate")).click();
+  await expect(page.getByTestId("grid-table")).toHaveCount(0);
+  await items.nth(await at("grid_search")).click();
+  await expect(page.getByTestId("grid-table")).toHaveCount(2);
+});
+
+test("without a language model the grid still runs and the results say the model was absent", async ({ page }) => {
+  await open(page);
+  await picker(page).selectOption({ label: "Unreliable" });
+  await playToEnd(page);
+  await expect(page.getByTestId("grid-cell")).toHaveCount(24);
+  await expect(page.getByTestId("llm-notice")).toContainText("did not take part");
+  await expect(page.getByTestId("winner")).toContainText("did not take part");
 });

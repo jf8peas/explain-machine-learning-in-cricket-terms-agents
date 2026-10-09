@@ -14,7 +14,7 @@ test("stepping, the timeline and Reset replay from the buffer without rerunning 
   await page.keyboard.press("ArrowLeft");
   await expect(current(page)).toHaveText(`${last}. final_test`);
   await page.keyboard.press("ArrowLeft");
-  await expect(current(page)).toHaveText(`${last - 1}. forward_selection`);
+  await expect(current(page)).toHaveText(`${last - 1}. grid_search`);
   await page.keyboard.press("ArrowRight");
   await expect(current(page)).toHaveText(`${last}. final_test`);
 

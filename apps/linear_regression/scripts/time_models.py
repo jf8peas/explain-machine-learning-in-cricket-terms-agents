@@ -41,11 +41,14 @@ MAX_TOKENS = 800
 TARGET_SECONDS = 60   # SC-004: a six-round run finishes in about a minute
 
 EXPLORE = {
-    "train_n": 4036,
+    "train_n": 2133,
     "corr_with_total": {"runs_at_10": 0.81, "wickets_at_10": -0.23, "fours_at_10": 0.40, "sixes_at_10": 0.49},
     "by_wickets": {"0-1 down": {"innings": 1500, "avg_runs_at_10": 81.2, "avg_added_after_10": 98.4},
                    "4 or more down": {"innings": 900, "avg_runs_at_10": 62.0, "avg_added_after_10": 70.1}},
     "mean_total_by_competition": {"ipl": 171.2, "bbl": 160.0, "t20i": 148.7},
+    "mean_total_by_year": {2019: 154.0, 2020: 157.3, 2021: 151.8, 2022: 158.9},
+    "innings_by_competition_year": {2019: {"bbl": 55, "ipl": 59, "t20i": 70}, 2020: {"bbl": 58, "ipl": 60, "t20i": 37},
+                                    2021: {"bbl": 61, "ipl": 60, "t20i": 99}, 2022: {"bbl": 55, "ipl": 74, "t20i": 100}},
 }
 
 
@@ -82,7 +85,9 @@ def time_model(client: OpenRouterClient, option: ModelOption, rounds: int) -> di
             try:
                 proposal = parse_reply(text)
                 usable += 1
-                attempts.append({"features": proposal.features, "validation_mae": 17.0 - r, "improved": True, "round": r})
+                attempts.append({"features": proposal.features or [], "window": proposal.window, "weighting": proposal.weighting,
+                                 "training_innings": proposal.training_innings, "validation_mae": 17.0 - r, "improved": True,
+                                 "round": r, "checks": [{"year": y, "mae": 17.0 - r + d} for y, d in ((2023, 0.4), (2024, 0.2), (2025, -0.6))]})
             except UnusableReply as exc:
                 failures.append(f"round {r}: unusable reply ({exc})")
         except LlmError as exc:

@@ -3,11 +3,13 @@
 
 export interface Scale { min: number; max: number }
 export interface Placed { id: string; position: number }
-export interface Rows { rowWide: number; rowNarrow: number; sideNarrow: "above" | "below" }
+export interface Rows { rowWide: number; rowXWide: number; rowNarrow: number; sideNarrow: "above" | "below" }
 
 // Marks closer than this share of the track put their text on different rows. The wide figure covers the widest label
-// pairs at about 768 px; the narrow one covers names that wrap to about 6.5 em at 360 px.
+// pairs at about 768 px; the extra-wide one (viewports of 1100 px and up, where the track is a fixed, long length) needs
+// less of the track for the same labels; the narrow one covers names that wrap to about 6.5 em at 360 px.
 export const WIDE_CLOSE = 16;
+export const XWIDE_CLOSE = 12;
 export const NARROW_CLOSE = 30;
 const GOAL = "goal";
 
@@ -35,11 +37,12 @@ function stagger(marks: Placed[], close: number): Record<string, number> {
  *  on narrow screens and the references below, so the goal can never touch the projection (always only a margin apart). */
 export function layoutRows(marks: Placed[]): Record<string, Rows> {
   const wide = stagger(marks, WIDE_CLOSE);
+  const xwide = stagger(marks, XWIDE_CLOSE);
   const narrow = stagger(marks.filter((m) => m.id !== GOAL), NARROW_CLOSE);
   const out: Record<string, Rows> = {};
   for (const m of marks) {
     const isGoal = m.id === GOAL;
-    out[m.id] = { rowWide: wide[m.id], rowNarrow: isGoal ? 0 : narrow[m.id], sideNarrow: isGoal ? "above" : "below" };
+    out[m.id] = { rowWide: wide[m.id], rowXWide: xwide[m.id], rowNarrow: isGoal ? 0 : narrow[m.id], sideNarrow: isGoal ? "above" : "below" };
   }
   return out;
 }

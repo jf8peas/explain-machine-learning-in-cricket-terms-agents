@@ -36,13 +36,15 @@ def test_the_run_shape_respects_the_caps(real_run):
     state = merged_state(real_run)
     assert 1 <= state["rounds_used"] <= ROUND_CAP
     forward = [a for a in state["attempts"] if a["proposer"] == "forward_selection"]
-    assert 1 <= len(forward) <= SET_LIMIT
-    assert [len(a["features"]) for a in forward] == list(range(1, len(forward) + 1))   # one feature added a step
+    assert forward == [state["forward_best"]] and 1 <= len(forward[0]["features"]) <= SET_LIMIT   # the grid's best cell
+    assert len(state["grid"]["cells"]) == 24 and nodes_of(real_run).count("grid_search") == 1
     assert all(len(a["features"]) <= SET_LIMIT for a in state["attempts"])
 
 
-def test_the_slices_on_the_real_data(real_run):
+def test_the_checks_and_the_test_year_on_the_real_data(real_run):
     split = merged_state(real_run)["split"]
-    assert split["train_n"] + split["validation_n"] + split["test_n"] == 5146
-    assert split["validation_year"] + 1 == split["test_year"]
-    assert split["train_years"][1] < split["validation_year"]
+    years = [c["year"] for c in split["checks"]]
+    assert years == [split["test_year"] - 3, split["test_year"] - 2, split["test_year"] - 1]
+    assert all(c["n"] >= 100 for c in split["checks"]) and split["test_n"] >= 100
+    assert all(c["earlier_years"][1] == c["year"] - 1 for c in split["checks"])
+    assert split["first_year"] == 2005

@@ -2,14 +2,14 @@ import { expect, test } from "./fixtures";
 import { finishRun, open, serveRun, sse, timelineItems } from "./helpers";
 
 // The scripted default model (fake/steady) on the committed data: three fitted rounds, one repeat that code rejects,
-// then "finished"; forward selection adds eight features; then the final test and the explanation.
+// then "finished"; the rival's grid search is one step; then the final test and the explanation.
 const FIT_ROUND = ["propose_features", "check_proposal", "fit_model", "evaluate"];
 const EXPECTED_PATH = [
   "load_data", "split", "explore", "baseline",
   ...FIT_ROUND, ...FIT_ROUND, ...FIT_ROUND,
   "propose_features", "check_proposal",               // the repeat, rejected
   "propose_features", "check_proposal",               // "finished"
-  ...Array(8).fill("forward_selection"),
+  "grid_search",
   "final_test", "explain_in_cricket_terms",
 ];
 
@@ -26,13 +26,14 @@ test("Play runs the whole agent in order, with marks, counts and a marker", asyn
   await expect(page.locator(".node.visited")).toHaveCount(13); // 11 steps + start + end
   await expect(page.locator('[data-node="fit_model"]')).toHaveAttribute("data-visits", "3");
   await expect(page.locator('[data-node="propose_features"]')).toHaveAttribute("data-visits", "5");
-  await expect(page.locator('[data-node="forward_selection"]')).toHaveAttribute("data-visits", "8");
+  await expect(page.locator('[data-node="grid_search"]')).not.toHaveAttribute("data-visits", /.*/);   // visited once
   await expect(page.locator('[data-node="load_data"]')).not.toHaveAttribute("data-visits", /.*/);
   // the conditional edges actually taken are marked; the other branch is not
   await expect(page.locator('[data-edge="evaluate->propose_features"]')).toHaveClass(/taken/);
   await expect(page.locator('[data-edge="check_proposal->propose_features"]')).toHaveClass(/taken/);
-  await expect(page.locator('[data-edge="check_proposal->forward_selection"]')).toHaveClass(/taken/);
-  await expect(page.locator('[data-edge="forward_selection->forward_selection"]')).toHaveClass(/taken/);
+  await expect(page.locator('[data-edge="check_proposal->grid_search"]')).toHaveClass(/taken/);
+  await expect(page.locator('[data-edge="grid_search->final_test"]')).toHaveClass(/taken/);
+  await expect(page.locator('[data-edge="grid_search->grid_search"]')).toHaveCount(0);                  // no self-loop any more
   await expect(page.locator('[data-edge="load_data->__end__"]')).not.toHaveClass(/taken/);
 });
 

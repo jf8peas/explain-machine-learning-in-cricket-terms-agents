@@ -60,7 +60,7 @@ function goalLine(ref: Reference): HTMLElement {
 function mark(m: Mark, pos: number, rows: ReturnType<typeof layoutRows>[string]): HTMLElement {
   return h("div", {
     class: "meter-mark", "data-testid": "meter-mark", "data-mark": m.id, "data-shape": SHAPES[m.id] ?? "dot",
-    "data-row-wide": String(rows.rowWide), "data-row-narrow": String(rows.rowNarrow), "data-side-narrow": rows.sideNarrow,
+    "data-row-wide": String(rows.rowWide), "data-row-xwide": String(rows.rowXWide), "data-row-narrow": String(rows.rowNarrow), "data-side-narrow": rows.sideNarrow,
     style: `left:${pos}%`,
   }, h("span", { class: "mark-name" }, m.label), h("span", { class: "mark-shape" }),
   h("span", { class: "mark-value" }, fmt(m.value)));
@@ -71,8 +71,8 @@ function meter(ref: Reference): HTMLElement {
   const goalMark = mt.marks.find((m) => m.id === "goal")!;
   const placed = mt.marks.map((m) => ({ id: m.id, position: position(m.value, mt.scale) }));
   const rows = layoutRows(placed);
-  const most = (key: "rowWide" | "rowNarrow") => String(Math.max(...Object.values(rows).map((r) => r[key])) + 1);
-  const track = h("div", { class: "meter-track", "aria-hidden": "true", "data-rows-wide": most("rowWide"), "data-rows-narrow": most("rowNarrow") },
+  const most = (key: "rowWide" | "rowXWide" | "rowNarrow") => String(Math.max(...Object.values(rows).map((r) => r[key])) + 1);
+  const track = h("div", { class: "meter-track", "aria-hidden": "true", "data-rows-wide": most("rowWide"), "data-rows-xwide": most("rowXWide"), "data-rows-narrow": most("rowNarrow") },
     h("div", { class: "meter-line" }),
     h("div", { class: "meter-zone", "data-testid": "meter-zone", style: `width:${zoneWidth(goalMark.value, mt.scale)}%` }),
     ...mt.marks.map((m, i) => mark(m, placed[i].position, rows[m.id])));

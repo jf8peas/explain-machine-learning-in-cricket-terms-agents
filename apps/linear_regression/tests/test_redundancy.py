@@ -4,12 +4,13 @@ import pytest
 
 from linreg.data_loading import load_innings
 from linreg.redundancy import is_redundant, repeating_features
-from linreg.season_split import split_three_ways
+from linreg.season_split import rolling_checks
 
 
 @pytest.fixture(scope="module")
 def train():
-    return split_three_ways(load_innings()).train
+    rolling = rolling_checks(load_innings())
+    return rolling.training_rows(rolling.checks[0], "all", "population")
 
 
 def test_an_independent_set_is_not_redundant(train):

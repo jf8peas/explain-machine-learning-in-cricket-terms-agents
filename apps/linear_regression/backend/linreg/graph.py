@@ -1,7 +1,7 @@
 """Builds the LangGraph StateGraph for the agent (app-specific).
 
 load_data -> split -> explore -> baseline -> propose_features -> check_proposal -> fit_model -> evaluate
-              (back to propose_features, or on to forward_selection) -> final_test -> explain_in_cricket_terms
+              (back to propose_features, or on to grid_search) -> final_test -> explain_in_cricket_terms
 
 `propose_features` is the only language-model node; every other node is ordinary code.
 """
@@ -16,13 +16,13 @@ from .state import RunState
 
 # Which nodes are the language model's and which are code; the visualiser draws them differently.
 NODE_ACTORS = {name: "code" for name in ["load_data", "split", "explore", "baseline", "check_proposal", "fit_model",
-                                         "evaluate", "forward_selection", "final_test", "explain_in_cricket_terms"]}
+                                         "evaluate", "grid_search", "final_test", "explain_in_cricket_terms"]}
 NODE_ACTORS["propose_features"] = "llm"
 
 # Which of the eight machine learning stages (see stages.py) each node belongs to. The visualiser shows it on every node.
 NODE_STAGES = {
     "baseline": "frame", "load_data": "prepare", "explore": "understand", "split": "split", "fit_model": "fit",
-    "propose_features": "choose", "check_proposal": "choose", "evaluate": "choose", "forward_selection": "choose",
+    "propose_features": "choose", "check_proposal": "choose", "evaluate": "choose", "grid_search": "choose",
     "final_test": "assess", "explain_in_cricket_terms": "interpret",
 }
 
@@ -41,10 +41,6 @@ def route_after_evaluate(state: RunState) -> str:
     return state["decision"]["branch"]          # continue or stop
 
 
-def route_after_forward(state: RunState) -> str:
-    return state["decision"]["branch"]          # again or done
-
-
 def build_graph(llm: LlmClient):
     g = StateGraph(RunState)
 
@@ -52,7 +48,7 @@ def build_graph(llm: LlmClient):
         return nodes.propose_features(state, config, llm)
 
     for name in ["load_data", "split", "explore", "baseline", "check_proposal", "fit_model", "evaluate",
-                 "forward_selection", "final_test", "explain_in_cricket_terms"]:
+                 "grid_search", "final_test", "explain_in_cricket_terms"]:
         g.add_node(name, getattr(nodes, name))
     g.add_node("propose_features", propose_features)
 
@@ -63,12 +59,11 @@ def build_graph(llm: LlmClient):
     g.add_edge("baseline", "propose_features")
     g.add_edge("propose_features", "check_proposal")
     g.add_conditional_edges("check_proposal", route_after_check, {
-        "fit": "fit_model", "rejected": "propose_features", "finished": "forward_selection"})
+        "fit": "fit_model", "rejected": "propose_features", "finished": "grid_search"})
     g.add_edge("fit_model", "evaluate")
     g.add_conditional_edges("evaluate", route_after_evaluate, {"continue": "propose_features",
-                                                               "stop": "forward_selection"})
-    g.add_conditional_edges("forward_selection", route_after_forward, {"again": "forward_selection",
-                                                                       "done": "final_test"})
+                                                               "stop": "grid_search"})
+    g.add_edge("grid_search", "final_test")
     g.add_edge("final_test", "explain_in_cricket_terms")
     g.add_edge("explain_in_cricket_terms", END)
     return g.compile()

@@ -227,6 +227,58 @@
    ]
   },
   {
+   "id": "batting_full_member",
+   "label": "batting team is a full member",
+   "description": "1 if the batting side is an ICC full member playing a T20 international, otherwise 0. IPL and BBL sides are franchises, not national teams, so every league innings has 0.",
+   "unit": "0/1",
+   "bounds": {
+    "min": 0,
+    "max": 1
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "batting_full_member"
+   ]
+  },
+  {
+   "id": "bowling_full_member",
+   "label": "bowling team is a full member",
+   "description": "1 if the bowling side is an ICC full member playing a T20 international, otherwise 0. Every league innings has 0.",
+   "unit": "0/1",
+   "bounds": {
+    "min": 0,
+    "max": 1
+   },
+   "source": {
+    "measured": true
+   },
+   "inputs": [
+    "bowling_full_member"
+   ]
+  },
+  {
+   "id": "both_full_members",
+   "label": "both teams are full members",
+   "description": "1 if both sides are ICC full members. Among the innings the agent is judged on this is the same as 'not an IPL or BBL innings', so it repeats what the two league columns say together.",
+   "unit": "0/1",
+   "bounds": {
+    "min": 0,
+    "max": 1
+   },
+   "source": {
+    "product": [
+     "batting_full_member",
+     "bowling_full_member"
+    ]
+   },
+   "inputs": [
+    "batting_full_member",
+    "bowling_full_member"
+   ]
+  },
+  {
    "id": "is_ipl",
    "label": "innings played in the IPL",
    "description": "1 if the innings was played in the IPL, otherwise 0. A T20 international innings has 0 in both competition columns.",
@@ -270,11 +322,14 @@
    "inputs": {
     "runs_at_10": 80,
     "wickets_at_10": 0,
-    "competition": "ipl"
+    "competition": "ipl",
+    "batting_full_member": 0,
+    "bowling_full_member": 0
    },
    "derived": {
     "wickets_in_hand": 10,
     "runs_x_wickets_in_hand": 800,
+    "both_full_members": 0,
     "is_ipl": 1,
     "is_bbl": 0
    }
@@ -283,11 +338,14 @@
    "inputs": {
     "runs_at_10": 55,
     "wickets_at_10": 9,
-    "competition": "t20i"
+    "competition": "t20i",
+    "batting_full_member": 1,
+    "bowling_full_member": 1
    },
    "derived": {
     "wickets_in_hand": 1,
     "runs_x_wickets_in_hand": 55,
+    "both_full_members": 1,
     "is_ipl": 0,
     "is_bbl": 0
    }
@@ -296,11 +354,14 @@
    "inputs": {
     "runs_at_10": 101,
     "wickets_at_10": 3,
-    "competition": "bbl"
+    "competition": "bbl",
+    "batting_full_member": 0,
+    "bowling_full_member": 0
    },
    "derived": {
     "wickets_in_hand": 7,
     "runs_x_wickets_in_hand": 707,
+    "both_full_members": 0,
     "is_ipl": 0,
     "is_bbl": 1
    }
@@ -309,13 +370,32 @@
    "inputs": {
     "runs_at_10": 0,
     "wickets_at_10": 5,
-    "competition": "bbl"
+    "competition": "bbl",
+    "batting_full_member": 0,
+    "bowling_full_member": 0
    },
    "derived": {
     "wickets_in_hand": 5,
     "runs_x_wickets_in_hand": 0,
+    "both_full_members": 0,
     "is_ipl": 0,
     "is_bbl": 1
+   }
+  },
+  {
+   "inputs": {
+    "runs_at_10": 70,
+    "wickets_at_10": 2,
+    "competition": "t20i",
+    "batting_full_member": 1,
+    "bowling_full_member": 0
+   },
+   "derived": {
+    "wickets_in_hand": 8,
+    "runs_x_wickets_in_hand": 560,
+    "both_full_members": 0,
+    "is_ipl": 0,
+    "is_bbl": 0
    }
   }
  ]

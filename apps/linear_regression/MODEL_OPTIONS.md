@@ -35,7 +35,7 @@ How to read it:
 - **Avg call / Slowest**: seconds per model call, measured with prompts shaped like the agent's real ones, six rounds
   each.
 - **Usable**: replies that parsed as a proposal (features, reason, finished). A model that cannot do this reliably
-  makes the run fall back to forward selection only, so it is not offered.
+  makes the run fall back to the rival's grid search only, so it is not offered.
 - **Six rounds**: the average call times six, the most a run can use. The target is a run of about a minute (SC-004);
   the hard limit is 90 seconds, which includes a reserve.
 - **$/M in, $/M out**: dollars per million input and output tokens, from OpenRouter's public model list that day.
@@ -70,7 +70,7 @@ Tested with three calls each (usable replies out of 3, after reasoning effort wa
 
 "Empty reply" means the host returned no text at all. Three calls is a small sample: a model that failed here might
 work with a different prompt, and one that passed can still fail occasionally. The app handles a failed call by
-completing the run with forward selection only and saying so.
+completing the run with the rival's grid search only and saying so.
 
 ## A finding that changed the code: reasoning effort
 

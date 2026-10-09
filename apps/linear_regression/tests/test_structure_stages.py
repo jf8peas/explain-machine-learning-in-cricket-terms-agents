@@ -77,7 +77,7 @@ def test_the_real_structure_has_the_eight_stages_in_order_and_the_loop():
 
 EXPECTED = {
     "baseline": "frame", "load_data": "prepare", "explore": "understand", "split": "split", "fit_model": "fit",
-    "propose_features": "choose", "check_proposal": "choose", "evaluate": "choose", "forward_selection": "choose",
+    "propose_features": "choose", "check_proposal": "choose", "evaluate": "choose", "grid_search": "choose",
     "final_test": "assess", "explain_in_cricket_terms": "interpret",
 }
 

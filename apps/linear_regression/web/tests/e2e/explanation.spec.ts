@@ -6,7 +6,7 @@ test("the run ends with a cricket explanation and a clear comparison", async ({ 
   await playToEnd(page);
   await expect(page.getByTestId("explanation").locator("li")).not.toHaveCount(0);
   await expect(page.getByTestId("explanation")).toContainText("halfway mark");
-  await expect(page.getByTestId("verdict")).toContainText(/beat the TV projection/);
+  await expect(page.getByTestId("verdict")).toContainText(/the TV projection/);
 
   // the numbers shown match the final state panel
   const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
@@ -22,4 +22,13 @@ test("the Cricsheet attribution is visible in the results area", async ({ page }
   await playToEnd(page);
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toBeVisible();
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
+});
+
+test("the explanation states the winning setup in cricket language", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  const sentence = page.getByTestId("explanation").locator("li").filter({ hasText: "The winning setup learned from" });
+  await expect(sentence).toHaveCount(1);
+  await expect(sentence).toContainText("using");
+  await expect(page.getByTestId("explanation")).toContainText("three check years");
 });

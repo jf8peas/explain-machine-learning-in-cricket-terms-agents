@@ -19,9 +19,8 @@ def independent(path=DEFAULT_PATH):
     """The expected figures worked out separately, straight from the file with numpy."""
     df = pd.read_csv(path, parse_dates=["match_date"])
     year = df["match_date"].dt.year
-    test_year = year.max()
-    validation_year = year[year < test_year].max()
-    train = df[year < validation_year]
+    first_check = year.max() - 3
+    train = df[(year < first_check) & (df["in_test_population"] == 1)]          # test-population innings before Y-3
     actual = train["final_total"].to_numpy(float)
     out = {}
     for name, predicted in (("know_nothing", np.full(len(actual), actual.mean())),
@@ -59,7 +58,9 @@ def test_the_gap_and_the_finding_come_from_the_displayed_figures():
     assert body["gap"]["average_miss_runs"] == gap
     assert body["gap"]["average_miss_percent"] == round(gap / kn["average_miss"] * 100, 1)
     assert body["gap"]["within_10_points"] == round(tv["within_10"] - kn["within_10"], 1)
-    assert body["finding"] == "clearly_better"                      # on the real data the projection is far better than the floor
+    # the finding follows the displayed figures (on the test population the projection is only slightly better than the floor)
+    from linreg.goal import reference_finding
+    assert body["finding"] == reference_finding(kn["average_miss"], tv["average_miss"])["finding"]
 
 
 def test_the_sentences_are_plain_text_built_from_the_figures():
@@ -67,7 +68,10 @@ def test_the_sentences_are_plain_text_built_from_the_figures():
     assert set(s) == {"headline", "gap", "finding", "bias"}
     for text in s.values():
         assert text.strip() and "<" not in text and ">" not in text
-    assert "bar" in s["headline"] and "clearly better" in s["finding"]
+    body = client.get("/api/reference").json()
+    assert "bar" in s["headline"]
+    assert {"clearly_better": "clearly better", "slightly_better": "only slightly better",
+            "no_better": "no better"}[body["finding"]] in s["finding"]
     assert "too low" in s["bias"]                                   # the projection runs low on the real data
 
 
@@ -80,13 +84,13 @@ def test_changing_every_validation_and_test_year_value_changes_nothing_in_the_re
     """SC-004: the introduction must not depend on the validation or the test year."""
     df = pd.read_csv(DEFAULT_PATH, parse_dates=["match_date"])
     year = df["match_date"].dt.year
-    test_year = year.max()
-    validation_year = year[year < test_year].max()
     changed = df.copy()
-    later = year >= validation_year
+    later = year >= year.max() - 3                       # every check year and the test year
     rng = np.random.default_rng(7)
     for column in changed.columns:
-        if column in ("match_date", "match_id", "season", "competition", "venue"):
+        if column in ("match_date", "match_id", "season", "competition", "venue", "batting_team", "bowling_team",
+                      "batting_full_member", "bowling_full_member", "both_full_members", "in_test_population",
+                      "is_ipl", "is_bbl"):
             continue
         if pd.api.types.is_numeric_dtype(changed[column]):
             changed.loc[later, column] = rng.integers(1, 250, int(later.sum()))
@@ -139,18 +143,23 @@ def test_the_result_is_worked_out_once_but_a_failure_is_tried_again(monkeypatch)
     assert len(calls) - before == 2                                   # a failure is not kept
 
 
-def test_only_the_training_slice_is_used(monkeypatch):
-    seen = {}
-    original = reference_api.split_three_ways
-
-    def spy(df, *a, **k):
-        slices = original(df, *a, **k)
-        seen["train_rows"] = len(slices.train)
-        return slices
-
-    monkeypatch.setattr(reference_api, "split_three_ways", spy)
+def test_only_innings_before_the_first_check_year_are_used(monkeypatch):
+    from linreg.season_split import Rolling
+    reads = []
+    for name in ("test_rows", "check_rows"):
+        monkeypatch.setattr(Rolling, name, lambda self, *a, _n=name, **k: reads.append(_n) or pytest.fail(f"{_n} was read"))
     body = reference_api.build_reference()
-    assert body["training"]["innings"] == seen["train_rows"]
+    assert reads == []
+    _, training = independent()
+    assert body["training"]["innings"] == training["innings"]
+
+
+def test_the_figures_are_on_test_population_innings_only():
+    df = pd.read_csv(DEFAULT_PATH, parse_dates=["match_date"])
+    year = df["match_date"].dt.year
+    early = df[year < year.max() - 3]
+    body = client.get("/api/reference").json()
+    assert body["training"]["innings"] == int((early["in_test_population"] == 1).sum()) < len(early)
 
 
 def test_the_bias_words_come_from_the_wording_module_in_full_and_short_form():

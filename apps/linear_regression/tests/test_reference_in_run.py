@@ -1,4 +1,4 @@
-"""The run's two new jobs: baseline scores the know-nothing guess on the validation year, and final_test scores all four
+"""The run's two new jobs: baseline scores the know-nothing guess on the three check years, and final_test scores all four
 methods once on the test year and reports how good each is (feature 006)."""
 import numpy as np
 import pandas as pd
@@ -9,9 +9,10 @@ from linreg import accuracy_text
 from linreg.goal import reference_finding, verdict, verdict_sentence
 from linreg.llm_fake import FakeLlm, reply
 from linreg.methods import method_defs
-from linreg.season_split import split_three_ways
+from linreg import setup_settings as cfg
+from linreg.season_split import Rolling, rolling_checks
 from tests.conftest import make_table, merged_state
-from tests.test_final_test import SCRIPT, SpySlices
+from tests.test_final_test import SCRIPT
 
 IDS = ["know_nothing", "broadcaster", "llm", "forward"]
 
@@ -25,8 +26,15 @@ def run(run_graph, path, **config):
     return merged_state(run_graph({"data_path": path}, llm=FakeLlm({"fake/steady": list(SCRIPT)}), **config))
 
 
-def slices_of(path):
-    return split_three_ways(pd.read_csv(path, parse_dates=["match_date"]))
+def rolling_of(path):
+    return rolling_checks(pd.read_csv(path, parse_dates=["match_date"]))
+
+
+def fit_of(rolling, best):
+    """The reference fit of a best setup on every year before the test year (weights from its recency weighting)."""
+    rows = rolling.training_rows(rolling.final, best["window"], best["training_innings"])
+    weights = np.array([cfg.weight_for_age(rolling.final.year - y, best["weighting"]) for y in rows["match_date"].dt.year])
+    return regression.fit(rows, best["features"], weights=weights)
 
 
 def by_numpy(actual, predicted):
@@ -41,12 +49,22 @@ def by_numpy(actual, predicted):
 
 # ---- baseline ----
 
-def test_baseline_scores_the_two_references_on_the_validation_year(run_graph, path):
+def test_baseline_scores_the_two_references_on_each_check_year_and_averages_them(run_graph, path):
     state = run(run_graph, path)
-    s = slices_of(path)
-    v, train_mean = s.validation, s.train["final_total"].mean()
-    assert state["reference_validation"]["know_nothing"] == by_numpy(v["final_total"], np.full(len(v), train_mean))
-    assert state["reference_validation"]["broadcaster"] == by_numpy(v["final_total"], v["runs_at_10"] / 10 * 20)
+    rolling = rolling_of(path)
+    per_check = []
+    for spec in rolling.checks:
+        v = rolling.check_rows(spec)
+        earlier = rolling.training_rows(spec, "all", "population")["final_total"].mean()      # the mean of earlier innings
+        per_check.append({"year": spec.year,
+                          "know_nothing": by_numpy(v["final_total"], np.full(len(v), earlier)),
+                          "broadcaster": by_numpy(v["final_total"], v["runs_at_10"] / 10 * 20)})
+    assert state["reference_validation"]["by_check"] == per_check
+    for method in ("know_nothing", "broadcaster"):
+        figures = [c[method] for c in per_check]
+        expected = {k: (sum(f[k] for f in figures) if k == "n" else round(sum(f[k] for f in figures) / 3, 1))
+                    for k in figures[0]}
+        assert state["reference_validation"][method] == expected
 
 
 def test_baseline_mentions_the_know_nothing_guess_and_keeps_its_old_sentence(run_graph, path):
@@ -56,9 +74,10 @@ def test_baseline_mentions_the_know_nothing_guess_and_keeps_its_old_sentence(run
 
 
 def test_the_test_slice_is_still_read_only_in_final_test(run_graph, path, monkeypatch):
+    import sys
     log: list[str] = []
-    real = nodes.split_three_ways
-    monkeypatch.setattr(nodes, "split_three_ways", lambda df: SpySlices(real(df), log))
+    real = Rolling.test_rows
+    monkeypatch.setattr(Rolling, "test_rows", lambda self: (log.append(sys._getframe(1).f_code.co_name), real(self))[1])
     run(run_graph, path)
     assert log == ["final_test"]
 
@@ -67,13 +86,14 @@ def test_the_test_slice_is_still_read_only_in_final_test(run_graph, path, monkey
 
 def test_the_accuracy_of_every_method_equals_an_independent_calculation_on_the_test_year(run_graph, path):
     state = run(run_graph, path)
-    s = slices_of(path)
-    t = s.test
+    rolling = rolling_of(path)
+    t = rolling.test_rows()
+    earlier = rolling.training_rows(rolling.final, "all", "population")["final_total"].mean()
     acc = state["final"]["accuracy"]
-    assert acc["know_nothing"] == by_numpy(t["final_total"], np.full(len(t), s.train["final_total"].mean()))
+    assert acc["know_nothing"] == by_numpy(t["final_total"], np.full(len(t), earlier))
     assert acc["broadcaster"] == by_numpy(t["final_total"], t["runs_at_10"] / 10 * 20)
-    for key in ("llm", "forward"):
-        fitted = regression.fit(s.train, state["final"]["sets"][key])
+    for key, best in (("llm", state["llm_best"]), ("forward", state["forward_best"])):
+        fitted = fit_of(rolling, best)
         assert acc[key] == by_numpy(t["final_total"], regression.predict(t, fitted["coefficients"], fitted["intercept"]))
 
 
@@ -88,7 +108,7 @@ def test_each_method_is_scored_exactly_once_on_the_test_year(run_graph, path, mo
     real = scoring.accuracy
     monkeypatch.setattr(scoring, "accuracy", lambda actual, predicted: (calls.append(len(actual)), real(actual, predicted))[1])
     run(run_graph, path)
-    assert calls == [len(slices_of(path).test)] * 4
+    assert calls == [len(rolling_of(path).test_rows())] * 4
 
 
 def test_the_verdict_comes_from_the_displayed_figures_and_the_old_keys_agree_with_it(run_graph, path):
@@ -108,7 +128,7 @@ def test_the_reference_finding_uses_the_test_year_figures_and_has_a_sentence(run
 
 def test_the_chart_points_hold_every_test_innings_once_per_method_rounded_to_one_decimal(run_graph, path):
     state = run(run_graph, path)
-    t = slices_of(path).test
+    t = rolling_of(path).test_rows()
     pts = state["chart_points"]
     assert pts["actual"] == [round(float(x), 1) for x in t["final_total"]]
     assert list(pts["predicted"]) == IDS
@@ -122,9 +142,10 @@ def test_the_figures_use_unrounded_predictions_not_the_rounded_chart_points(run_
     pts = state["chart_points"]
     from_points = by_numpy(pts["actual"], pts["predicted"]["forward"])
     stored = state["final"]["accuracy"]["forward"]
-    s = slices_of(path)
-    fitted = regression.fit(s.train, state["final"]["sets"]["forward"])
-    exact = by_numpy(s.test["final_total"], regression.predict(s.test, fitted["coefficients"], fitted["intercept"]))
+    rolling = rolling_of(path)
+    test = rolling.test_rows()
+    fitted = fit_of(rolling, state["forward_best"])
+    exact = by_numpy(test["final_total"], regression.predict(test, fitted["coefficients"], fitted["intercept"]))
     assert stored == exact                        # the stored figures are the exact ones
     assert abs(from_points["average_miss"] - exact["average_miss"]) <= 0.1
 

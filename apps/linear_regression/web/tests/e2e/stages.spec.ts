@@ -7,7 +7,7 @@ import { open, playToEnd, serveStructure, timelineItems } from "./helpers";
 // The numbers follow the order a run first reaches each stage.
 const NUMBER_OF: Record<string, number> = {
   load_data: 1, split: 2, explore: 3, baseline: 4, propose_features: 5, check_proposal: 5, evaluate: 5,
-  forward_selection: 5, fit_model: 6, final_test: 7, explain_in_cricket_terms: 8,
+  grid_search: 5, fit_model: 6, final_test: 7, explain_in_cricket_terms: 8,
 };
 
 const node = (page: Page, id: string) => page.locator(`[data-node="${id}"]`);
@@ -67,7 +67,7 @@ test("neighbouring nodes of a stage share a labelled band; Choose the setup has 
   }
   const holds = await page.locator('[data-testid="stage-band"][data-stage="choose"]').evaluateAll(
     (els) => els.map((e) => (e.getAttribute("data-nodes") ?? "").split(" ").sort().join(",")));
-  expect(holds.sort()).toEqual(["check_proposal,propose_features", "evaluate,forward_selection"]);
+  expect(holds.sort()).toEqual(["check_proposal,propose_features", "evaluate,grid_search"]);
   expect(choose.number).toBe(5);
 });
 
@@ -150,12 +150,22 @@ test("the legend lists the eight stages in order with badge, name and question",
   await expect(page.getByTestId("legend-all")).toBeVisible();
 });
 
-test("Choose the setup says it is feature selection only in this app", async ({ page }) => {
+test("Choose the setup explains hyperparameters and says this is the first time the site tunes them", async ({ page }) => {
   await open(page);
   const note = legendStage(page, "choose").locator(".stage-note");
-  await expect(note).toContainText("feature selection only");
-  await expect(note).toContainText("no hyperparameters");
-  await expect(note).toContainText("later apps");
+  await expect(note).toContainText("training window");
+  await expect(note).toContainText("recency weighting");
+  await expect(note).toContainText("hyperparameters: settings chosen before fitting");
+  await expect(note).toContainText("first app on the site to tune them");
+  await expect(note).not.toContainText("later apps");
+});
+
+test("Split the data describes the three check years", async ({ page }) => {
+  await open(page);
+  const note = legendStage(page, "split").locator(".stage-note");
+  await expect(note).toContainText("three check years");
+  await expect(note).toContainText("only from the years before it");
+  await expect(note).toContainText("ICC full members");
 });
 
 test("a stage with no node is marked 'Not a step in this agent' with its reason", async ({ page }) => {
@@ -368,9 +378,9 @@ test("the Event panel shows the stage's note when the app supplied one", async (
   const items = timelineItems(page);
   const choose = items.filter({ hasText: "propose_features" }).first();
   await choose.click();
-  await expect(page.getByTestId("event-stage")).toContainText("feature selection only");
+  await expect(page.getByTestId("event-stage")).toContainText("hyperparameters");
   await items.filter({ hasText: "fit_model" }).first().click();
-  await expect(page.getByTestId("event-stage")).not.toContainText("feature selection only");
+  await expect(page.getByTestId("event-stage")).not.toContainText("hyperparameters");
 });
 
 // ---------------- US4: the done-beforehand item ----------------
@@ -403,7 +413,7 @@ test("the item never becomes active or visited, is not in the timeline, and is n
   const names = (await timelineItems(page).allTextContents()).map((t) => t.replace(/^\d+\.\s*/, ""));
   expect(names).not.toContain("prepare_data");
   expect(names.filter((n) => n.includes("item")).length).toBe(0);
-  expect(await timelineItems(page).count()).toBe(30);                            // the same 30 steps as before
+  expect(await timelineItems(page).count()).toBe(23);                            // 23 steps: the rival is one grid-search step
   await expect(page.locator(".node.visited")).toHaveCount(13);                   // 11 steps, start and end: not the item
 });
 
@@ -478,15 +488,15 @@ async function visitIndex(page: Page, nodeName: string, nth: number) {
 
 test("the loop note sits near the legend and names the real years", async ({ page }) => {
   await open(page);
-  const years = (await (await page.request.get("/api/data")).json()).summary.sections
-    .find((s: { title: string }) => s.title.startsWith("Slices")).rows.map((r: { label: string }) => r.label);
+  // the years the data really spans: the latest year in the Data tab's rows is the test year, the three before it are the checks
+  const data = await (await page.request.get("/api/data")).json();
+  const dateColumn = data.columns.findIndex((c: { key: string }) => c.key === "match_date");
+  const latest = Math.max(...data.rows.map((r: string[]) => Number(String(r[dateColumn]).slice(0, 4))));
   const note = page.getByTestId("legend-note");
   await expect(note).toContainText("new setup (stage 5)");
   await expect(note).toContainText("fits the model again (stage 6)");
-  for (const label of years) {                                    // "Training (2005 to 2024)", "Validation (2025)", "Test (2026)"
-    const m = /\(([^)]+)\)/.exec(label);
-    if (m) await expect(note).toContainText(m[1]);
-  }
+  await expect(note).toContainText(`check years (${latest - 3}, ${latest - 2} and ${latest - 1})`);
+  await expect(note).toContainText(`test year (${latest})`);
   await expect(note).toContainText("used once");
 });
 

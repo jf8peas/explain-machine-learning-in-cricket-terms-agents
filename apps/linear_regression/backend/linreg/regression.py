@@ -11,10 +11,16 @@ import numpy as np
 import pandas as pd
 
 
-def fit(train: pd.DataFrame, features: list[str], target: str = "final_total") -> dict:
+def fit(train: pd.DataFrame, features: list[str], target: str = "final_total", weights=None) -> dict:
+    """Least squares with an intercept. With `weights` (one non-negative number per row) it is weighted least squares: a
+    row with twice the weight counts as much as two identical rows. This is the reference fit; `fitting.py` is the fast
+    path and a test holds the two together."""
     X = train[features].to_numpy(dtype=float)
     y = train[target].to_numpy(dtype=float)
     design = np.column_stack([np.ones(len(X)), X])
+    if weights is not None:
+        root = np.sqrt(np.asarray(weights, dtype=float))
+        design, y = design * root[:, None], y * root
     beta, *_ = np.linalg.lstsq(design, y, rcond=None)
     iqr = {f: float(train[f].quantile(0.75) - train[f].quantile(0.25)) for f in features}
     return {

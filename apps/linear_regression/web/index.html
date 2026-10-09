@@ -27,7 +27,7 @@
     .intro { margin-bottom: 16px; }
     .eyebrow { color: var(--muted); font-size: .85rem; margin: 0 0 4px; }
     /* the introduction: lead line, miss meter, chips, two closed sections (feature 007) */
-    .intro-lead { color: var(--muted); max-width: 70ch; margin: 0 0 14px; }
+    .intro-lead { color: var(--muted); max-width: 70ch; margin: 0 0 10px; }
     .meter { display: flex; flex-direction: column; gap: 6px; padding: 14px 20px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
     .meter-top { display: flex; justify-content: space-between; gap: 12px; font-size: .8rem; color: var(--muted); }
     .meter-caption { text-align: center; }
@@ -65,6 +65,22 @@
       .meter-mark[data-row-wide="1"] .mark-shape::before { height: 28px; }
       .meter-mark[data-row-wide="1"] .mark-value::before { height: 39px; }
     }
+    @media (min-width: 1100px) {
+      /* the track is long and fixed here, so marks need less of it before their text must take a second row */
+      .meter-track[data-rows-wide="2"] { height: 98px; }
+      .meter-track[data-rows-xwide="2"] { height: 128px; }
+      .meter-mark[data-row-wide="1"] .mark-name { margin-top: 22px; }
+      .meter-mark[data-row-wide="1"] .mark-shape { margin-top: 6px; }
+      .meter-mark[data-row-wide="1"] .mark-value { margin-top: 10px; }
+      .meter-mark[data-row-wide="1"] .mark-shape::before, .meter-mark[data-row-wide="1"] .mark-value::before { content: none; }
+      .meter-mark[data-row-xwide="1"] .mark-name { margin-top: 0; }
+      .meter-mark[data-row-xwide="1"] .mark-shape { margin-top: 28px; }
+      .meter-mark[data-row-xwide="1"] .mark-value { margin-top: 39px; }
+      .meter-mark[data-row-xwide="1"] .mark-shape::before,
+      .meter-mark[data-row-xwide="1"] .mark-value::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; background: var(--border); }
+      .meter-mark[data-row-xwide="1"] .mark-shape::before { height: 28px; }
+      .meter-mark[data-row-xwide="1"] .mark-value::before { height: 39px; }
+    }
     @media (max-width: 759.98px) {
       /* the goal above the line, the two references below it; no "better" / "worse" end labels */
       .meter { padding: 14px 12px 12px; }
@@ -89,7 +105,8 @@
       .meter-mark[data-side-narrow=below][data-row-narrow="1"] .mark-name { margin-top: 88px; }
       .meter-mark[data-side-narrow=below][data-row-narrow="1"] .mark-shape::before { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 88px; background: var(--border); }
     }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; margin: 12px 0 0; padding: 0; font-size: .85rem; }
+    .intro-population { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .85rem; }
     .chip { padding: 2px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); white-space: nowrap; }
     .chip strong { color: var(--text); }
     .chip-llm { border-color: var(--accent); }
@@ -182,6 +199,20 @@
     .chart-tick { fill: var(--muted); font-size: 11px; text-anchor: middle; }
     .chart-tick.y { text-anchor: end; }
     .chart-title { fill: var(--muted); font-size: 12px; text-anchor: middle; }
+    /* setups: chips on the leaderboard and the rounds, and the rival's grid search */
+    table.attempts tbody th[scope=row] { min-width: 15rem; }          /* the setup column keeps a readable width; the table scrolls in its own box */
+    ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 4px 0 0; padding: 0; }
+    li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
+    td.check-errors { white-space: nowrap; font-size: .85rem; }
+    td.check-errors span { display: inline-block; margin-right: 8px; }
+    table.grid-table { border-collapse: collapse; margin: 6px 0 12px; font-variant-numeric: tabular-nums; }
+    table.grid-table caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
+    table.grid-table th, table.grid-table td { border: 1px solid var(--border); padding: 4px 10px; text-align: center; font-size: .85rem; }
+    table.grid-table thead th { color: var(--muted); font-weight: 600; }
+    table.grid-table tbody th { text-align: left; font-weight: 600; white-space: nowrap; }
+    table.grid-table td.thin { color: var(--muted); font-style: italic; }
+    table.grid-table td.best { outline: 3px solid var(--text); outline-offset: -3px; font-weight: 700; background: var(--win-bg); }
+    ol.build-up { margin: 0 0 8px; padding-left: 1.4em; font-size: .9rem; }
     .data-intro { max-width: 75ch; margin-top: 0; }
     .data-intro strong { color: var(--text); }
   </style>
@@ -194,6 +225,7 @@
       </nav>
       <h1 id="intro-title">Can an agent beat the TV projected score?</h1>
       <div class="intro-live" data-testid="reference" aria-live="polite"></div>
+      <p class="intro-population" data-testid="intro-population">The agent is tested on IPL and BBL innings and on T20 internationals between ICC full members.</p>
       <ul class="chips" data-testid="chips">
         <li class="chip"><strong>Agent</strong> a LangGraph graph of steps</li>
         <li class="chip chip-llm"><strong>Language model</strong> picks features</li>

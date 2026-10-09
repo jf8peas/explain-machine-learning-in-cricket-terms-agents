@@ -12,7 +12,8 @@ from .competition_dummies import DUMMIES, REFERENCE, check_dummies
 from .data_loading import DEFAULT_PATH, DataError, load_innings
 from .data_notes import build_notes
 from .graph_api import to_jsonable
-from .season_split import split_three_ways
+from .population import population_counts
+from .season_split import rolling_checks
 
 DEFAULT_MANIFEST = DEFAULT_PATH.parent / "manifest.json"
 COMPETITION_NAMES = {"t20i": "T20 International", "ipl": "IPL", "bbl": "BBL"}
@@ -41,14 +42,23 @@ _FIXED_COLUMNS: dict[str, dict[str, Any]] = {
     "competition": {"label": "Competition", "type": "text", "filter": "select", "labels": COMPETITION_NAMES,
                     "description": "Men's T20 internationals, the IPL or the BBL."},
     "venue": {"label": "Venue", "type": "text", "description": "The ground where the match was played."},
+    "batting_team": {"label": "Batting team", "type": "text",
+                     "description": "The side batting first, with its name as written in the source files mapped to one name per team."},
+    "bowling_team": {"label": "Bowling team", "type": "text", "description": "The side bowling first."},
+    "in_test_population": {"label": "In test population", "type": "integer", "filter": "select",
+                           "labels": {"1": "In", "0": "Out"},
+                           "description": "1 if the innings is one the agent is tested on: every IPL and BBL innings, and the T20 "
+                                          "internationals where both teams are ICC full members. 0 otherwise."},
     "final_total": {"label": "Final total", "type": "integer",
                     "description": "The first innings' final score, which is what the agent tries to predict."},
 }
 USED_FOR = {"key": "used_for", "label": "Used for", "type": "text", "filter": "select",
-            "labels": {"training": "Training", "validation": "Validation", "test": "Test"},
-            "description": "Training: the agent fits its models on these innings. Validation: the year used to judge "
-                           "feature sets while choosing. Test: the latest year, used once at the end for the final "
-                           "mark. Split by calendar year, never at random."}
+            "labels": {"training": "Training", "training_validation": "Training and validation", "test": "Test"},
+            "description": "Training: the earliest years, which the agent only learns from. Training and validation: the "
+                           "three years before the test year; each is a check year, judged by a model that learned only "
+                           "from the years before it, and is also learning data for the checks after it. Test: the "
+                           "latest year, used once at the end for the final mark. Split by calendar year, never at "
+                           "random. Only innings in the test population are ever scored."}
 
 
 def _column(key: str) -> dict[str, Any]:
@@ -56,7 +66,7 @@ def _column(key: str) -> dict[str, Any]:
         return {"key": key, **_FIXED_COLUMNS[key]}
     f = features.BY_ID[key]  # a candidate feature: heading, description and (for the dummies) a 0/1 filter
     column = {"key": key, "label": f["heading"], "type": "integer", "description": f["description"]}
-    if key in DUMMIES:
+    if key in DUMMIES or f["unit"] == "0/1":
         column["filter"] = "select"
     return column
 
@@ -82,12 +92,27 @@ def exclusion_rows(manifest: dict[str, Any]) -> list[dict[str, str]]:
             for r, n in excluded.items() if n]
 
 
+def used_for_by_year(rolling) -> dict[int, str]:
+    """What each calendar year is used for: the test year, the three check years, or training before them."""
+    marks = {c.year: "training_validation" for c in rolling.checks}
+    marks[rolling.test_year] = "test"
+    return marks
+
+
 def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
-    slices = split_three_ways(df)
-    train_years = sorted(int(y) for y in slices.train["match_date"].dt.year.unique())
+    rolling = rolling_checks(df)
+    years = df["match_date"].dt.year
+    marks = used_for_by_year(rolling)
+    first_check = rolling.checks[0].year
+    training = int((years < first_check).sum())
+    checks = int(years.isin([c.year for c in rolling.checks]).sum())
+    tests = int((years == rolling.test_year).sum())
+    train_years = sorted(int(y) for y in years.unique() if y < first_check)
+    check_years = [str(c.year) for c in rolling.checks]
     counts = manifest["counts"]
     comps = [(k, v) for k, v in counts.items() if isinstance(v, dict)]
     downloaded = pd.Timestamp(manifest["download_date"])
+    pop = population_counts(df)
     return {
         "headline": [
             {"label": "Innings", "value": f"{int(counts['total_innings']):,}"},
@@ -97,11 +122,21 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
         "sections": [
             {"title": "Innings per competition",
              "rows": [{"label": COMPETITION_NAMES.get(k, k), "value": f"{int(v['innings_kept']):,}"} for k, v in comps]},
-            {"title": "Slices, by calendar year", "note": "How the agent uses the innings. The latest year is kept for "
-                                                          "a single final test.",
-             "rows": [{"label": f"Training ({train_years[0]} to {train_years[-1]})" if train_years else "Training", "value": f"{len(slices.train):,}"},
-                      {"label": f"Validation ({slices.validation_year})" if slices.validation_year else "Validation", "value": f"{len(slices.validation):,}"},
-                      {"label": f"Test ({slices.test_year})", "value": f"{len(slices.test):,}"}]},
+            {"title": "How the years are used", "note": "How the agent uses the innings, by calendar year: every setup is judged "
+                                                         "on three check years, each by a model that learned only from the "
+                                                         "years before it, and the latest year is kept for a single final test.",
+             "rows": [{"label": f"Training ({train_years[0]} to {train_years[-1]})" if train_years else "Training",
+                       "value": f"{training:,}"},
+                      {"label": f"Training and validation ({', '.join(check_years[:-1])} and {check_years[-1]})",
+                       "value": f"{checks:,}"},
+                      {"label": f"Test ({rolling.test_year})", "value": f"{tests:,}"}]},
+            {"title": "Test population", "note": "The innings the agent is judged on: every IPL and BBL innings, and the T20 "
+                                                  "internationals where both teams are ICC full members. Every check year "
+                                                  "and the test year are scored on these innings only.",
+             "rows": [{"label": "In the test population", "value": f"{pop['in']:,}"},
+                      {"label": "Outside it", "value": f"{pop['out']:,}"},
+                      *[{"label": f"{COMPETITION_NAMES.get(c, c)}: in the population",
+                         "value": f"{v['in']:,} of {v['in'] + v['out']:,}"} for c, v in pop["by_competition"].items()]]},
             {"title": "Excluded, and why", "note": EXCLUSIONS_NOTE,
              "rows": exclusion_rows(manifest)},
         ],
@@ -122,13 +157,12 @@ def build_table(data_path: str | Path | None = None, manifest_path: str | Path |
         summary = _summary(df, manifest)
     except (OSError, ValueError, KeyError) as exc:
         raise DataError(f"The data summary could not be read: {exc}") from None
-    slices = split_three_ways(df)
-    used = {**{i: "training" for i in slices.train.index}, **{i: "validation" for i in slices.validation.index},
-            **{i: "test" for i in slices.test.index}}
+    marks = used_for_by_year(rolling_checks(df))
     rows = []
-    for idx, rec in zip(df.index, df.itertuples(index=False)):
+    for rec in df.itertuples(index=False):
         values = [getattr(rec, k) for k in COLUMN_KEYS[:-1]]
-        values[COLUMN_KEYS.index("match_date")] = values[COLUMN_KEYS.index("match_date")].strftime("%Y-%m-%d")
-        values.append(used[idx])
+        date = values[COLUMN_KEYS.index("match_date")]
+        values[COLUMN_KEYS.index("match_date")] = date.strftime("%Y-%m-%d")
+        values.append(marks.get(date.year, "training"))
         rows.append(to_jsonable(values))
     return {"columns": COLUMNS, "rows": rows, "summary": summary, "notes": build_notes(df, COMPETITION_NAMES)}

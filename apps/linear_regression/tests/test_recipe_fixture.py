@@ -11,10 +11,11 @@ from linreg.recipes import evaluate
 
 FIXTURE = Path(__file__).resolve().parents[1] / "web" / "tests" / "fixtures" / "recipe_cases.json"
 CASES = [
-    {"runs_at_10": 80, "wickets_at_10": 0, "competition": "ipl"},
-    {"runs_at_10": 55, "wickets_at_10": 9, "competition": "t20i"},
-    {"runs_at_10": 101, "wickets_at_10": 3, "competition": "bbl"},
-    {"runs_at_10": 0, "wickets_at_10": 5, "competition": "bbl"},
+    {"runs_at_10": 80, "wickets_at_10": 0, "competition": "ipl", "batting_full_member": 0, "bowling_full_member": 0},
+    {"runs_at_10": 55, "wickets_at_10": 9, "competition": "t20i", "batting_full_member": 1, "bowling_full_member": 1},
+    {"runs_at_10": 101, "wickets_at_10": 3, "competition": "bbl", "batting_full_member": 0, "bowling_full_member": 0},
+    {"runs_at_10": 0, "wickets_at_10": 5, "competition": "bbl", "batting_full_member": 0, "bowling_full_member": 0},
+    {"runs_at_10": 70, "wickets_at_10": 2, "competition": "t20i", "batting_full_member": 1, "bowling_full_member": 0},
 ]
 
 

@@ -13,7 +13,7 @@ describe("the shared recipe fixture", () => {
   it("has cases to check", () => {
     expect(fixture.cases.length).toBeGreaterThanOrEqual(3);
     expect(Object.keys(fixture.cases[0].derived)).toEqual(
-      ["wickets_in_hand", "runs_x_wickets_in_hand", "is_ipl", "is_bbl"]);
+      ["wickets_in_hand", "runs_x_wickets_in_hand", "both_full_members", "is_ipl", "is_bbl"]);
   });
 
   it("gives the backend's value for every derived feature in every case", () => {
