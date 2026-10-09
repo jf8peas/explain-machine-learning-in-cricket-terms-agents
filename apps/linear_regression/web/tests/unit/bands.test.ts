@@ -1,105 +1,102 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { computeBands, layoutGraph, type LaidNode, type Structure } from "../../src/graph-replay/layout";
-import { resolveStage } from "../../src/graph-replay/stages";
+import { computeRows, labelWidth, layoutGraph, type LaidNode, type Structure } from "../../src/graph-replay/layout";
+import { resolveStage, type StageDef } from "../../src/graph-replay/stages";
 
 // `linreg-structure.json` is this app's real /api/structure response. A pytest test (test_structure_stages.py) fails
 // if it drifts; regenerate it by saving the response of GET /api/structure from a server run with LLM_PROVIDER=fake.
 const real: Structure = JSON.parse(readFileSync("tests/fixtures/linreg-structure.json", "utf8"));
+const stageDefs = (names: string[]): StageDef[] =>
+  names.map((name, i) => ({ id: `s${i + 1}`, number: i + 1, name, question: "", description: "" }));
 
-const node = (id: string, stage: string | undefined, x: number, y: number, kind: LaidNode["kind"] = "node"): LaidNode =>
-  ({ id, kind, stage, x, y, w: 100, h: 36 });
-const stageOf = (n: LaidNode) => (n.kind === "node" || (n.kind as string) === "item" ? n.stage ?? null : null);
-const overlaps = (b: { x: number; y: number; w: number; h: number }, n: LaidNode) =>
-  b.x < n.x + n.w / 2 && b.x + b.w > n.x - n.w / 2 && b.y < n.y + n.h / 2 && b.y + b.h > n.y - n.h / 2;
+describe("computeRows", () => {
+  const stages = stageDefs(["First", "Second", "Third"]);
+  const rows = computeRows(stages, 800);
 
-describe("computeBands", () => {
-  it("makes one band of a run of neighbours in one stage", () => {
-    const bands = computeBands([node("a", "s1", 0, 0), node("b", "s1", 0, 100)], stageOf);
-    expect(bands).toHaveLength(1);
-    expect(bands[0]).toMatchObject({ stage: "s1", nodes: ["a", "b"] });
+  it("makes Start, one row per stage in order, then Finish", () => {
+    expect(rows.map((r) => r.key)).toEqual(["start", "s1", "s2", "s3", "end"]);
+    expect(rows.map((r) => r.kind)).toEqual(["start", "stage", "stage", "stage", "end"]);
+    expect(rows.map((r) => r.number)).toEqual([null, 1, 2, 3, null]);
+    expect(rows.map((r) => r.name)).toEqual(["Start", "First", "Second", "Third", "Finish"]);
   });
 
-  it("gives a stage that another stage's node splits two bands", () => {
-    const bands = computeBands([
-      node("a", "choose", 0, 0), node("b", "choose", 0, 100), node("c", "fit", 0, 200),
-      node("d", "choose", 0, 300), node("e", "choose", 0, 400),
-    ], stageOf);
-    expect(bands.map((b) => [b.stage, b.nodes])).toEqual([
-      ["choose", ["a", "b"]], ["fit", ["c"]], ["choose", ["d", "e"]],
-    ]);
+  it("follows the order the stages are given in, whatever their ids", () => {
+    const flipped = computeRows([...stages].reverse(), 800);
+    expect(flipped.map((r) => r.key)).toEqual(["start", "s3", "s2", "s1", "end"]);
   });
 
-  it("splits a group whose box would enclose an unassigned node", () => {
-    const bands = computeBands([node("a", "s1", 0, 0), node("b", "s1", 500, 0), node("u", undefined, 250, 0)], stageOf);
-    expect(bands.map((b) => b.nodes)).toEqual([["a"], ["b"]]);
-    const u = node("u", undefined, 250, 0);
-    expect(bands.some((b) => overlaps(b, u))).toBe(false);
+  it("runs every row the full width, stacked from the top with no gaps", () => {
+    expect(rows[0].y).toBe(0);
+    for (const r of rows) { expect(r.x).toBe(0); expect(r.w).toBe(800); }
+    for (let i = 1; i < rows.length; i++) expect(rows[i].y).toBe(rows[i - 1].y + rows[i - 1].h);
   });
 
-  it("keeps a node of another stage out of a band", () => {
-    const nodes = [node("a", "s1", 0, 0), node("f", "s2", 0, 100), node("b", "s1", 0, 200)];
-    const bands = computeBands(nodes, stageOf);
-    expect(bands.map((x) => [x.stage, x.nodes])).toEqual([["s1", ["a"]], ["s2", ["f"]], ["s1", ["b"]]]);
-    for (const band of bands) for (const n of nodes) if (!band.nodes.includes(n.id)) expect(overlaps(band, n)).toBe(false);
+  it("centres the label on the row's node line, inside the row", () => {
+    for (const r of rows) {
+      expect(r.label.y).toBeGreaterThan(r.y);
+      expect(r.label.y).toBeLessThan(r.y + r.h);
+    }
+    expect(rows[2].label.y - rows[2].y).toBe(32);
   });
 
-  it("lets a band surround start and end, which are not steps", () => {
-    const bands = computeBands([
-      node("a", "s1", 0, 0), node("b", "s1", 500, 0), node("__start__", undefined, 250, 0, "start"),
-    ], stageOf);
-    expect(bands).toHaveLength(1);
-    expect(bands[0].nodes).toEqual(["a", "b"]);
+  it("makes a row taller only where it is asked to", () => {
+    const tall = computeRows(stages, 800, [0, 0, 44, 0, 0]);
+    expect(tall[2].h).toBe(rows[2].h + 44);
+    expect(tall[1].h).toBe(rows[1].h);
+    expect(tall[2].label.y - tall[2].y).toBe(32 + 44);
   });
 
-  it("does not put an unassigned node in any band, and puts every staged node in exactly one", () => {
-    const nodes = [node("a", "s1", 0, 0), node("u", undefined, 0, 100), node("b", "s1", 0, 200), node("c", "s2", 0, 300)];
-    const bands = computeBands(nodes, stageOf);
-    const all = bands.flatMap((b) => b.nodes);
-    expect(all.sort()).toEqual(["a", "b", "c"]);
-    expect(new Set(all).size).toBe(all.length);
+  it("still makes a row for a stage that has no nodes", () => {
+    const out = layoutGraph({
+      nodes: [{ id: "__start__", kind: "start" }, { id: "a", kind: "node", stage: "s1" }, { id: "__end__", kind: "end" }],
+      edges: [{ source: "__start__", target: "a", conditional: false, branch: null }, { source: "a", target: "__end__", conditional: false, branch: null }],
+      stages,
+    });
+    expect(out.rows).toHaveLength(5);
+    expect(out.rows[2].nodes).toEqual([]);
+    expect(out.rows[2].h).toBe(out.rows[3].h);
   });
 
-  it("pads the box around its nodes and leaves room for the label", () => {
-    const [b] = computeBands([node("a", "s1", 0, 0)], stageOf);
-    expect(b.x).toBeLessThan(-50);
-    expect(b.x + b.w).toBeGreaterThan(50);
-    expect(b.y).toBeLessThan(-18);          // above the node by more than the bottom padding: the label sits there
-    expect(b.y + b.h).toBeGreaterThan(18);
-  });
-
-  it("returns nothing when no node has a stage", () => {
-    expect(computeBands([node("a", undefined, 0, 0)], stageOf)).toEqual([]);
+  it("widens the label column to fit a long stage name", () => {
+    expect(labelWidth(stages)).toBe(200);
+    expect(labelWidth(stageDefs(["A stage with a really rather long name indeed, long"]))).toBeGreaterThan(200);
   });
 });
 
-describe("bands for this app's real graph", () => {
+describe("rows for this app's real graph", () => {
   const out = layoutGraph(real);
-  const stageNodes = out.nodes.filter((n) => n.kind === "node");
-  const bandsOf = (stage: string) => out.bands.filter((b) => b.stage === stage);
+  const byId = new Map(out.nodes.map((n) => [n.id, n]));
 
-  it("gives Choose the setup two bands, with Fit the model between them", () => {
-    const choose = bandsOf("choose");
-    expect(choose.length).toBe(2);
-    expect(choose.map((b) => b.nodes).flat().sort()).toEqual(["check_proposal", "evaluate", "grid_search", "propose_features"]);
-    expect(bandsOf("fit")).toHaveLength(1);
+  it("has Start, the eight stages in structure order, and Finish", () => {
+    expect(out.rows.map((r) => r.key)).toEqual(["start", ...(real.stages ?? []).map((s) => s.id), "end"]);
+    expect(out.rows).toHaveLength(10);
   });
 
-  it("puts every real node in exactly one band, in its own stage", () => {
-    const seen = new Map<string, string>();
-    for (const b of out.bands) for (const id of b.nodes) {
-      expect(seen.has(id)).toBe(false);
-      seen.set(id, b.stage);
+  it("puts every step in the row of its stage, with its y inside that row", () => {
+    for (const n of real.nodes.filter((x) => x.kind === "node")) {
+      const row = out.rows.find((r) => r.stage === n.stage);
+      const laid = byId.get(n.id) as LaidNode;
+      expect(row?.nodes, n.id).toContain(n.id);
+      expect(laid.y - laid.h / 2).toBeGreaterThanOrEqual((row?.y ?? 0));
+      expect(laid.y + laid.h / 2).toBeLessThanOrEqual((row?.y ?? 0) + (row?.h ?? 0));
     }
-    for (const n of stageNodes) expect(seen.get(n.id)).toBe(n.stage);
   });
 
-  it("never lets a band cover a node of another stage", () => {
-    for (const b of out.bands) for (const n of stageNodes) if (!b.nodes.includes(n.id)) expect(overlaps(b, n)).toBe(false);
+  it("gives Choose the setup, with its loop-back arcs, a taller row than a single line", () => {
+    const choose = out.rows.find((r) => r.stage === "choose");
+    const split = out.rows.find((r) => r.stage === "split");
+    expect(choose?.h).toBeGreaterThan(split?.h ?? 0);
+    expect(out.rows.filter((r) => r.h > (split?.h ?? 0) && r.kind !== "start")).toHaveLength(1);
   });
 
   it("resolves every real node to a stage", () => {
     for (const n of real.nodes) if (n.kind === "node") expect(resolveStage(n, real.stages).state).toBe("assigned");
+  });
+
+  it("keeps the rows as tall as the drawing and as wide as its width", () => {
+    const last = out.rows[out.rows.length - 1];
+    expect(last.y + last.h).toBe(out.height);
+    for (const r of out.rows) expect(r.w).toBe(out.width);
   });
 });
 
@@ -119,28 +116,25 @@ describe("done-beforehand items in the layout", () => {
     expect(out.edges.filter((e) => e.item)).toHaveLength(1);
   });
 
-  it("puts the item in one band with the node it sits before", () => {
-    const band = out.bands.find((b) => b.nodes.includes(itemId));
-    expect(band?.stage).toBe("prepare");
-    expect(band?.nodes).toContain("load_data");
+  it("puts the item in the Start row, to the left of the start node", () => {
+    const item = out.nodes.find((n) => n.id === itemId) as LaidNode;
+    const start = out.nodes.find((n) => n.kind === "start") as LaidNode;
+    expect(out.rows[0].nodes).toContain(itemId);
+    expect(item.x + item.w / 2).toBeLessThan(start.x - start.w / 2);
+    expect(item.y).toBe(start.y);
   });
 
-  it("keeps that one band even when the start marker sits between them on the same rank", () => {
-    const nodes = [
-      node("item:x", "prepare", 0, 0, "item" as LaidNode["kind"]), node("__start__", undefined, 150, 0, "start"),
-      node("load_data", "prepare", 300, 100),
-    ];
-    const bands = computeBands(nodes, stageOf);
-    expect(bands).toHaveLength(1);
-    expect(bands[0].nodes.sort()).toEqual(["item:x", "load_data"]);
+  it("points the item's connector into the start node", () => {
+    const joint = out.edges.find((e) => e.item)!;
+    const start = out.nodes.find((n) => n.kind === "start") as LaidNode;
+    const end = joint.points[joint.points.length - 1];
+    expect(end.x).toBeCloseTo(start.x - start.w / 2, 3);
+    expect(end.y).toBeCloseTo(start.y, 3);
   });
 
-  it("keeps an item out of another stage's band", () => {
-    const nodes = [node("a", "s1", 0, 0), node("item:x", "s2", 0, 100, "item" as LaidNode["kind"]), node("b", "s1", 0, 200)];
-    const bands = computeBands(nodes, stageOf);
-    const item = nodes[1];
-    for (const band of bands) if (band.stage === "s1") expect(overlaps(band, item)).toBe(false);
-    expect(bands.map((x) => x.stage)).toEqual(["s1", "s2", "s1"]);
+  it("keeps the item clear of the label column", () => {
+    const item = out.nodes.find((n) => n.id === itemId) as LaidNode;
+    expect(item.x - item.w / 2).toBeGreaterThanOrEqual(labelWidth(real.stages ?? []));
   });
 
   it("ignores an item whose target node does not exist, without failing", () => {
@@ -154,25 +148,6 @@ describe("done-beforehand items in the layout", () => {
     const plain = layoutGraph({ ...real, items: undefined });
     expect(plain.nodes.some((n) => n.kind === "item")).toBe(false);
     expect(plain.edges.some((e) => e.item)).toBe(false);
-  });
-});
-
-describe("band width for the label", () => {
-  it("makes a narrow band at least as wide as its label, around the same centre", () => {
-    const [b] = computeBands([node("a", "s1", 200, 0)], stageOf, () => 300);
-    expect(b.w).toBeGreaterThanOrEqual(300);
-    expect(b.x + b.w / 2).toBeCloseTo(200, 3);
-  });
-
-  it("leaves a band alone when it is already wide enough", () => {
-    const [narrow] = computeBands([node("a", "s1", 0, 0)], stageOf);
-    const [same] = computeBands([node("a", "s1", 0, 0)], stageOf, () => 10);
-    expect(same.w).toBe(narrow.w);
-  });
-
-  it("still splits a widened band that would cover a node it does not hold", () => {
-    const nodes = [node("a", "s1", 0, 0), node("u", undefined, 190, 0), node("b", "s1", 0, 100)];
-    const bands = computeBands(nodes, stageOf, () => 400);
-    for (const band of bands) expect(overlaps(band, nodes[1])).toBe(false);
+    expect(plain.rows[0].nodes).toEqual(["__start__"]);
   });
 });

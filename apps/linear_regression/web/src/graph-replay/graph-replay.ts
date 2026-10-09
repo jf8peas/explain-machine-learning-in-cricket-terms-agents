@@ -1,11 +1,11 @@
 // <graph-replay structure-url="..." run-url="...">
 // Generic: knows only a graph structure and a stream of step events. Nothing about the app.
 import { ReplayBuffer, realClock, type StepEvent } from "./buffer";
-import { drawBands } from "./bands";
+import { drawRows } from "./bands";
 import { ItemPanel, Legend } from "./legend";
 import { layoutGraph, pathData, type LaidEdge, type LaidNode, type Layout, type Structure } from "./layout";
 import { streamRun, type Refusal } from "./sse";
-import { loopEdges, resolveStage, roundAt, type Resolved } from "./stages";
+import { loopEdges, resolveStage, roundAt, visitTick, type Resolved } from "./stages";
 import { summarise } from "./state-view";
 import { styles } from "./styles";
 import { svg } from "./svg";
@@ -134,23 +134,10 @@ export class GraphReplay extends HTMLElement {
       this.drawGraph();
       this.setupLegend();
       this.ready = true;
-      requestAnimationFrame(() => this.measureStartHeight());
       this.update();
     } catch {
       this.setMessage("Could not load the graph structure.", true);
     }
-  }
-
-  /** On wide screens the graph is never shorter than the right-hand column was when the page loaded: legend and panels
-   *  at their natural heights, measured once before anything runs. (On a phone there is one column, so no minimum.) */
-  private measureStartHeight() {
-    const main = this.$(".main");
-    if (!main || window.matchMedia("(max-width: 760px)").matches) return;
-    const legend = this.$(".legend");
-    const panels = (Array.from(this.$(".side").children) as HTMLElement[]).filter((el) => !el.hidden);
-    const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
-    const total = legend.hidden ? sideHeight : legend.offsetHeight + (panels.length ? 12 + sideHeight : 0);
-    main.style.setProperty("--graph-min", `${total}px`);
   }
 
   /** Open an item's summary, or close it if it is already open. Never touches playback. */
@@ -215,7 +202,7 @@ export class GraphReplay extends HTMLElement {
     if (this.selectedStage) this.legend.select(this.selectedStage);
   }
 
-  /** Dim every node and band outside the selected stage, except the active node. A class only: no animation. */
+  /** Dim every node and row outside the selected stage, except the active node. A class only: no animation. */
   private applyFilter() {
     const picked = this.selectedStage;
     const graph = this.$(".graph");
@@ -226,7 +213,7 @@ export class GraphReplay extends HTMLElement {
     };
     for (const el of this.nodeEls.values()) mark(el, el.getAttribute("data-stage"), el.classList.contains("active"));
     for (const el of this.itemEls.values()) mark(el, el.getAttribute("data-stage"), false);
-    graph.querySelectorAll(".band").forEach((el) => mark(el, el.getAttribute("data-stage"), false));
+    graph.querySelectorAll(".stage-row").forEach((el) => mark(el, el.getAttribute("data-stage"), false));
   }
 
   private drawGraph() {
@@ -235,14 +222,15 @@ export class GraphReplay extends HTMLElement {
     root.innerHTML = "";
     root.setAttribute("viewBox", `0 0 ${Math.ceil(L.width)} ${Math.ceil(L.height)}`);
     root.style.maxWidth = `${Math.ceil(L.width)}px`;   // never drawn larger than its natural size
+    root.style.setProperty("--graph-w", `${Math.ceil(L.width)}px`);   // on a phone it keeps this size and the panel scrolls
     const defs = svg("defs");
     root.appendChild(defs);
-    const bandsG = svg("g", { class: "bands" });   // the bottom layer: bands never hide an edge or a node
+    const bandsG = svg("g", { class: "bands" });   // the bottom layer: rows never hide an edge or a node
     const edgesG = svg("g");
     const nodesG = svg("g");
     root.append(bandsG, edgesG, nodesG);
     const stages = this.structure?.stages ?? [];
-    drawBands(bandsG, L.bands, stages);
+    drawRows(bandsG, L.rows);
     this.edgeEls.clear();
     this.nodeEls.clear();
     this.actors.clear();
@@ -270,7 +258,7 @@ export class GraphReplay extends HTMLElement {
       const e = L.edges.find((x) => x.source === le.source && x.target === le.target);
       if (!e) continue;
       const mid = e.label ?? e.points[Math.floor(e.points.length / 2)];
-      const at = { x: mid.x + 52, y: mid.y };           // beside the edge, clear of its line, its label and the nodes
+      const at = e.pill ?? { x: mid.x + 52, y: mid.y };   // beside the edge, clear of its line, its label and the nodes
       const pill = svg("g", { class: "loop-pill", "data-testid": "loop-round", "data-loop-edge": key, transform: `translate(${at.x},${at.y})`, hidden: "" });
       pill.appendChild(svg("rect", { x: -33, y: -8, width: 66, height: 16, rx: 8 }));
       pill.appendChild(svg("text", {}));
@@ -303,12 +291,10 @@ export class GraphReplay extends HTMLElement {
         const t = svg("text", { x: 0, y: 0 });
         t.textContent = n.id;
         g.appendChild(t);
-        const tick = svg("text", { class: "tick", x: n.w / 2 - 6, y: -n.h / 2 + 12, hidden: "" });
-        tick.textContent = "✓";
+        const llm = n.actor === "llm";   // the tag holds the top-right corner, so the tick moves to the label's line
+        if (llm) t.setAttribute("x", "-9");
+        const tick = svg("text", { class: "tick", x: n.w / 2 - 5, y: llm ? 0 : -n.h / 2 + 10, hidden: "" });
         g.appendChild(tick);
-        g.appendChild(svg("circle", { class: "count-bg", cx: -n.w / 2 + 2, cy: -n.h / 2 + 2, r: 10, hidden: "" }));
-        const c = svg("text", { class: "count", x: -n.w / 2 + 2, y: -n.h / 2 + 3, hidden: "" });
-        g.appendChild(c);
         if (resolved.state !== "none") { // the stage's number badge, at the bottom-left corner (the others are taken)
           const assigned = resolved.state === "assigned";
           const badge = svg("g", {
@@ -495,13 +481,9 @@ export class GraphReplay extends HTMLElement {
       el.classList.toggle("active", id === active);
       el.classList.toggle("visited", n > 0 || (id === START && b.cursor >= 0) || (id === END && reachedEnd));
       const tick = el.querySelector(".tick");
-      const bg = el.querySelector(".count-bg");
-      const ct = el.querySelector(".count");
-      if (tick) (tick as SVGElement).toggleAttribute("hidden", n === 0);
-      if (bg && ct) {
-        (bg as SVGElement).toggleAttribute("hidden", n < 2);
-        (ct as SVGElement).toggleAttribute("hidden", n < 2);
-        ct.textContent = n >= 2 ? String(n) : "";
+      if (tick) {
+        tick.textContent = visitTick(n);
+        (tick as SVGElement).toggleAttribute("hidden", n === 0);
       }
       if (n >= 2) el.setAttribute("data-visits", String(n)); else el.removeAttribute("data-visits");
       if (id === active) el.setAttribute("aria-current", "step"); else el.removeAttribute("aria-current");

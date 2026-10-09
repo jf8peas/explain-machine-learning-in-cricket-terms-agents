@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import type { Structure } from "../../src/graph-replay/layout";
-import { NEUTRAL_TOKEN, colourToken, loopEdges, resolveStage, roundAt, stageNumberOf, type StageDef } from "../../src/graph-replay/stages";
+import { NEUTRAL_TOKEN, colourToken, loopEdges, resolveStage, roundAt, stageNumberOf, visitTick, type StageDef } from "../../src/graph-replay/stages";
 
 // A stage set that is not this app's: the helpers must work for any names and ids.
 const stages: StageDef[] = [
@@ -130,5 +130,14 @@ describe("loopEdges", () => {
   it("returns nothing when the structure names no loop", () => {
     const real = JSON.parse(readFileSync("tests/fixtures/linreg-structure.json", "utf8")) as Structure;
     expect(loopEdges({ ...real, loop: undefined })).toEqual([]);
+  });
+});
+
+describe("visitTick", () => {
+  it("shows nothing before the first visit", () => expect(visitTick(0)).toBe(""));
+  it("shows the count from the first visit", () => {
+    expect(visitTick(1)).toBe("✓1");
+    expect(visitTick(6)).toBe("✓6");
+    expect(visitTick(12)).toBe("✓12");
   });
 });

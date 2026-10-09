@@ -44,16 +44,18 @@ button:disabled { opacity: 0.5; cursor: default; }
 label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: center; }
 .status { min-height: 1.4em; color: var(--gr-muted); margin-bottom: 6px; }
 .status.error { color: var(--gr-error); font-weight: 600; }
+/* the rows need the room: the graph takes the full width, with the legend and the panels side by side beneath it */
 .main {
-  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px;
-  grid-template-areas: "graph legend" "graph side";
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-rows: auto auto; gap: 12px; align-items: start;
+  grid-template-areas: "graph graph" "legend side";
 }
 .main > .graph { grid-area: graph; } .main > .legend { grid-area: legend; } .main > .side { grid-area: side; }
 @media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "legend" "graph" "side"; } }
-/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays
-   readable, and the card is never shorter than the right-hand column was when the page loaded (--graph-min). */
-.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; min-height: var(--graph-min, 0); }
+/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays readable. */
+.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; }
 svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+/* the rows need their width: on a phone the drawing stays at its natural size and the panel scrolls sideways */
+@media (max-width: 760px) { svg { width: var(--graph-w) !important; max-width: none !important; } }
 .side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .panel { border: 1px solid var(--gr-border); border-radius: 8px; padding: 8px 10px; background: var(--gr-surface); }
 .panel h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gr-muted); }
@@ -101,17 +103,17 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 .node .actor-tag { fill: #fff; font-size: 9.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; letter-spacing: .04em; }
 .actor-pill { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--gr-llm); color: #fff; }
 .actor-pill.code { background: var(--gr-surface); color: var(--gr-muted); border: 1px solid var(--gr-border); }
-.node .tick { font-size: 11px; fill: var(--gr-visited-border); text-anchor: end; }
-.node .count { font-size: 11px; font-weight: 700; fill: var(--gr-bg); text-anchor: middle; }
-/* more specific than the visited and active rules, which also match every circle in a node */
-.node .count-bg, .node.visited .count-bg, .node.active .count-bg { fill: var(--gr-accent); stroke: none; }
-/* stage badge (on each node) and band (behind the graph); the colour comes from --stage-colour set per element */
+.node .tick { font-size: 10px; font-weight: 700; fill: var(--gr-visited-border); text-anchor: end; }
+/* stage badge (on each node) and row (behind the graph); the colour comes from --stage-colour set per element */
 /* more specific than the node's run-state rules (visited, active), so a badge keeps its stage colour whatever the run state */
 .node .stage-badge circle, .item-node .stage-badge circle,
 .node.visited .stage-badge circle, .node.active .stage-badge circle { fill: var(--stage-colour); stroke: var(--gr-bg); stroke-width: 1.5; stroke-dasharray: none; }
 .node .stage-badge text, .item-node .stage-badge text { fill: var(--gr-stage-text); font-size: 10.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .node .stage-badge.unassigned circle, .node.visited .stage-badge.unassigned circle, .node.active .stage-badge.unassigned circle { stroke: var(--gr-muted); stroke-dasharray: 2 2; }
-.band rect { fill: var(--stage-colour); fill-opacity: .09; stroke: var(--stage-colour); stroke-width: 1.5; }
+/* a row: tint only, no border; Start and Finish use the neutral token at a lighter tint */
+.stage-row rect { fill: var(--stage-colour); fill-opacity: .1; stroke: none; }
+.stage-row.edge-row rect { fill-opacity: .06; }
+.stage-row.edge-row .band-name { fill: var(--gr-muted); }
 .band-badge { fill: var(--stage-colour); }
 .band-number { fill: var(--gr-stage-text); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
 .band-name { fill: var(--gr-text); font-size: 11.5px; font-weight: 600; dominant-baseline: central;
@@ -141,7 +143,7 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 }
 /* dimming and highlight, chosen in the legend: classes only, no animation */
 .node.dim, .item-node.dim { opacity: .35; }
-.band.dim { opacity: .3; }
+.stage-row.dim { opacity: .3; }
 .node .stage-halo, .item-node .stage-halo { fill: none; stroke: var(--stage-colour); stroke-width: 3.5; visibility: hidden; }
 .node.stage-selected .stage-halo, .item-node.stage-selected .stage-halo { visibility: visible; }
 /* the done-beforehand item: dashed and muted, never a step */
@@ -158,7 +160,7 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 .item-rows { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 6px 0; }
 .item-rows dt { color: var(--gr-muted); } .item-rows dd { margin: 0; font-weight: 600; text-align: right; }
 .item-panel a { color: var(--gr-accent); margin-right: 12px; }
-.band.stage-selected rect { fill-opacity: .2; stroke-width: 2.6; }
+.stage-row.stage-selected rect { fill-opacity: .2; }
 .marker { fill: var(--gr-accent); stroke: var(--gr-bg); stroke-width: 2; }
 svg [hidden] { display: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

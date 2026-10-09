@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/008-realistic-setup-rolling-validation/plan.md](specs/008-realistic-setup-rolling-validation/plan.md)
+Current feature plan: [specs/009-stage-row-graph/plan.md](specs/009-stage-row-graph/plan.md)
 <!-- SPECKIT END -->

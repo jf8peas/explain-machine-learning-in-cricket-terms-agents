@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "./fixtures";
 import { open, playToEnd, serveStructure, timelineItems } from "./helpers";
 
-// Stage badges and bands, the legend, the panel and timeline cues, the done-beforehand item and the loop emphasis,
+// Stage badges and rows, the legend, the panel and timeline cues, the done-beforehand item and the loop emphasis,
 // against the real app with the scripted fake model. Stage names come from /api/structure, never from this file.
 
 // The numbers follow the order a run first reaches each stage.
@@ -30,7 +30,7 @@ const box = async (loc: ReturnType<Page["locator"]>) => {
 const overlap = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
   a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 
-// ---------------- US1: badges and bands ----------------
+// ---------------- US1: badges and rows ----------------
 
 test("every step shows its stage number on a badge, and the eight numbers differ", async ({ page }) => {
   await open(page);
@@ -52,51 +52,73 @@ test("the badge numbers agree with the stage the server sent for each node", asy
   }
 });
 
-test("neighbouring nodes of a stage share a labelled band; Choose the setup has two, with Fit the model between", async ({ page }) => {
+test("the graph is one row per stage: Start, the stages in the server's order, then Finish", async ({ page }) => {
   await open(page);
   const s = await structure(page);
-  const bands = page.getByTestId("stage-band");
-  await expect(bands).toHaveCount(9);                       // one per stage, plus a second for Choose the setup
-  const choose = s.stages.find((x) => x.id === "choose")!;
-  await expect(page.locator('[data-testid="stage-band"][data-stage="choose"]')).toHaveCount(2);
-  await expect(page.locator('[data-testid="stage-band"][data-stage="fit"]')).toHaveCount(1);
-  for (const st of s.stages) {
-    const label = page.locator(`[data-testid="stage-band"][data-stage="${st.id}"]`).first().locator(".band-label");
-    await expect(label).toContainText(st.name);
-    await expect(label).toContainText(String(st.number));
+  const rows = page.getByTestId("stage-band");
+  await expect(rows).toHaveCount(s.stages.length + 2);
+  await expect(rows.first()).toHaveAttribute("data-row", "start");
+  await expect(rows.last()).toHaveAttribute("data-row", "end");
+  for (const [i, st] of s.stages.entries()) {
+    const row = rows.nth(i + 1);
+    await expect(row).toHaveAttribute("data-stage", st.id);
+    await expect(row.locator(".band-name")).toHaveText(st.name);
+    await expect(row.locator(".band-number")).toHaveText(String(st.number));
   }
-  const holds = await page.locator('[data-testid="stage-band"][data-stage="choose"]').evaluateAll(
-    (els) => els.map((e) => (e.getAttribute("data-nodes") ?? "").split(" ").sort().join(",")));
-  expect(holds.sort()).toEqual(["check_proposal,propose_features", "evaluate,grid_search"]);
-  expect(choose.number).toBe(5);
+  await expect(rows.first().locator(".band-name")).toHaveText("Start");
+  await expect(rows.first().locator(".band-badge")).toHaveCount(0);
+  await expect(rows.last().locator(".band-name")).toHaveText("Finish");
 });
 
-test("a band never covers a node of another stage and sits behind the nodes", async ({ page }) => {
+test("rows are full width, tinted and borderless, stacked with no gaps", async ({ page }) => {
   await open(page);
-  const bands = await page.getByTestId("stage-band").all();
-  for (const band of bands) {
-    const mine = ((await band.getAttribute("data-nodes")) ?? "").split(" ");
-    const b = await box(band.locator("rect").first());
-    for (const id of Object.keys(NUMBER_OF)) {
-      if (mine.includes(id)) continue;
-      expect(overlap(b, await box(node(page, id).locator("rect").first())), `${id} inside band of ${mine}`).toBe(false);
-    }
+  const rects = page.getByTestId("stage-band").locator("rect");
+  const styles = await rects.evaluateAll((els) => els.map((el) => {
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return { stroke: cs.stroke, opacity: cs.fillOpacity, x: r.x, width: r.width, top: r.top, bottom: r.bottom };
+  }));
+  for (const st of styles) { expect(st.stroke).toBe("none"); expect(Number(st.opacity)).toBeLessThanOrEqual(0.1); }
+  for (const st of styles) { expect(st.x).toBeCloseTo(styles[0].x, 0); expect(st.width).toBeCloseTo(styles[0].width, 0); }
+  for (let i = 1; i < styles.length; i++) expect(styles[i].top).toBeCloseTo(styles[i - 1].bottom, 0);
+});
+
+test("every step sits inside the row of its stage, and the rows sit behind the nodes", async ({ page }) => {
+  await open(page);
+  const s = await structure(page);
+  for (const n of s.nodes.filter((x) => x.kind === "node")) {
+    const row = await box(page.locator(`[data-testid="stage-band"][data-stage="${n.stage}"] rect`));
+    const b = await box(node(page, n.id).locator("rect").first());
+    expect(b.y, `${n.id} top`).toBeGreaterThanOrEqual(row.y - 0.5);
+    expect(b.y + b.height, `${n.id} bottom`).toBeLessThanOrEqual(row.y + row.height + 0.5);
   }
-  // bottom layer: the bands come before every edge and node in the SVG
+  // bottom layer: the rows come before every edge and node in the SVG
   expect(await page.locator("svg > g").first().getAttribute("class")).toContain("bands");
 });
 
-test("badge, visit count and the LLM tag do not overlap on the busiest nodes after a run", async ({ page }) => {
+test("the main sequence is one vertical line and fit_model sits under check_proposal", async ({ page }) => {
+  await open(page);
+  const centre = async (id: string) => { const b = await box(node(page, id).locator("rect, circle").first()); return b.x + b.width / 2; };
+  const spine = [];
+  for (const id of ["load_data", "split", "explore", "baseline", "propose_features"]) spine.push(await centre(id));
+  for (const x of spine) expect(x).toBeCloseTo(spine[0], 0);
+  expect(await centre("fit_model")).toBeCloseTo(await centre("check_proposal"), 0);
+  expect((await box(node(page, "fit_model"))).y).toBeGreaterThan((await box(node(page, "check_proposal"))).y);
+});
+
+test("badge, visit tick and the LLM tag do not overlap on the busiest nodes after a run", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   for (const id of ["fit_model", "propose_features"]) {
     const b = await box(badge(page, id));
-    const count = node(page, id).locator(".count-bg");
-    await expect(count).toBeVisible();
-    expect(overlap(b, await box(count))).toBe(false);
+    const tick = node(page, id).locator(".tick");
+    await expect(tick).toBeVisible();
+    expect(overlap(b, await box(tick))).toBe(false);
+    await expect(node(page, id).locator(".count-bg, .count")).toHaveCount(0);
   }
   const tag = node(page, "propose_features").locator(".actor-tag-bg");
   await expect(tag).toBeVisible();
+  expect(overlap(await box(node(page, "propose_features").locator(".tick")), await box(tag))).toBe(false);
   expect(overlap(await box(badge(page, "propose_features")), await box(tag))).toBe(false);
 });
 
@@ -186,7 +208,7 @@ test("a stage with no node is marked 'Not a step in this agent' with its reason"
   await expect(legendStage(page, "s1")).not.toContainText("Not a step in this agent");
 });
 
-test("selecting a stage highlights its nodes and bands and dims the rest; again, or All, clears it", async ({ page }) => {
+test("selecting a stage highlights its nodes and row and dims the rest; again, or All, clears it", async ({ page }) => {
   await open(page);
   await expect(dimmed(page)).toHaveCount(0);
   await legendStage(page, "fit").click();
@@ -196,7 +218,8 @@ test("selecting a stage highlights its nodes and bands and dims the rest; again,
   for (const id of ["load_data", "split", "propose_features", "evaluate", "final_test", "__start__"]) {
     await expect(node(page, id)).toHaveClass(/dim/);
   }
-  await expect(page.locator('[data-testid="stage-band"][data-stage="choose"]').first()).toHaveClass(/dim/);
+  await expect(page.locator('[data-testid="stage-band"][data-stage="choose"]')).toHaveClass(/dim/);
+  await expect(page.locator('[data-testid="stage-band"][data-row="start"]')).toHaveClass(/dim/);
   await expect(page.locator('[data-testid="stage-band"][data-stage="fit"]')).not.toHaveClass(/dim/);
   await legendStage(page, "fit").click();                                    // again clears
   await expect(dimmed(page)).toHaveCount(0);
@@ -400,9 +423,10 @@ test("the item is drawn differently, with a tag and a stage 1 badge, ahead of lo
   const itemBox = await box(itemNode(page));
   const loadBox = await box(node(page, "load_data"));
   expect(itemBox.y).toBeLessThan(loadBox.y);                                     // ahead of load_data
-  const band = page.locator('[data-testid="stage-band"][data-stage="prepare"]');
-  await expect(band).toHaveCount(1);                                             // one band holds both
-  expect(((await band.getAttribute("data-nodes")) ?? "").split(" ").sort()).toEqual(["item:prepare_data", "load_data"]);
+  const startRow = await box(page.locator('[data-testid="stage-band"][data-row="start"] rect'));      // it is done before the run
+  expect(itemBox.y).toBeGreaterThanOrEqual(startRow.y - 0.5);
+  expect(itemBox.y + itemBox.height).toBeLessThanOrEqual(startRow.y + startRow.height + 0.5);
+  expect(itemBox.x + itemBox.width).toBeLessThan((await box(node(page, "__start__"))).x);          // left of the start node
 });
 
 test("the item never becomes active or visited, is not in the timeline, and is not counted as a step", async ({ page }) => {
@@ -557,33 +581,11 @@ test("the loop emphasis does not rely on animation", async ({ page }) => {
 
 // ---------------- the graph's size ----------------
 
-/** What the right-hand column measured when the page loaded: the legend and the side panels at their natural heights. */
-async function rightColumnStart(page: Page) {
-  return page.evaluate(() => {
-    const root = document.querySelector("graph-replay")!.shadowRoot!;
-    const legend = root.querySelector(".legend") as HTMLElement;
-    const panels = (Array.from(root.querySelector(".side")!.children) as HTMLElement[]).filter((el) => !el.hidden);
-    const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
-    return legend.offsetHeight + 12 + sideHeight;
-  });
-}
-const graphHeight = (page: Page) => page.evaluate(() => (document.querySelector("graph-replay")!.shadowRoot!.querySelector(".graph") as HTMLElement).offsetHeight);
 /** How much the drawing is scaled: 1 is its natural size, where the text is the size it was designed at. */
 const graphScale = (page: Page) => page.evaluate(() => {
   const svg = document.querySelector("graph-replay")!.shadowRoot!.querySelector("svg")!;
   const vb = svg.getAttribute("viewBox")!.split(" ").map(Number);
   return svg.getBoundingClientRect().width / vb[2];
-});
-
-test("on a wide screen the graph is at least as tall as the right-hand column was at the start, and stays so", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await open(page, 40);
-  const start = await rightColumnStart(page);
-  expect(start).toBeGreaterThan(300);
-  expect(await graphHeight(page)).toBeGreaterThanOrEqual(start);
-  await playToEnd(page);                                                   // the panels fill with content and grow
-  expect(await rightColumnStart(page)).toBeGreaterThan(start);
-  expect(await graphHeight(page)).toBeGreaterThanOrEqual(start);
 });
 
 test("the graph is drawn large enough to read, and never larger than its natural size", async ({ page }) => {
@@ -601,15 +603,7 @@ test("on a phone the graph is also drawn at a readable size", async ({ page }) =
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("a small graph from another app still fills the card's minimum height", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await serveStructure(page, JSON.parse((await import("node:fs")).readFileSync("tests/fixtures/other-structure.json", "utf8")));
-  await page.goto("/");
-  await expect(page.locator('[data-node="fetch"]')).toBeVisible();
-  expect(await graphHeight(page)).toBeGreaterThanOrEqual(await rightColumnStart(page));
-});
-
-test("each band's label fits inside its band", async ({ page }) => {
+test("each row's label fits inside its row", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page);
   for (const band of await page.getByTestId("stage-band").all()) {
@@ -632,7 +626,7 @@ test("the round pills sit beside their edges, clear of every node", async ({ pag
   for (const pill of await shown.all()) {
     const p = await box(pill);
     for (const id of Object.keys(NUMBER_OF)) {
-      expect(overlap(p, await box(node(page, id).locator("rect.stage-halo, rect").first())), `pill over ${id}`).toBe(false);
+      expect(overlap(p, await box(node(page, id).locator("rect:not(.stage-halo)").first())), `pill over ${id}`).toBe(false);
     }
   }
 });
@@ -657,18 +651,45 @@ test("a badge keeps its stage colour and a readable number on visited and active
   }
 });
 
-test("the visit count on a node that ran more than once is readable", async ({ page }) => {
+test("the visit count sits beside the tick from the first visit, and there is no count circle", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
-  const counts = await page.locator("[data-visits]").evaluateAll((els) => els.map((el) => {
-    const bg = getComputedStyle(el.querySelector(".count-bg") as SVGCircleElement).fill;
-    const text = getComputedStyle(el.querySelector(".count") as SVGTextElement).fill;
-    return { id: el.getAttribute("data-node"), bg, text, shown: (el.querySelector(".count") as SVGTextElement).textContent };
+  const ticks = await page.locator("[data-node]").evaluateAll((els) => els.map((el) => {
+    const t = el.querySelector(".tick") as SVGTextElement | null;
+    return { id: el.getAttribute("data-node"), visits: el.getAttribute("data-visits"), text: t?.textContent ?? null,
+             hidden: t?.hasAttribute("hidden") ?? true, fill: t ? getComputedStyle(t).fill : "", circles: el.querySelectorAll(".count-bg, .count").length };
   }));
-  expect(counts.length).toBeGreaterThanOrEqual(3);                              // fit_model, propose_features, forward_selection...
-  for (const c of counts) {
-    expect(c.bg, `${c.id} count circle`).toBe("rgb(29, 111, 224)");           // the accent colour, whatever the run state
-    expect(c.text, `${c.id} count text`).not.toBe(c.bg);
-    expect(Number(c.shown)).toBeGreaterThanOrEqual(2);
+  const visited = ticks.filter((t) => t.text !== null && !t.hidden);
+  expect(visited.length).toBeGreaterThanOrEqual(11);
+  for (const t of visited) {
+    expect(t.text, `${t.id} tick`).toBe(`\u2713${t.visits ?? 1}`);   // data-visits is only set from the second visit
+    expect(t.circles).toBe(0);
   }
+  expect(visited.find((t) => t.id === "load_data")?.text).toBe("\u27131");              // shown from the first visit
+  expect(visited.filter((t) => Number(t.visits) >= 2).length).toBeGreaterThanOrEqual(3);   // fit_model, propose_features, ...
+  const colours = new Set(visited.map((t) => t.fill));
+  expect(colours.size).toBe(1);
+  expect([...colours][0]).not.toBe("rgb(29, 111, 224)");                                  // not the accent: it is not the old blue count
 });
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`rows, their labels and the visit tick are legible in the ${scheme} theme`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await open(page, 40);
+    await playToEnd(page);
+    const read = await page.evaluate(() => {
+      const root = document.querySelector("graph-replay")!.shadowRoot!;
+      const fill = (el: Element) => getComputedStyle(el).fill;
+      const names = Array.from(root.querySelectorAll(".stage-row .band-name"));
+      const surface = getComputedStyle(root.querySelector(".graph") as HTMLElement).backgroundColor;
+      return {
+        surface, names: names.map((n) => fill(n)), tick: fill(root.querySelector(".node .tick") as Element),
+        tints: Array.from(root.querySelectorAll(".stage-row rect")).map((r) => getComputedStyle(r).fillOpacity),
+      };
+    });
+    for (const f of read.names) expect(f).not.toBe(read.surface);                // text is not the card's own colour
+    expect(new Set(read.names).size).toBeLessThanOrEqual(2);                      // text colour and the muted one for Start and Finish
+    expect(read.tick).not.toBe(read.surface);
+    for (const t of read.tints) expect(Number(t)).toBeLessThanOrEqual(0.1);       // a light tint, so the text stays legible on it
+  });
+}

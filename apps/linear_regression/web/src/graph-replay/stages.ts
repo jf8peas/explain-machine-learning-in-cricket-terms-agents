@@ -56,3 +56,8 @@ export function loopEdges(structure: { nodes: { id: string; stage?: string }[]; 
     return (a === loop.fit && b === loop.choose) || (a === loop.choose && b === loop.fit);
   }).map((e) => ({ source: e.source, target: e.target }));
 }
+
+/** The visited tick with its count: nothing before the first visit, then "✓1", "✓2", and so on. */
+export function visitTick(visits: number): string {
+  return visits > 0 ? `✓${visits}` : "";
+}
