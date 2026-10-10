@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/009-stage-row-graph/plan.md](specs/009-stage-row-graph/plan.md)
+Current feature plan: [specs/010-stage-panel-copy/plan.md](specs/010-stage-panel-copy/plan.md)
 <!-- SPECKIT END -->

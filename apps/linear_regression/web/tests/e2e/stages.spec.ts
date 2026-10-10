@@ -172,22 +172,26 @@ test("the legend lists the eight stages in order with badge, name and question",
   await expect(page.getByTestId("legend-all")).toBeVisible();
 });
 
-test("Choose the setup explains hyperparameters and says this is the first time the site tunes them", async ({ page }) => {
+test("every stage card shows its question and its technical note, and stage 5 is named for the candidate model", async ({ page }) => {
   await open(page);
-  const note = legendStage(page, "choose").locator(".stage-note");
-  await expect(note).toContainText("training window");
-  await expect(note).toContainText("recency weighting");
-  await expect(note).toContainText("hyperparameters: settings chosen before fitting");
-  await expect(note).toContainText("first app on the site to tune them");
-  await expect(note).not.toContainText("later apps");
+  const body = (await (await page.request.get("/api/structure")).json()) as {
+    stages: { id: string; name: string; question: string }[]; notes: { stages: Record<string, string> };
+  };
+  expect(body.stages[4].name).toBe("Choose the candidate model");
+  expect(body.stages[4].id).toBe("choose");
+  for (const st of body.stages) {
+    const card = legendStage(page, st.id);
+    await expect(card).toContainText(st.question);
+    await expect(card.locator(".stage-note")).toHaveText(body.notes.stages[st.id]);
+  }
+  await expect(page.getByText("Choose the setup")).toHaveCount(0);
 });
 
-test("Split the data describes the three check years", async ({ page }) => {
+test("the technical notes say where selection happens and what is held out", async ({ page }) => {
   await open(page);
-  const note = legendStage(page, "split").locator(".stage-note");
-  await expect(note).toContainText("three check years");
-  await expect(note).toContainText("only from the years before it");
-  await expect(note).toContainText("ICC full members");
+  await expect(legendStage(page, "split").locator(".stage-note")).toContainText("held-out test set, read once");
+  await expect(legendStage(page, "choose").locator(".stage-note")).toContainText("cross-validated MAE wins, before the test year is read");
+  await expect(legendStage(page, "fit").locator(".stage-note")).toContainText("A separate fit is made for each validation fold");
 });
 
 test("a stage with no node is marked 'Not a step in this agent' with its reason", async ({ page }) => {
@@ -386,7 +390,7 @@ test("every timeline entry carries a stage cue that shows, and the existing time
   await expect(items.nth(3)).toHaveText("4. baseline");
 });
 
-test("the timeline shows the run moving between Fit the model and Choose the setup", async ({ page }) => {
+test("the timeline shows the run moving between Fit the model and Choose the candidate model", async ({ page }) => {
   await open(page, 60);
   await playToEnd(page);
   const numbers = (await timelineItems(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-stage-number")))).join("");
@@ -510,18 +514,23 @@ async function visitIndex(page: Page, nodeName: string, nth: number) {
   throw new Error(`no visit ${nth} of ${nodeName}`);
 }
 
-test("the loop note sits near the legend and names the real years", async ({ page }) => {
+test("the general note under All names the validation and test years from the data, in one sentence", async ({ page }) => {
   await open(page);
   // the years the data really spans: the latest year in the Data tab's rows is the test year, the three before it are the checks
   const data = await (await page.request.get("/api/data")).json();
   const dateColumn = data.columns.findIndex((c: { key: string }) => c.key === "match_date");
   const latest = Math.max(...data.rows.map((r: string[]) => Number(String(r[dateColumn]).slice(0, 4))));
-  const note = page.getByTestId("legend-note");
-  await expect(note).toContainText("new setup (stage 5)");
-  await expect(note).toContainText("fits the model again (stage 6)");
-  await expect(note).toContainText(`check years (${latest - 3}, ${latest - 2} and ${latest - 1})`);
-  await expect(note).toContainText(`test year (${latest})`);
-  await expect(note).toContainText("used once");
+  await expect(page.getByTestId("legend-note")).toHaveText(
+    `Validation years: ${latest - 3}, ${latest - 2} and ${latest - 1}; test year: ${latest}, used once.`);
+});
+
+test("with no general note in the structure the legend shows none", async ({ page }) => {
+  const real = await (await page.request.get("/api/structure")).json();
+  const { general: _gone, ...notes } = real.notes;
+  await serveStructure(page, { ...real, notes });
+  await page.goto("/");
+  await expect(page.locator('[data-node="load_data"]')).toBeVisible();
+  await expect(page.getByTestId("legend-note")).toHaveCount(0);
 });
 
 test("the loop edges look like any others until the run returns to Fit the model, then show the round", async ({ page }) => {

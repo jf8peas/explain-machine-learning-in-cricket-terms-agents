@@ -89,7 +89,7 @@ describe("rows for this app's real graph", () => {
     }
   });
 
-  it("gives Choose the setup, with its loop-back arcs, a taller row than a single line", () => {
+  it("gives Choose the candidate model, with its loop-back arcs, a taller row than a single line", () => {
     const choose = out.rows.find((r) => r.stage === "choose");
     const split = out.rows.find((r) => r.stage === "split");
     expect(choose?.h).toBeGreaterThan(split?.h ?? 0);

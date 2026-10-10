@@ -29,7 +29,7 @@ Every step of the agent belongs to one of eight stages of a machine learning pro
 
 - The stage set is defined once, in `backend/linreg/stages.py`, for every algorithm app. It reaches the page inside `GET /api/structure`; the visualiser holds no stage text.
 - To give a node a stage, add it to `NODE_STAGES` in `backend/linreg/graph.py`. `check_stages(app, mapping)` (used by `tests/test_structure_stages.py`) fails if a node has no stage, an unknown stage, or the mapping names something that is not a node. Another app calls the same function with its own graph and mapping.
-- `backend/linreg/stage_info.py` supplies this app's notes (Choose the setup explains hyperparameters here; Split the data describes the three checks; the loop explanation names the check years and the test year read from the data) and the display-only "done beforehand" item for `scripts/prepare_data.py`, built from `data/manifest.json` and the feature catalogue.
+- `backend/linreg/stage_info.py` supplies this app's notes (a technical note for each of the eight stages, built from the app's constants; the general note names the validation years and the test year read from the data) and the display-only "done beforehand" item for `scripts/prepare_data.py`, built from `data/manifest.json` and the feature catalogue.
 - The colours and the checks they passed (contrast, difference from the existing colours) are in `specs/005-ml-stages/research.md`; `web/tests/unit/stage-colours.test.ts` holds the values.
 - Spec, plan and tasks: `specs/005-ml-stages/`.
 

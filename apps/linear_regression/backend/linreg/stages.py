@@ -30,7 +30,7 @@ STAGES: tuple[Stage, ...] = (
           "Look for patterns in the data before fitting anything."),
     Stage("frame", 4, "Frame the problem", "What are we predicting, and what counts as good?",
           "Say what we are predicting and what counts as a good answer, so we know the score to beat."),
-    Stage("choose", 5, "Choose the setup", "Which features, model type and hyperparameters?",
+    Stage("choose", 5, "Choose the candidate model", "Which features, model type and hyperparameters?",
           "Decide which features, model type and hyperparameters to use, judged on data the fit never saw."),
     Stage("fit", 6, "Fit the model", "What are the best parameters for this setup?",
           "For one chosen setup, find the parameters that fit the learning data best."),

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from . import features, setup_settings
+from . import features, selection, setup_settings, state
 from .competition_dummies import DUMMIES
 from .data_table import DEFAULT_MANIFEST, exclusion_rows
 from .data_loading import DataError, load_innings
@@ -17,21 +17,70 @@ from .graph import NODE_STAGES
 from .season_split import rolling_checks
 from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, stage_set
 
-SPLIT_STAGE = "split"
-CHOOSE_NOTE = ("In this app, Choose the setup means picking the features and the hyperparameters. "
-               + setup_settings.HYPERPARAMETER_NOTE)
-SPLIT_NOTE = ("The data is split by calendar year, never at random. Instead of one validation year there are three check "
-              "years: each is judged by a model that learned only from the years before it, and the three errors are "
-              "averaged, so one odd year cannot decide the winner. The latest year is kept for one final test. Only IPL "
-              "and BBL innings and T20 internationals between ICC full members are scored.")
+_COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+
+
+def _whole(x: float) -> str:
+    """A number as written in the notes: no trailing '.0' on a whole number (the same rule goal.py uses)."""
+    return str(int(x)) if float(x).is_integer() else str(x)
+
+
+def note_texts() -> dict[str, str]:
+    """The technical note for each stage, for a data scientist. Every number that is a constant of the app is read from
+    its constant when this is called, never typed here, so the copy cannot drift from the code."""
+    checks = _COUNT_WORDS[len(setup_settings.CHECK_OFFSETS)]
+    margin = _whole(state.MARGIN_RUNS)
+    return {
+        "prepare": "Reads the prepared CSV into a pandas DataFrame and validates it.",
+        "split": (
+            "Split by calendar year, never at random. Expanding-window cross-validation: each of the "
+            f"{checks} years before the latest is scored by a model trained only on earlier years, and the {checks} mean "
+            "absolute errors (MAE, the average miss in runs) are averaged. That average chooses the features, "
+            "hyperparameters and winning method, while the coefficients are fitted only on each fold's training years. "
+            "The latest year is the held-out test set, read once. Only IPL, BBL and full-member T20Is are scored."),
+        "understand": (
+            "Computes summary statistics to brief the LLM before it proposes: each feature's correlation with the final "
+            "total, runs added by wickets down, and mean totals by competition and year. They guide the LLM's proposals "
+            "only; no model is fitted on them."),
+        "frame": (
+            "Regression on the final total, scored by MAE. Before any fitting, two baselines are scored on the validation "
+            "folds: the TV projection (run rate × 20) and a naive mean. The goal is to beat the TV projection by "
+            f"{margin} runs of MAE on the test year."),
+        "choose": (
+            f"Model selection. A candidate is a feature subset (up to {state.SET_LIMIT}) plus three hyperparameters, set "
+            "before fitting rather than learned: training window, recency weighting and training innings. The LLM "
+            "proposes candidates; code rejects any that are invalid, already tried, too small to train on or perfectly "
+            f"collinear, then fits and cross-validates the rest. The loop runs up to {state.ROUND_CAP} rounds and stops "
+            f"after {state.NO_IMPROVE_STOP} without improvement. As a benchmark, a grid search tries all "
+            f"{len(selection.GRID)} hyperparameter combinations, with forward feature selection inside each. Whichever "
+            "method's best candidate has the lower cross-validated MAE wins, before the test year is read."),
+        "fit": (
+            "Fits the candidate in closed form (least squares via the normal equations, not gradient descent): an "
+            "intercept plus one coefficient per feature, weighted when recency weighting is on. A separate fit is made "
+            "for each validation fold, on only the years before it, and the loop repeats this for every new candidate. "
+            "Solved directly in NumPy rather than scikit-learn (a test confirms identical coefficients) to stay within "
+            "Vercel's size limit."),
+        "assess": (
+            "The winning candidate and the benchmark's best are refitted on every year before the test year, then scored "
+            "once on the held-out test year alongside the TV projection and the naive mean. Selection was already "
+            "settled on cross-validated MAE, so this is an unbiased estimate of performance on a new season. Reports "
+            f"MAE, R², share within 10 and 20 runs, error as a % of a typical total, and bias, and whether the {margin}-run "
+            "goal was met."),
+        "interpret": (
+            "Turns the results into cricket sentences from code templates. Every number is read from the run state, so "
+            "the LLM cannot invent a figure. Feature importance is coefficient × interquartile range: how many runs a "
+            "typical difference in that feature moves the prediction. Also states the winning window and half-life, and "
+            "the test-year MAE against the TV projection and the goal."),
+    }
+
 
 # A stage with no node in this agent must say why. Every stage has a node today, so this is empty.
 NO_NODE_REASONS: dict[str, str] = {}
 
 
 def stage_notes(mapping: Mapping[str, str] = NODE_STAGES, reasons: Mapping[str, str] = NO_NODE_REASONS) -> dict[str, str]:
-    """A note per stage: the choose and split statements, and for each stage with no node the reason there is none."""
-    notes = {CHOOSE_STAGE: CHOOSE_NOTE, SPLIT_STAGE: SPLIT_NOTE}
+    """A note for every stage; a stage with no node in the agent must also be given a reason, which is its note."""
+    notes = note_texts()
     used = set(mapping.values())
     for stage in STAGES:
         if stage.id in used:
@@ -67,20 +116,15 @@ def prepare_item(manifest_path: str | Path | None = None) -> dict[str, Any]:
     return {**item, "summary": {"text": text, "rows": rows, "link": DATA_TAB_LINK}}
 
 
-def loop_note(data_path: str | Path | None = None) -> str:
-    """The two loops in plain words. The years come from the same rolling checks the agent uses; if the data cannot be
-    read the note is sent without any year rather than with a guess."""
-    first = (f"Every time the agent tries a new setup (stage {STAGE_NUMBER[CHOOSE_STAGE]}) it fits the model again "
-             f"(stage {STAGE_NUMBER[FIT_STAGE]}), so the two stages form a loop.")
+def loop_note(data_path: str | Path | None = None) -> str | None:
+    """One sentence naming the validation years and the test year. The years come from the same rolling checks the agent
+    uses; if the data cannot be read there is no note at all, rather than a sentence without years."""
     try:
         rolling = rolling_checks(load_innings(data_path, required=["match_date", "in_test_population"]))
         years = [str(c.year) for c in rolling.checks]
-        checks, test = f" ({years[0]}, {years[1]} and {years[2]})", f" ({rolling.test_year})"
+        return f"Validation years: {', '.join(years[:-1])} and {years[-1]}; test year: {rolling.test_year}, used once."
     except (DataError, IndexError, KeyError, ValueError):
-        checks = test = ""
-    return (f"{first} Parameters are learned from the years before each check year. The setup is chosen using the three "
-            f"check years{checks}, each judged by a model that learned only from earlier years. The test year{test} is "
-            f"used once, at the end.")
+        return None
 
 
 def structure_extras(manifest_path: str | Path | None = None, data_path: str | Path | None = None) -> dict[str, Any]:
@@ -88,6 +132,6 @@ def structure_extras(manifest_path: str | Path | None = None, data_path: str | P
     return {
         "stages": stage_set(),
         "loop": {"fit": FIT_STAGE, "choose": CHOOSE_STAGE},
-        "notes": {"general": loop_note(data_path), "stages": stage_notes()},
+        "notes": {**({"general": general} if (general := loop_note(data_path)) else {}), "stages": stage_notes()},
         "items": [prepare_item(manifest_path)],
     }
