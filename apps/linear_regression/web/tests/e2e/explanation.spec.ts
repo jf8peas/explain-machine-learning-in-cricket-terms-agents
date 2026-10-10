@@ -25,11 +25,11 @@ test("the Cricsheet attribution is visible in the results area", async ({ page }
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
 });
 
-test("the winning setup is stated in cricket language in the best-setup line, not repeated in the section", async ({ page }) => {
+test("the winning setup is stated in cricket language in the best-candidate-model line, not repeated in the section", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   await openTab(page, "final-test");
-  const line = page.getByText(/best setup:/).first();
+  const line = page.getByText(/best candidate model:/).first();
   await expect(line).toBeVisible();
   await expect(page.getByTestId("explanation").getByText("The winning setup")).toHaveCount(0);
   await expect(page.getByTestId("explanation")).toContainText("check years");

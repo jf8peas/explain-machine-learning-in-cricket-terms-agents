@@ -111,8 +111,8 @@ export function renderFinal(target: HTMLElement, state: Record<string, unknown>)
       const s = final.setups?.[key];
       return s ? ` (${setupChips(s, menuLabel).map((c) => c.text).join("; ")})` : "";
     };
-    if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best setup: ${final.sets.llm.map(labelFor).join(", ")}${setupText("llm")}.`));
-    if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's best setup: ${final.sets.forward.map(labelFor).join(", ")}${setupText("forward")}.`));
+    if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best candidate model: ${final.sets.llm.map(labelFor).join(", ")}${setupText("llm")}.`));
+    if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's best candidate model: ${final.sets.forward.map(labelFor).join(", ")}${setupText("forward")}.`));
   }
   if (expl) parts.push(buildCricketTerms(expl));
   target.replaceChildren(...parts);

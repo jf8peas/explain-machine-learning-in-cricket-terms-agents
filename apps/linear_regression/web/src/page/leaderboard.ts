@@ -50,7 +50,7 @@ export const proposerName = who;
 export function renderLeaderboard(attempts: Attempt[], baseline: number | undefined): HTMLElement {
   const section = h("section", { "data-testid": "leaderboard", "aria-label": "Leaderboard" });
   section.append(h("h3", {}, "Leaderboard"),
-    h("p", { class: "muted" }, "Every setup that was fitted, judged on three check years (the average miss in runs over the three, and each year's own miss; lower is better). Code does the fitting and the scoring, whoever proposed the setup."));
+    h("p", { class: "muted" }, "Every candidate model that was fitted, judged on three check years (the average miss in runs over the three, and each year's own miss; lower is better). Code does the fitting and the scoring, whoever proposed the candidate model."));
   if (!attempts.length) return section;
   const body = h("tbody");
   if (baseline !== undefined) {
@@ -67,7 +67,7 @@ export function renderLeaderboard(attempts: Attempt[], baseline: number | undefi
       h("td", {}, a.improved ? "improved" : "no better")));
   });
   const table = h("table", { class: "attempts" },
-    h("thead", {}, h("tr", {}, ...["Setup", "Proposed by", "Average error (runs)", "Each check year (runs)", "Result"].map((t) => h("th", { scope: "col" }, t)))),
+    h("thead", {}, h("tr", {}, ...["Candidate model", "Proposed by", "Average error (runs)", "Each check year (runs)", "Result"].map((t) => h("th", { scope: "col" }, t)))),
     body);
   section.append(h("div", { class: "table-scroll" }, table));   // scrolls inside its own box on a phone
   return section;

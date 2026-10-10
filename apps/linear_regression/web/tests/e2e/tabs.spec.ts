@@ -333,6 +333,6 @@ test("after a run, a result tab can be opened from What the agent found, and the
   await selected(page, "final-test");
   await expect(page.getByTestId("comparison")).toBeVisible();
   await afterRunOpen(page, "working").catch(() => openTab(page, "working"));
-  await expect(page.getByTestId("run-summary")).toContainText("Best setup so far");
+  await expect(page.getByTestId("run-summary")).toContainText("Best candidate model so far");
   await expect(page.getByTestId("run-summary").getByRole("link")).toHaveAttribute("href", "#found");
 });

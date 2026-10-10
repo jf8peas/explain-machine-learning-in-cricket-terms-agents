@@ -29,7 +29,7 @@ EXPECTED = [                                   # the order a run first reaches e
     ("understand", "Understand the data", "What patterns are there?"),
     ("frame", "Frame the problem", "What are we predicting, and what counts as good?"),
     ("choose", "Choose the candidate model", "Which features, model type and hyperparameters?"),
-    ("fit", "Fit the model", "What are the best parameters for this setup?"),
+    ("fit", "Fit the model", "What are the best parameters for this candidate model?"),
     ("assess", "Final assessment", "How good is it on data it has never seen?"),
     ("interpret", "Interpret and communicate", "What does it mean?"),
 ]

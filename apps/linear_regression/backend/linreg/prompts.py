@@ -45,8 +45,8 @@ def build_system(rounds_remaining: int) -> str:
         *_menu("training_innings (which innings to learn from)", setup_settings.TRAINING_INNINGS),
     ]
     return (
-        "You are helping a cricket analyst choose a setup for a straight-line (linear regression) model that predicts a "
-        "T20 first innings' final total from how the innings stood at the end of the 10th over. A setup has four parts: "
+        "You are helping a cricket analyst choose a candidate model for a straight-line (linear regression) model that predicts a "
+        "T20 first innings' final total from how the innings stood at the end of the 10th over. A candidate model has four parts: "
         "which measurements (features) to use, which past seasons to learn from (window), how much recent seasons count "
         "(weighting), and which innings to learn from (training_innings). The innings the model is judged on are IPL and "
         "BBL innings and T20 internationals between full ICC members.\n\n"
@@ -56,7 +56,7 @@ def build_system(rounds_remaining: int) -> str:
         f"- Propose at most {SET_LIMIT} features.\n"
         "- Choose window, weighting and training_innings exactly as written in the menus below:\n"
         + "\n".join(menus) + "\n"
-        "- Never propose a setup that has already been tried: the same features (in any order), window, weighting and "
+        "- Never propose a candidate model that has already been tried: the same features (in any order), window, weighting and "
         "training_innings.\n"
         "- Do not include a feature that can be built exactly from the others in the set (for example wickets lost "
         "together with wickets in hand): a straight-line fit cannot tell such features apart, and the proposal will "
@@ -68,8 +68,8 @@ def build_system(rounds_remaining: int) -> str:
         "results so far to decide what to try next. Reply with JSON only, in exactly this shape: "
         '{"features": ["id", "id"], "window": "' + setup_settings.WINDOWS[2].id + '", "weighting": "'
         + setup_settings.WEIGHTINGS[1].id + '", "training_innings": "' + setup_settings.TRAINING_INNINGS[0].id + '", '
-        '"reason": "one or two sentences in plain cricket language, which may mention any part of the setup", '
-        '"finished": false}. Set "finished" to true when more tries are unlikely to help; then give your best setup. '
+        '"reason": "one or two sentences in plain cricket language, which may mention any part of the candidate model", '
+        '"finished": false}. Set "finished" to true when more tries are unlikely to help; then give your best candidate model. '
         f"You have {rounds_remaining} round{'s' if rounds_remaining != 1 else ''} remaining "
         "(a rejected proposal uses a round)."
     )

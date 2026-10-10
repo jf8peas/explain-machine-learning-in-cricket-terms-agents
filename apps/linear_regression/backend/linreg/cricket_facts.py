@@ -81,7 +81,7 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
         facts["beat_know_nothing"] = _fact(bool(know["beat"]), "yes/no", "yes" if know["beat"] else "no",
                                            "whether the winner beat the know-nothing guess")
     facts["winner_name"] = _fact(final["winner_name"], "text", str(final["winner_name"]),
-                                 "which method's best setup won (the language model's choice or forward selection)")
+                                 "which method's best candidate model won (the language model's choice or forward selection)")
     facts["winner_test_miss"] = _fact(_runs(final["winner_mae"]), "runs", _one(_runs(final["winner_mae"])),
                                       "the winner's average miss on the test year")
     facts["tv_test_miss"] = _fact(_runs(final["test_mae"]["tv"]), "runs", _one(_runs(final["test_mae"]["tv"])),

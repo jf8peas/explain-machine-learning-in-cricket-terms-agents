@@ -122,7 +122,7 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
         "sections": [
             {"title": "Innings per competition",
              "rows": [{"label": COMPETITION_NAMES.get(k, k), "value": f"{int(v['innings_kept']):,}"} for k, v in comps]},
-            {"title": "How the years are used", "note": "How the agent uses the innings, by calendar year: every setup is judged "
+            {"title": "How the years are used", "note": "How the agent uses the innings, by calendar year: every candidate model is judged "
                                                          "on three check years, each by a model that learned only from the "
                                                          "years before it, and the latest year is kept for a single final test.",
              "rows": [{"label": f"Training ({train_years[0]} to {train_years[-1]})" if train_years else "Training",

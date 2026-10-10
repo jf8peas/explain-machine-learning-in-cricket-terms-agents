@@ -225,8 +225,8 @@
       "id": "fit",
       "number": 6,
       "name": "Fit the model",
-      "question": "What are the best parameters for this setup?",
-      "description": "For one chosen setup, find the parameters that fit the learning data best."
+      "question": "What are the best parameters for this candidate model?",
+      "description": "For one candidate model, find the parameters that fit the learning data best."
     },
     {
       "id": "assess",

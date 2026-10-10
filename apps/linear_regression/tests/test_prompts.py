@@ -38,7 +38,7 @@ def test_the_system_message_states_the_task_the_rules_the_shape_the_limit_and_th
     assert "final total" in text and "10th over" in text
     assert str(SET_LIMIT) in text and "4 round" in text
     assert "catalogue" in text and "exactly" in text                        # only catalogue ids, written exactly
-    assert "already tried" in text or "never propose a set" in text.lower()
+    assert "already been tried" in text and "never propose a candidate model" in text.lower()
     assert "repeat" in text.lower() or "built exactly" in text              # no redundant sets
     assert '"features"' in text and '"reason"' in text and '"finished"' in text
     assert "code" in text.lower() and "numbers" in text.lower()             # it never produces numbers

@@ -26,7 +26,7 @@ export function renderSummary(target: HTMLElement, state: Record<string, unknown
       "Results will appear here as the agent works, and in the tabs for what it found and the final test."));
   } else {
     target.replaceChildren(h("p", { "data-testid": "summary-text" },
-      `Best setup so far: an average miss of ${m.miss} runs on the check years, proposed by ${m.proposer.toLowerCase()}. `,
+      `Best candidate model so far: an average miss of ${m.miss} runs on the check years, proposed by ${m.proposer.toLowerCase()}. `,
       h("a", { href: "#found", "data-testid": "summary-link" }, "See what the agent found")));
   }
 }

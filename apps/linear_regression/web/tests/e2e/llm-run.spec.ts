@@ -47,7 +47,7 @@ test("a rejected proposal is shown with the code's reason, and the model tries a
   await playToEnd(page);
   const rejected = page.locator('[data-testid=round-item][data-outcome="rejected"]');
   await expect(rejected).toHaveCount(1);
-  await expect(rejected).toContainText("Rejected by code: That setup was already tried");
+  await expect(rejected).toContainText("Rejected by code: That candidate model was already tried");
   await expect(rejected.getByTestId("model-reason")).toHaveText("Let me try that once more.");
 });
 

@@ -119,7 +119,7 @@ def split(state: RunState) -> dict[str, Any]:
     info = {"test_year": rolling.test_year, "test_n": rolling.n_test, "checks": checks,
             "first_year": rolling.checks[0].earlier_years[0]}
     return {"split": info,
-            "summary": (f"Every setup is judged on three checks: {years} ({sizes} innings), each time learning only from "
+            "summary": (f"Every candidate model is judged on three checks: {years} ({sizes} innings), each time learning only from "
                         f"the years before the one being checked. {rolling.test_year} ({rolling.n_test} innings) is kept for "
                         "one final test. Split by year, never at random, and only IPL, BBL and full-member internationals "
                         "are scored.")}
@@ -392,7 +392,7 @@ def grid_search(state: RunState) -> dict[str, Any]:
         "validation_winner": decision,
         "decision": {"branch": "done", "reason": f"Every combination was considered; {decision['reason']}."},
         "summary": (f"The rival tried every combination of training innings, window and weighting ({considered} "
-                    f"considered, {fitted} fitted), running forward selection in each. Its best setup, {setup}, uses "
+                    f"considered, {fitted} fitted), running forward selection in each. Its best candidate model, {setup}, uses "
                     f"{_words(best['features'])} and misses by {_r(best['validation_mae'], 1)} runs on average over the "
                     f"three checks. Choosing between the two methods on the checks: {decision['reason']}."),
     }
