@@ -10,7 +10,7 @@ const EXPECTED_PATH = [
   "propose_features", "check_proposal",               // the repeat, rejected
   "propose_features", "check_proposal",               // "finished"
   "grid_search",
-  "final_test", "explain_in_cricket_terms",
+  "final_test", "explain_in_cricket_terms", "write_in_cricket_terms",
 ];
 
 test("Play runs the whole agent in order, with marks, counts and a marker", async ({ page }) => {
@@ -23,7 +23,7 @@ test("Play runs the whole agent in order, with marks, counts and a marker", asyn
   const names = (await timelineItems(page).allTextContents()).map((t) => t.replace(/^\d+\.\s*/, ""));
   expect(names).toEqual(EXPECTED_PATH);
   // visited nodes stay marked; repeated nodes show a count
-  await expect(page.locator(".node.visited")).toHaveCount(13); // 11 steps + start + end
+  await expect(page.locator(".node.visited")).toHaveCount(14); // 12 steps + start + end
   await expect(page.locator('[data-node="fit_model"]')).toHaveAttribute("data-visits", "3");
   await expect(page.locator('[data-node="propose_features"]')).toHaveAttribute("data-visits", "5");
   await expect(page.locator('[data-node="grid_search"]')).not.toHaveAttribute("data-visits", /.*/);   // visited once

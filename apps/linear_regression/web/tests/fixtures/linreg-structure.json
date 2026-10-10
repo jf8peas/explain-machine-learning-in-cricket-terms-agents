@@ -71,6 +71,12 @@
       "stage": "choose"
     },
     {
+      "id": "write_in_cricket_terms",
+      "kind": "node",
+      "actor": "llm",
+      "stage": "interpret"
+    },
+    {
       "id": "__end__",
       "kind": "end"
     }
@@ -117,6 +123,12 @@
       "target": "propose_features",
       "conditional": true,
       "branch": "continue"
+    },
+    {
+      "source": "explain_in_cricket_terms",
+      "target": "write_in_cricket_terms",
+      "conditional": false,
+      "branch": null
     },
     {
       "source": "explore",
@@ -167,7 +179,7 @@
       "branch": null
     },
     {
-      "source": "explain_in_cricket_terms",
+      "source": "write_in_cricket_terms",
       "target": "__end__",
       "conditional": false,
       "branch": null
@@ -245,7 +257,7 @@
       "choose": "Model selection. A candidate is a feature subset (up to 8) plus three hyperparameters, set before fitting rather than learned: training window, recency weighting and training innings. The LLM proposes candidates; code rejects any that are invalid, already tried, too small to train on or perfectly collinear, then fits and cross-validates the rest. The loop runs up to 6 rounds and stops after 2 without improvement. As a benchmark, a grid search tries all 24 hyperparameter combinations, with forward feature selection inside each. Whichever method's best candidate has the lower cross-validated MAE wins, before the test year is read.",
       "fit": "Fits the candidate in closed form (least squares via the normal equations, not gradient descent): an intercept plus one coefficient per feature, weighted when recency weighting is on. A separate fit is made for each validation fold, on only the years before it, and the loop repeats this for every new candidate. Solved directly in NumPy rather than scikit-learn (a test confirms identical coefficients) to stay within Vercel's size limit.",
       "assess": "The winning candidate and the benchmark's best are refitted on every year before the test year, then scored once on the held-out test year alongside the TV projection and the naive mean. Selection was already settled on cross-validated MAE, so this is an unbiased estimate of performance on a new season. Reports MAE, R², share within 10 and 20 runs, error as a % of a typical total, and bias, and whether the 3-run goal was met.",
-      "interpret": "Turns the results into cricket sentences from code templates. Every number is read from the run state, so the LLM cannot invent a figure. Feature importance is coefficient × interquartile range: how many runs a typical difference in that feature moves the prediction. Also states the winning window and half-life, and the test-year MAE against the TV projection and the goal."
+      "interpret": "Code works out a fixed set of named facts from the run and builds the blocks of the results section with template wording. A separate language-model step then writes the titles and sentences, naming facts in braces and never writing a number: code rejects any reply with a digit, an unknown fact or text over the length limit, and fills every number in from the facts. If the model is absent or its reply is rejected, the template wording is used. Feature importance is coefficient × interquartile range: how many runs a typical difference in that feature moves the prediction."
     }
   },
   "items": [

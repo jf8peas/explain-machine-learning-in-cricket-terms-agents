@@ -11,7 +11,7 @@ from linreg import goal as goal_module
 from linreg import reference_api
 from linreg.llm_fake import FakeLlm
 from linreg.goal import goal
-from tests.conftest import make_table, merged_state
+from tests.conftest import explanation_text, make_table, merged_state
 from tests.test_final_test import SCRIPT
 
 APP = Path(__file__).resolve().parent.parent
@@ -32,6 +32,13 @@ def reference_text():
     return reference_goal()["text"]
 
 
+def template_text(state):
+    """The template wording for the run's facts (the model's own wording need not mention the goal)."""
+    from linreg import cricket_blocks, features
+    blocks = cricket_blocks.build_blocks(state["explanation"]["facts"], features.labels(), list(state["features"]))
+    return " ".join([*(b["title"] for b in blocks), *(x for b in blocks for x in b["sentences"])])
+
+
 def run(run_graph, write_csv):
     return merged_state(run_graph({"data_path": write_csv(make_table())}, llm=FakeLlm({"fake/steady": list(SCRIPT)})))
 
@@ -41,7 +48,7 @@ def test_the_introductions_goal_the_verdict_and_the_explanation_all_name_the_sam
     margin = goal()["margin_runs"]
     assert f"at least {margin} runs" in reference_text()
     assert f"at least {margin} runs" in state["final"]["verdict_sentence"]
-    assert f"at least {margin} runs" in " ".join(state["explanation"]["sentences"])
+    assert state["explanation"]["facts"]["goal_margin"]["display"] == str(margin)
 
 
 def test_changing_the_margin_changes_every_place_the_goal_appears(run_graph, write_csv, monkeypatch):
@@ -49,7 +56,8 @@ def test_changing_the_margin_changes_every_place_the_goal_appears(run_graph, wri
     state = run(run_graph, write_csv)
     assert "at least 5 runs" in reference_text()
     assert "at least 5 runs" in state["final"]["verdict_sentence"]
-    assert "at least 5 runs" in " ".join(state["explanation"]["sentences"])
+    assert state["explanation"]["facts"]["goal_margin"]["display"] == "5"
+    assert "5-run goal" in template_text(state) or "at least 5 runs" in template_text(state)
     assert not names_margin(state["final"]["verdict_sentence"], 3)
     f = state["final"]
     assert f["verdict"]["reached"] is (f["verdict"]["improvement_runs"] >= 5)
@@ -58,9 +66,11 @@ def test_changing_the_margin_changes_every_place_the_goal_appears(run_graph, wri
 
 def test_the_explanation_does_not_keep_its_own_copy_of_the_margin(run_graph, write_csv, monkeypatch):
     monkeypatch.setattr(goal_module, "MARGIN_RUNS", 7)
-    sentences = " ".join(run(run_graph, write_csv)["explanation"]["sentences"])
-    assert names_margin(sentences, 7)
-    assert not names_margin(sentences, 3)
+    expl = run(run_graph, write_csv)["explanation"]
+    sentences = template_text(run(run_graph, write_csv))
+    assert expl["facts"]["goal_margin"]["display"] == "7"
+    assert "7-run goal" in sentences or "at least 7 runs" in sentences
+    assert "3-run goal" not in sentences and "at least 3 runs" not in sentences
 
 
 def test_the_page_holds_no_hand_written_goal():

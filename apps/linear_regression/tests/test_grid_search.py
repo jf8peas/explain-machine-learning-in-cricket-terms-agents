@@ -137,7 +137,7 @@ def test_one_grid_search_step_replaces_the_repeating_forward_steps(run_graph, pa
     events = run_graph({"data_path": path}, llm=FakeLlm({"fake/steady": list(SCRIPT)}))
     names = nodes_of(events)
     assert names.count("grid_search") == 1 and "forward_selection" not in names
-    assert names[-3:] == ["grid_search", "final_test", "explain_in_cricket_terms"]
+    assert names[-4:] == ["grid_search", "final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
     state = merged_state(events)
     grid = state["grid"]
     assert len(grid["cells"]) == 24 and grid["best"] and grid["build_up"] and "hyperparameters" in grid["caption"]
@@ -188,5 +188,5 @@ def test_a_whole_scripted_run_on_the_committed_data_finishes_well_inside_the_dea
     started = time.perf_counter()
     events = run_graph({"data_path": str(DEFAULT_PATH)}, llm=FakeLlm({"fake/steady": list(SCRIPT)}))
     seconds = time.perf_counter() - started
-    assert nodes_of(events)[-1] == "explain_in_cricket_terms" and merged_state(events)["final"]
+    assert nodes_of(events)[-1] == "write_in_cricket_terms" and merged_state(events)["final"]
     assert seconds <= 15.0, f"the scripted run took {seconds:.1f}s"

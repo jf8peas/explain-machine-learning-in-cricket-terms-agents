@@ -75,3 +75,9 @@ Start the API with `LLM_PROVIDER=fake` and `RATE_LIMIT_STORE=memory` (see `web/p
 `uv run python scripts/prepare_data.py` downloads fresh Cricsheet data and rewrites `data/innings.csv` and `data/manifest.json` (all or nothing). `--from-existing` recomputes the columns without downloading (it cannot add team names and stops with a clear message if the file lacks them). The run prints every T20 international team it classified as not a full member, so a missed alias is easy to spot. `uv run python scripts/time_models.py` is an owner tool that times and prices each listed model against OpenRouter (needs the key); see `MODEL_OPTIONS.md` for the current list, results and how to run it.
 
 See `specs/001-linear-regression-agent/quickstart.md` for setup, running and tests.
+
+## The "In cricket terms" section (feature 012)
+
+At the end of a run, `explain_in_cricket_terms` (code, stage 8) works out a fixed set of named **facts** (`cricket_facts.py`) and builds five blocks with template wording (`cricket_blocks.py`): the verdict with a goal badge, what drives the final total (a bar chart), what a wicket costs, how it was chosen (a strip of years) and a closing sentence. Wording names facts in braces, filled in by one function, so every number in the section is a fact's display text.
+
+`write_in_cricket_terms` (language model, stage 8) then writes the titles and sentences, naming facts in braces and never writing a number. `writing_reply.py` rejects any reply with a digit, an unknown fact or text over the length limit, and the template wording stays (with a one-line reason) if the model is absent, fails, times out, has no budget or is rejected. The call counts in the run's calls and uses only the time the deadline allows.

@@ -263,8 +263,10 @@ function layoutRows(structure: Structure, flat: Layout, line = ROW_LINE): Layout
       const next = xs[i - 1] + sep(by.get(ids[i - 1]) as LaidNode, by.get(ids[i]) as LaidNode);
       xs[i] = Math.max(next, want[i] ?? -Infinity);
     }
-    // a lone step never reaches further right than the widest line above it, so one wide step does not widen the drawing
-    if (ids.length === 1 && limit > -Infinity) xs[0] = Math.min(xs[0], limit - (by.get(ids[0]) as LaidNode).w / 2);
+    // a line never reaches further right than the widest multi-step line above it, so a wide step (or a short chain of
+    // them) does not widen the drawing: the line is moved left as a whole, keeping its order
+    const rightEdge = Math.max(...ids.map((id, i) => xs[i] + (by.get(id) as LaidNode).w / 2));
+    if (limit > -Infinity && rightEdge > limit) for (let i = 0; i < xs.length; i++) xs[i] -= rightEdge - limit;
     if (ids.length > 1) limit = Math.max(limit, ...ids.map((id, i) => xs[i] + (by.get(id) as LaidNode).w / 2));
     ids.forEach((id, i) => x.set(id, xs[i]));
   });

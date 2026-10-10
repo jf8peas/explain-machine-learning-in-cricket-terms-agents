@@ -67,10 +67,12 @@ def note_texts() -> dict[str, str]:
             f"MAE, R², share within 10 and 20 runs, error as a % of a typical total, and bias, and whether the {margin}-run "
             "goal was met."),
         "interpret": (
-            "Turns the results into cricket sentences from code templates. Every number is read from the run state, so "
-            "the LLM cannot invent a figure. Feature importance is coefficient × interquartile range: how many runs a "
-            "typical difference in that feature moves the prediction. Also states the winning window and half-life, and "
-            "the test-year MAE against the TV projection and the goal."),
+            "Code works out a fixed set of named facts from the run and builds the blocks of the results section with "
+            "template wording. A separate language-model step then writes the titles and sentences, naming facts in braces "
+            "and never writing a number: code rejects any reply with a digit, an unknown fact or text over the length "
+            "limit, and fills every number in from the facts. If the model is absent or its reply is rejected, the template "
+            "wording is used. Feature importance is coefficient × interquartile range: how many runs a typical difference "
+            "in that feature moves the prediction."),
     }
 
 

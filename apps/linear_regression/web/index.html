@@ -142,8 +142,43 @@
     .compare .big { display: block; font-size: 2rem; font-weight: 700; line-height: 1.1; }
     .compare .cap { color: var(--muted); font-size: .85rem; }
     .compare .verdict { flex-basis: 100%; margin: 0; font-weight: 600; }
-    ul.explanation { padding-left: 1.2em; max-width: 75ch; }
-    ul.explanation li { margin-bottom: 6px; }
+    /* "In cricket terms": a few blocks, each with a title, one visual and a sentence or two (no animation anywhere) */
+    .cricket-block { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); max-width: 75ch; }
+    .cricket-block h4 { margin: 0 0 8px; font-size: 1.05rem; }
+    .cricket-block .block-sentence { margin: 8px 0 0; }
+    .writer-label { margin: 6px 0 0; }
+    .writer-label .tag { margin-left: 0; padding: 2px 8px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 0 6px 6px 0; }
+    .goal-badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; border-radius: 999px; font-weight: 700; border: 2px solid currentColor; }
+    .goal-badge.reached { color: var(--win); background: var(--win-bg); }
+    .goal-badge.missed { color: var(--lose); background: var(--lose-bg); border-style: dashed; }
+    .goal-badge .badge-shape { fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .goal-badge .badge-mark { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .drivers-chart { display: grid; gap: 6px; }
+    .bar-row { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr 6.5rem; gap: 8px; align-items: center; font-size: .9rem; }
+    .bar-label { overflow-wrap: anywhere; }
+    .bar-value { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+    .bar-track { position: relative; height: 18px; border-radius: 4px; background: var(--surface); }
+    .bar-track .bar-zero { position: absolute; top: -2px; bottom: -2px; left: 50%; width: 2px; background: var(--muted); }
+    .bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; border: 2px solid var(--text); box-sizing: border-box; }
+    .bar.adds { background: var(--win-bg); border-color: var(--win); }
+    .bar.costs { background: var(--lose-bg); border-color: var(--lose); border-style: dashed; }
+    .big-figure { display: flex; align-items: baseline; gap: 8px; }
+    .big-figure .big { font-size: 2.6rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .big-figure .cap { color: var(--muted); }
+    .years-strip { display: flex; gap: 4px; }
+    .year-seg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; padding: 6px 4px; border: 2px solid var(--border); border-radius: 6px; text-align: center; font-size: .8rem; line-height: 1.25; }
+    .year-seg .year-kind { font-weight: 700; }
+    .year-seg.training { background: var(--surface); border-style: solid; }
+    .year-seg.check { border-style: dashed; border-color: var(--accent); }
+    .year-seg.test { border-style: solid; border-width: 3px; border-color: var(--text); font-weight: 700; }
+    @media (max-width: 520px) {
+      .bar-row { grid-template-columns: 1fr 5.5rem; }
+      .bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
+      .years-strip { flex-wrap: wrap; }
+      .year-seg { flex: 1 1 28%; }
+    }
+
+
     form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .tryit-fields { display: contents; }
     form label { display: flex; flex-direction: column; font-size: .9rem; color: var(--muted); gap: 4px; }

@@ -16,7 +16,7 @@ from typing import Any, NamedTuple
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 
-from . import accuracy_text, cricket_explanation, features as feature_registry, goal, regression, scoring, selection
+from . import accuracy_text, cricket_blocks, cricket_facts, features as feature_registry, goal, regression, scoring, selection
 from .accuracy import accuracy, display
 from .competition_dummies import check_dummies
 from .data_loading import DEFAULT_PATH, DataError, load_innings
@@ -25,7 +25,8 @@ from .population import check_population, in_population
 from .evaluation import broadcaster_projection, know_nothing_guess, mae, r2
 from .llm_client import LlmClient, LlmError, LlmTimeout, LlmUnavailable
 from .llm_reply import UnusableReply, parse_reply
-from .prompts import build_request
+from .writing_reply import parse_writing_reply
+from .prompts import build_request, build_writing_request
 from . import setup_settings
 from .season_split import Rolling, rolling_checks
 from .state import FORWARD, LLM, ROUND_CAP, SET_LIMIT, RunState
@@ -452,16 +453,86 @@ def final_test(state: RunState) -> dict[str, Any]:
 
 
 def explain_in_cricket_terms(state: RunState) -> dict[str, Any]:
-    final = state.get("final", {})
-    has_references = "accuracy" in final and "verdict_sentence" in final
-    setup = (final.get("setups") or {}).get(final.get("winner"))
-    reach = setup_settings.window_years(setup["window"]) if setup else None
-    half_life = setup_settings.HALF_LIVES.get(setup["weighting"]) if setup else None
-    expl = cricket_explanation.build_explanation(
-        dict(state), feature_registry.labels(), goal.goal()["margin_runs"],
-        comparison_sentences=accuracy_text.comparison_sentences(final) if has_references else None,
-        verdict_sentence=final.get("verdict_sentence"),
-        setup_sentence=(f"The winning setup {setup_settings.setup_words(setup['window'], setup['weighting'], setup['training_innings'])}."
-                        if setup else None),
-        setup_figures={k: v for k, v in (("window_years", reach), ("half_life_years", half_life)) if v is not None})
-    return {"explanation": expl, "summary": "Turned the numbers into plain cricket sentences."}
+    """Code builds the named facts and the blocks of the "In cricket terms" section, with template wording. Every number in
+    the section is a fact's display text; the language model plays no part here (see write_in_cricket_terms)."""
+    margin = goal.goal()["margin_runs"]
+    labels = feature_registry.labels()
+    facts = cricket_facts.build_facts(state, labels, margin)
+    blocks = cricket_blocks.build_blocks(facts, labels, list(state["features"]))
+    return {"explanation": {"facts": facts, "blocks": blocks, "order": cricket_blocks.default_order(blocks),
+                            "source": "template", "model": None, "fallback_reason": None, "closing_lead": None},
+            "summary": "Worked out the facts and built the blocks that explain the result in cricket terms."}
+
+
+def _keep_templates(state: RunState, reason: str) -> dict[str, Any]:
+    """The template wording stays, with one short line saying why the model's words are not used."""
+    expl = dict(state["explanation"])
+    expl["fallback_reason"] = reason
+    return {"explanation": expl, "summary": f"Kept the template wording. {reason}"}
+
+
+def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClient) -> dict[str, Any]:
+    """The closing language-model step: it writes the titles and sentences of the section, naming facts in braces and never
+    writing a number. Code checks the reply, fills the placeholders with the facts' display text and replaces the wording
+    of the blocks it covers; whatever it did not write, or any failure at all, leaves the template wording as it was."""
+    cfg = _config(config)
+    budget, model_id = cfg.get("budget"), cfg.get("model_id")
+    expl = state.get("explanation")
+    if not expl:
+        return {"summary": "There was no explanation to write."}
+    try:
+        if (state.get("llm_status") != "ok" or not cfg.get("llm_allowed", True) or budget is None or model_id is None
+                or not (state.get("final") or {}).get("llm_took_part")):
+            took_part = bool((state.get("final") or {}).get("llm_took_part"))
+            return _keep_templates(state, "The language model stopped early, so the wording is from templates." if took_part
+                                   else "The language model did not take part in this run, so the wording is from templates.")
+        timeout = budget.take_writing_call()
+        if timeout is None:
+            return _keep_templates(state, "There was no time or call budget left to ask the language model, so the "
+                                          "wording is from templates.")
+        facts, blocks = expl["facts"], expl["blocks"]
+        movable = [b["id"] for b in blocks if b["id"] in cricket_blocks.MOVABLE]
+        request = build_writing_request(
+            model=model_id, facts=facts, blocks=blocks, purpose=cricket_blocks.BLOCK_PURPOSE,
+            max_title=cricket_blocks.MAX_TITLE, max_sentence=cricket_blocks.MAX_SENTENCE, movable=movable,
+            leads=[lead for lead in cricket_facts.CLOSING_LEADS if lead in facts], max_tokens=budget.max_tokens,
+            timeout=timeout)
+        started = time.monotonic()
+        try:
+            text = llm.complete(request)
+        except LlmTimeout:
+            log.warning("language model writing call failed: model=%s kind=timeout elapsed=%.1fs", model_id,
+                        time.monotonic() - started)
+            return _keep_templates(state, "The language model did not reply in time, so the wording is from templates.")
+        except LlmError as exc:   # unavailable, or any other model-call failure
+            log.warning("language model writing call failed: model=%s kind=%s elapsed=%.1fs", model_id,
+                        type(exc).__name__, time.monotonic() - started)
+            return _keep_templates(state, "The language model could not be reached for the final wording, so the wording "
+                                          "is from templates.")
+        try:
+            wording = parse_writing_reply(text, facts, [b["id"] for b in blocks])
+            written = []
+            for b in blocks:
+                w = wording.blocks.get(b["id"], {})
+                written.append({**b, "title": cricket_blocks.fill(w["title"], facts) if "title" in w else b["title"],
+                                "sentences": [cricket_blocks.fill(x, facts) for x in w["sentences"]]
+                                if "sentences" in w else b["sentences"], "from_model": sorted(w)})
+        except (UnusableReply, cricket_blocks.UnknownFact):
+            log.warning("language model writing reply unusable: model=%s", model_id)
+            return _keep_templates(state, "The language model's wording could not be used, so the wording is from "
+                                          "templates.")
+        by_id = {b["id"]: b for b in written}
+        order = ["verdict", *(wording.order or [i for i in expl["order"] if i in cricket_blocks.MOVABLE]), "closing"]
+        order = [i for i in order if i in by_id]
+        covered = sum(1 for b in written if b["from_model"])
+        if not covered:
+            return _keep_templates(state, "The language model's reply had no wording for any block, so the wording is "
+                                          "from templates.")
+        return {"explanation": {**expl, "blocks": written, "order": order, "source": "language model",
+                                "model": state.get("model_name") or model_id, "fallback_reason": None,
+                                "closing_lead": wording.closing_lead},
+                "summary": f"The language model wrote the words for {covered} of {len(written)} blocks; code filled in "
+                           f"every number."}
+    except Exception:   # nothing here may fail the run: the template wording is already in the state
+        log.exception("writing the closing words failed")
+        return _keep_templates(state, "The final wording could not be written, so the wording is from templates.")

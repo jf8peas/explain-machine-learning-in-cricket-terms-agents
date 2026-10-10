@@ -20,10 +20,10 @@ test("the intro is visible and links back to the main site in the same tab", asy
 test("the whole graph is drawn before anything runs", async ({ page }) => {
   await open(page);
   for (const id of ["load_data", "split", "explore", "baseline", "propose_features", "check_proposal", "fit_model", "evaluate",
-    "grid_search", "final_test", "explain_in_cricket_terms"]) {
+    "grid_search", "final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]) {
     await expect(page.locator(`[data-node="${id}"]`)).toBeVisible();
   }
-  expect(await page.locator(".edge:not(.item-edge)").count()).toBe(16);          // the agent's own edges
+  expect(await page.locator(".edge:not(.item-edge)").count()).toBe(17);          // the agent's own edges
   expect(await page.locator(".edge.item-edge").count()).toBe(1);                 // plus the done-beforehand connector
   expect(await page.locator(".node.active").count()).toBe(0);
   expect(await page.locator(".node.visited").count()).toBe(0);

@@ -1,0 +1,18 @@
+{
+ "model": "fake/steady",
+ "sentences": [
+  "We judged every setup on three check years, 2023 (176 innings), 2024 (196 innings) and 2025 (196), each time learning only from the years before the one being checked, and kept 2026 (166 innings) for one final test that nothing was chosen from.",
+  "The language model proposed feature sets over 5 rounds and code fitted and scored each one, while forward selection, a mechanical method, added one feature at a time.",
+  "On the check years forward selection had the lower average miss (17.0 runs against 17.8 for the language model's choice), so it was chosen before the test year was touched.",
+  "On the final test forward selection missed by 17.9 runs on average and the language model's choice by 18.1.",
+  "The winning model used 6 features: runs scored at the halfway mark, wickets in hand, innings played in the IPL, wickets lost in overs 7 to 10, sixes hit and runs in the current partnership.",
+  "The winning setup learned from the last 3 seasons, with recent seasons counting much more, using full-member and league innings only.",
+  "The biggest factor was runs scored at the halfway mark: a typical difference of 25.0 runs moves the predicted final total by about 28.8 runs.",
+  "Each extra wicket in hand is worth about 6.1 runs by the end of the innings, on top of the other things the model knows.",
+  "Against the know-nothing guess, which ignores the state of the innings, the winning model's average miss was 16.3 runs (47.7%) lower.",
+  "The winning model landed within 10 runs (a boundary or two) of the real total in 38.0% of innings, against 34.3% for the TV projection and 22.9% for the know-nothing guess.",
+  "The winning model guesses 0.7 runs too low on average.",
+  "On the final test the winning model's prediction was 17.9 runs away from the real total on average, against 21.5 runs for the TV projected score.",
+  "The winning model beat the TV projection by 3.6 runs (16.7%), which reaches the goal of at least 3 runs."
+ ]
+}

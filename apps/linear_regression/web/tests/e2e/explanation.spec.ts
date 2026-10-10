@@ -25,11 +25,12 @@ test("the Cricsheet attribution is visible in the results area", async ({ page }
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
 });
 
-test("the explanation states the winning setup in cricket language", async ({ page }) => {
+test("the winning setup is stated in cricket language in the best-setup line, not repeated in the section", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  const sentence = page.getByTestId("explanation").locator("li").filter({ hasText: "The winning setup learned from" });
-  await expect(sentence).toHaveCount(1);
-  await expect(sentence).toContainText("using");
-  await expect(page.getByTestId("explanation")).toContainText("three check years");
+  await openTab(page, "final-test");
+  const line = page.getByText(/best setup:/).first();
+  await expect(line).toBeVisible();
+  await expect(page.getByTestId("explanation").getByText("The winning setup")).toHaveCount(0);
+  await expect(page.getByTestId("explanation")).toContainText("check years");
 });

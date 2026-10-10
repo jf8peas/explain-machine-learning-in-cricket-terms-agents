@@ -13,6 +13,8 @@ from typing import Callable, Mapping
 from .state import ROUND_CAP
 
 MIN_CALL_SECONDS = 2.0   # a call given less time than this is not worth starting
+WRITING_RESERVE = 1.0    # the closing writing step needs no time kept back for later steps
+WRITING_CALLS = 1        # one call beyond the proposing cap, kept for the step that writes the closing words
 
 
 class RunBudget:
@@ -58,4 +60,15 @@ class RunBudget:
         timeout = self.next_timeout()
         if timeout is not None:
             self.calls += 1
+        return timeout
+
+    def take_writing_call(self) -> float | None:
+        """The call for the closing writing step: allowed one call beyond the proposing cap (so proposing retries cannot
+        starve it, and it still counts in `calls`), and the time the deadline allows; None if there is neither."""
+        if self.calls >= self.max_calls + WRITING_CALLS:
+            return None
+        timeout = min(self.call_timeout, self.time_left() - WRITING_RESERVE)
+        if timeout < MIN_CALL_SECONDS:
+            return None
+        self.calls += 1
         return timeout

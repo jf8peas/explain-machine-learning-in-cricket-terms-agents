@@ -118,3 +118,11 @@ def merged_state(events) -> dict:
 
 def nodes_of(events) -> list[str]:
     return [n for n, _ in events]
+
+
+def explanation_text(expl: dict) -> str:
+    """The section's wording (titles and sentences) as one string, plus the line that says why the templates are used."""
+    parts = [*(b["title"] for b in expl["blocks"]), *(x for b in expl["blocks"] for x in b["sentences"])]
+    if expl.get("fallback_reason"):
+        parts.append(expl["fallback_reason"])
+    return " ".join(parts)

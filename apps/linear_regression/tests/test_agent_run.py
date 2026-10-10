@@ -36,8 +36,8 @@ def test_the_nodes_run_in_the_expected_order(run_graph, path):
     assert names[:12] == ["load_data", "split", "explore", "baseline", "propose_features", "check_proposal", "fit_model",
                           "evaluate", "propose_features", "check_proposal", "fit_model", "evaluate"]
     assert names[12:14] == ["propose_features", "check_proposal"]           # the model says it is finished
-    assert names[14:-2] == ["grid_search"]                                   # the rival: one visit
-    assert names[-2:] == ["final_test", "explain_in_cricket_terms"]
+    assert names[14:-3] == ["grid_search"]                                   # the rival: one visit
+    assert names[-3:] == ["final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
 
 
 def test_a_proposal_event_holds_the_features_and_the_reason_verbatim(run_graph, path):
@@ -162,7 +162,7 @@ def test_the_fitted_model_in_focus_is_the_winners_at_the_end(run_graph, path):
     state = merged_state(run(run_graph, path, *GOOD)[0])
     assert state["features"] == state["final"]["sets"][state["final"]["winner"]]
     assert set(state["coefficients"]) == set(state["features"])
-    assert "explanation" in state and state["explanation"]["sentences"]
+    assert "explanation" in state and state["explanation"]["blocks"]
 
 
 # --- the full setup (feature 008) ---------------------------------------------------------------------------------

@@ -12,7 +12,7 @@ test("the language-model node looks different from the code nodes", async ({ pag
   const llm = page.locator('[data-node="propose_features"]');
   await expect(llm).toHaveClass(/actor-llm/);
   await expect(llm.locator(".actor-tag")).toHaveText("LLM");
-  await expect(page.locator(".node.actor-llm")).toHaveCount(1);   // only this one
+  await expect(page.locator(".node.actor-llm")).toHaveCount(2);   // this one and the closing writing step
   for (const id of ["load_data", "check_proposal", "fit_model", "evaluate", "grid_search", "final_test"]) {
     await expect(page.locator(`[data-node="${id}"]`)).not.toHaveClass(/actor-llm/);
   }
@@ -208,7 +208,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
   await expect(page.getByTestId("play")).toBeEnabled();                // nothing is running, so Play is available again
   expect(await page.getByTestId("attempt-row").count()).toBe(rows);    // the earlier results are untouched
   await expect(page.getByTestId("explanation")).toBeAttached();
-  await expect(page.getByTestId("timeline-item")).toHaveCount(23);
+  await expect(page.getByTestId("timeline-item")).toHaveCount(24);
 });
 
 test("the limit is per visitor: another visitor can still run", async ({ page, browser }) => {

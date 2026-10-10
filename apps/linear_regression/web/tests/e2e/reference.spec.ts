@@ -483,18 +483,18 @@ test("near the final results the page says no method can be perfect, in plain wo
   expect(after).toBe(true);                                                   // beside the results, after the table
 });
 
-test("the explanation compares the winner with the know-nothing guess, the projection and the hit rate", async ({ page }) => {
+test("the comparison with the know-nothing guess, the projection and the hit rate stays in the table, not the section", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const state = await runState(page);
   const f = state.final as Final & { versus_know_nothing: { improvement_runs: number; improvement_percent: number } };
-  const explanation = page.getByTestId("explanation");
-  await expect(explanation).toContainText("know-nothing guess");
-  await expect(explanation).toContainText(f.verdict_sentence);
-  await expect(explanation).toContainText(`${Math.abs(f.versus_know_nothing.improvement_runs).toFixed(1)} runs`);
-  await expect(explanation).toContainText("within 10 runs");
-  await expect(explanation).toContainText("a boundary or two");
-  await expect(explanation).toContainText(f.bias_words[f.winner]);
+  const table = page.getByTestId("accuracy-table");
+  await expect(table).toContainText("know-nothing");
+  await expect(page.getByTestId("verdict")).toContainText(f.verdict_sentence);
+  await expect(table).toContainText(/within 10 runs/i);
+  await expect(page.getByTestId("explanation")).not.toContainText("know-nothing");          // FR-007: not repeated in the section
+  await expect(page.getByTestId("explanation")).not.toContainText("within 10 runs");
 });
 
 test("the verdict reads in the goal's words, with the runs and the percentage, and says whether the goal was reached", async ({ page }) => {
@@ -523,7 +523,9 @@ test("the goal in the introduction is the server's text, and the verdict names t
   await playToEnd(page);
   await expect(page.getByTestId("goal")).toContainText(ref.goal.text);                       // still the same after a run
   await expect(page.getByTestId("verdict")).toContainText(`at least ${ref.goal.margin_runs} runs`);
-  await expect(page.getByTestId("explanation")).toContainText(`at least ${ref.goal.margin_runs} runs`);
+  await openTab(page, "final-test");
+  await expect(page.getByTestId("verdict-badge")).toBeVisible();
+  await expect(page.getByTestId("explanation")).toContainText(`${ref.goal.margin_runs}`);          // the facts' margin, not typed on the page
 });
 
 test("the page itself holds no hand-written goal", async ({ page }) => {

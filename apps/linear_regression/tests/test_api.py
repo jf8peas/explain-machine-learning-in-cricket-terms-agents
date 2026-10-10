@@ -41,14 +41,14 @@ def test_structure_matches_schema_and_has_branch_labels():
     assert ("grid_search", "final_test") in {(e["source"], e["target"]) for e in body["edges"] if not e["conditional"]}
     assert {n["id"] for n in body["nodes"]} == {
         "__start__", "__end__", "load_data", "split", "explore", "baseline", "propose_features", "check_proposal",
-        "fit_model", "evaluate", "grid_search", "final_test", "explain_in_cricket_terms"}
+        "fit_model", "evaluate", "grid_search", "final_test", "explain_in_cricket_terms", "write_in_cricket_terms"}
 
 
-def test_only_propose_features_is_marked_as_the_language_model_step():
+def test_only_the_two_writing_and_proposing_steps_are_marked_as_the_language_model():
     nodes = {n["id"]: n for n in client.get("/api/structure").json()["nodes"]}
-    assert nodes["propose_features"]["actor"] == "llm"
+    assert nodes["propose_features"]["actor"] == "llm" and nodes["write_in_cricket_terms"]["actor"] == "llm"
     for name, n in nodes.items():
-        if n["kind"] == "node" and name != "propose_features":
+        if n["kind"] == "node" and name not in ("propose_features", "write_in_cricket_terms"):
             assert n["actor"] == "code", name
         if n["kind"] in ("start", "end"):
             assert "actor" not in n
@@ -69,7 +69,7 @@ def test_run_streams_valid_ordered_events_then_done():
         assert "summary" not in s["changes"] and s["summary"]
     nodes = [s["node"] for s in steps]
     assert nodes[: len(NODE_ORDER_PREFIX)] == NODE_ORDER_PREFIX
-    assert nodes[-2:] == ["final_test", "explain_in_cricket_terms"]
+    assert nodes[-3:] == ["final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
     # attempts arrive accumulated: one more entry after each evaluation and the grid search's best setup
     counts = [len(s["changes"]["attempts"]) for s in steps if s["node"] in ("evaluate", "grid_search")
               and "attempts" in s["changes"]]

@@ -9,7 +9,7 @@ import pytest
 
 APP = Path(__file__).resolve().parent.parent
 PKG = APP / "backend" / "linreg"
-SHARED = ["data_loading", "season_split", "evaluation", "cricket_explanation", "graph_api", "data_api", "stages",
+SHARED = ["data_loading", "season_split", "evaluation", "graph_api", "data_api", "stages",
           "accuracy"]
 APP_SPECIFIC = {"nodes", "graph", "features", "state", "regression", "competition_dummies", "data_notes", "data_table",
                 # feature 004: the language-model step, its rules, its limits and its fake
@@ -82,7 +82,7 @@ def test_the_script_uses_the_shared_definition():
 
 
 def test_model_code_does_not_know_the_dummies():
-    for module in ("regression", "evaluation", "cricket_explanation", "state"):
+    for module in ("regression", "evaluation", "state"):
         assert "competition_dummies" not in imported_modules(PKG / f"{module}.py")
         assert not {"is_ipl", "is_bbl"} & _string_constants(PKG / f"{module}.py")
 

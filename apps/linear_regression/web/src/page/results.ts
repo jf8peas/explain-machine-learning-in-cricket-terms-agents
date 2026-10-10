@@ -3,6 +3,7 @@
 import { labelFor } from "./catalogue";
 import { fmt, h } from "./dom";
 import { renderAccuracy, type FinalAccuracy } from "./accuracy";
+import { buildCricketTerms, type CricketExplanation } from "./cricket-terms";
 import type { ChartPoints } from "./accuracy-chart";
 import { renderGrid } from "./grid-view";
 import type { Grid } from "./grid";
@@ -26,13 +27,8 @@ interface Final {
   verdict_sentence?: string;
 }
 type FinalState = Final & Partial<FinalAccuracy>;
-interface Explanation {
-  sentences: string[];
-  most_important: string;
-  comparison: { model_mae: number; baseline_mae: number; beat_baseline: boolean; cleared_margin: boolean; improvement: number; r2: number };
-}
 
-function finalComparison(f: FinalState, explanation: Explanation | undefined, failure: string | null | undefined): HTMLElement {
+function finalComparison(f: FinalState, explanation: CricketExplanation | undefined, failure: string | null | undefined): HTMLElement {
   const box = h("div", { class: `compare ${f.beat_tv ? "win" : "lose"}`, "data-testid": "comparison" });
   const col = (label: string, value: number | null, testid: string, note?: string) =>
     h("div", { "data-testid": testid },
@@ -43,7 +39,6 @@ function finalComparison(f: FinalState, explanation: Explanation | undefined, fa
     col("runs: the language model's choice", f.test_mae.llm, "final-llm", f.llm_took_part ? undefined : "did not take part"),
     col("runs: forward selection", f.test_mae.forward, "final-forward"),
     col("runs: the TV projection", f.test_mae.tv, "final-tv"));
-  const verdict = explanation?.comparison;
   box.append(h("p", { class: "winner", "data-testid": "winner" },
     f.llm_took_part
       ? `${f.winner_name.charAt(0).toUpperCase()}${f.winner_name.slice(1)} was chosen on the three check years: ` +
@@ -51,7 +46,7 @@ function finalComparison(f: FinalState, explanation: Explanation | undefined, fa
       : `The language model did not take part${failure ? ` (${failure.replace(/\.$/, "")})` : ""}, so forward selection's set is the result.`));
   box.append(h("p", { class: "verdict", "data-testid": "verdict" },
     f.verdict_sentence ??
-    (f.beat_tv ? `The winning model beat the TV projection by ${fmt(Math.abs(verdict?.improvement ?? f.improvement))} runs.`
+    (f.beat_tv ? `The winning model beat the TV projection by ${fmt(Math.abs(f.improvement))} runs.`
                : `The winning model did not beat the TV projection (${fmt(Math.abs(f.improvement))} runs worse).`)));
   return box;
 }
@@ -60,7 +55,7 @@ const fields = (state: Record<string, unknown>) => ({
   attempts: (state.attempts as Attempt[] | undefined) ?? [],
   rounds: (state.rounds as RoundNote[] | undefined) ?? [],
   final: state.final as FinalState | undefined,
-  expl: state.explanation as Explanation | undefined,
+  expl: state.explanation as CricketExplanation | undefined,
 });
 
 /** What the agent found: the language model line and notice, the leaderboard, the grid search and the model's reasoning,
@@ -119,9 +114,6 @@ export function renderFinal(target: HTMLElement, state: Record<string, unknown>)
     if (final.sets.llm) parts.push(h("p", { class: "muted" }, `The language model's best setup: ${final.sets.llm.map(labelFor).join(", ")}${setupText("llm")}.`));
     if (final.sets.forward) parts.push(h("p", { class: "muted" }, `Forward selection's best setup: ${final.sets.forward.map(labelFor).join(", ")}${setupText("forward")}.`));
   }
-  if (expl) {
-    parts.push(h("h3", {}, "In cricket terms"),
-      h("ul", { class: "explanation", "data-testid": "explanation" }, ...expl.sentences.map((s) => h("li", {}, s))));
-  }
+  if (expl) parts.push(buildCricketTerms(expl));
   target.replaceChildren(...parts);
 }

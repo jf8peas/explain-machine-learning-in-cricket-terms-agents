@@ -23,11 +23,12 @@ def run(run_graph, path, *script):
 
 def assert_completes_without_the_model(events, state):
     names = nodes_of(events)
-    assert names[-2:] == ["final_test", "explain_in_cricket_terms"]
+    assert names[-3:] == ["final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
     assert "grid_search" in names and "fit_model" not in names
     assert state["final"]["llm_took_part"] is False and state["final"]["winner"] == "forward"
     assert state["final"]["test_mae"]["llm"] is None
-    assert "did not take part" in " ".join(state["explanation"]["sentences"])
+    assert "did not take part" in state["explanation"]["fallback_reason"]
+    assert state["explanation"]["source"] == "template"
 
 
 @pytest.mark.parametrize("script,kind", [
@@ -81,8 +82,8 @@ def test_a_failure_after_some_rounds_keeps_the_best_set_so_far_and_shows_the_fai
     assert state["llm_status"] == "failed" and "provider answered" in state["llm_failure"]
     assert state["llm_best"] is not None and state["final"]["llm_took_part"] is True
     assert state["final"]["test_mae"]["llm"] is not None
-    assert nodes_of(events)[-2:] == ["final_test", "explain_in_cricket_terms"]
-    text = " ".join(state["explanation"]["sentences"])
+    assert nodes_of(events)[-3:] == ["final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
+    text = state["explanation"]["fallback_reason"]
     assert "stopped early" in text and "did not take part" not in text
 
 
@@ -98,4 +99,4 @@ def test_a_failure_is_logged_on_the_server_with_the_model_and_the_time_never_the
 def test_the_run_never_raises_whatever_the_model_does(run_graph, path):
     for script in ([DOWN], ["", ""], [reply([], "empty")] * 3, [reply(["x"] * 20, "too many")] * 8):
         events, _ = run(run_graph, path, *script, *(script * 2))
-        assert nodes_of(events)[-1] == "explain_in_cricket_terms"
+        assert nodes_of(events)[-1] == "write_in_cricket_terms"

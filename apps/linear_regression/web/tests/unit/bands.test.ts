@@ -148,7 +148,7 @@ describe("done-beforehand items in the layout", () => {
     const odd: Structure = { ...real, items: [{ id: "lost", label: "lost", stage: "prepare", before: "nowhere", summary: {} }] };
     const laid = layoutGraph(odd);
     expect(laid.nodes.some((n) => n.id === "item:lost")).toBe(false);
-    expect(laid.nodes.filter((n) => n.kind === "node")).toHaveLength(11);
+    expect(laid.nodes.filter((n) => n.kind === "node")).toHaveLength(12);
   });
 
   it("changes nothing for a structure without items", () => {

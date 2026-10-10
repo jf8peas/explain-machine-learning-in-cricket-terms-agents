@@ -112,7 +112,7 @@ describe("row placement on this app's real graph", () => {
     expect(at("fit_model").x).toBeCloseTo(at("check_proposal").x, 3);
     expect(rowIndex("fit_model")).toBeGreaterThan(rowIndex("check_proposal"));
     expect(at("final_test").x).toBeCloseTo(at("grid_search").x, 3);
-    expect(at("__end__").x).toBeCloseTo(at("explain_in_cricket_terms").x, 3);    // not under load_data, its other predecessor
+    expect(at("__end__").x).toBeCloseTo(at("write_in_cricket_terms").x, 3);    // not under load_data, its other predecessor
   });
 
   it("orders the Choose row evaluate, propose_features, check_proposal, grid_search", () => {

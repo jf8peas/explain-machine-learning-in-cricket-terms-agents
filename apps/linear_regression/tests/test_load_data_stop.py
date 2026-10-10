@@ -55,7 +55,7 @@ def test_exactly_100_test_innings_is_ok(run_graph, write_csv):
     df = years_table({**FULL, 2025: 100})
     events = run_graph({"data_path": write_csv(df)})
     assert events[0][1]["decision"]["branch"] == "ok"
-    assert events[-1][0] == "explain_in_cricket_terms"
+    assert events[-1][0] == "write_in_cricket_terms"
 
 
 # --- competition dummy columns (feature 003) ---

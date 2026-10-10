@@ -222,7 +222,7 @@ def test_no_more_model_calls_than_the_cap_and_the_run_still_completes():
     assert len(llm.requests) == 2
     state = final_state(r)
     assert "budget" in state["llm_failure"] and state["llm_status"] == "failed"   # the model ran out of calls
-    assert state["final"]["winner"] in ("llm", "forward") and state["explanation"]["sentences"]
+    assert state["final"]["winner"] in ("llm", "forward") and state["explanation"]["blocks"]
     assert r.text.strip().endswith("}") and "event: done" in r.text
 
 

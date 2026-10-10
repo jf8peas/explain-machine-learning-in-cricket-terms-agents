@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/011-results-tabs/plan.md](specs/011-results-tabs/plan.md)
+Current feature plan: [specs/012-visual-cricket-terms/plan.md](specs/012-visual-cricket-terms/plan.md)
 <!-- SPECKIT END -->

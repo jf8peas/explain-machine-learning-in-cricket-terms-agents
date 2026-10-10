@@ -21,7 +21,7 @@ def real_run():
 
 def test_a_whole_run_on_the_real_data_finishes_with_three_test_errors(real_run):
     state = merged_state(real_run)
-    assert nodes_of(real_run)[-2:] == ["final_test", "explain_in_cricket_terms"]
+    assert nodes_of(real_run)[-3:] == ["final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]
     errors = state["final"]["test_mae"]
     assert errors["llm"] > 0 and errors["forward"] > 0 and errors["tv"] > 0
     assert state["final"]["winner"] in ("llm", "forward")

@@ -7,7 +7,7 @@ import { afterRunOpen, open, playToEnd, serveStructure, timelineItems } from "./
 // The numbers follow the order a run first reaches each stage.
 const NUMBER_OF: Record<string, number> = {
   load_data: 1, split: 2, explore: 3, baseline: 4, propose_features: 5, check_proposal: 5, evaluate: 5,
-  grid_search: 5, fit_model: 6, final_test: 7, explain_in_cricket_terms: 8,
+  grid_search: 5, fit_model: 6, final_test: 7, explain_in_cricket_terms: 8, write_in_cricket_terms: 8,
 };
 
 const node = (page: Page, id: string) => page.locator(`[data-node="${id}"]`);
@@ -142,7 +142,7 @@ for (const scheme of ["light", "dark"] as const) {
   test(`badges are drawn in the ${scheme} theme with that theme's stage colours`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await open(page);
-    await expect(page.getByTestId("stage-badge")).toHaveCount(12);                  // 11 steps and the item
+    await expect(page.getByTestId("stage-badge")).toHaveCount(13);                  // 12 steps and the item
     const fills = await page.getByTestId("stage-badge").evaluateAll((els) =>
       els.map((e) => getComputedStyle(e.querySelector("circle") as SVGCircleElement).fill));
     expect(new Set(fills).size).toBe(8);                       // eight stages, eight colours
@@ -436,7 +436,7 @@ test("the timeline shows the run moving between Fit the model and Choose the can
   const numbers = (await timelineItems(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-stage-number")))).join("");
   expect(numbers.startsWith("1234")).toBe(true);              // load_data, split, explore, baseline: in order
   expect((numbers.match(/565/g) ?? []).length).toBeGreaterThanOrEqual(3);   // choose, fit, choose, once per fitted round
-  expect(numbers.endsWith("78")).toBe(true);
+  expect(numbers.endsWith("788")).toBe(true);                    // final test, then the two steps of stage 8
 });
 
 test("the Event panel shows the stage's note when the app supplied one", async ({ page }) => {
@@ -481,8 +481,8 @@ test("the item never becomes active or visited, is not in the timeline, and is n
   const names = (await timelineItems(page).allTextContents()).map((t) => t.replace(/^\d+\.\s*/, ""));
   expect(names).not.toContain("prepare_data");
   expect(names.filter((n) => n.includes("item")).length).toBe(0);
-  expect(await timelineItems(page).count()).toBe(23);                            // 23 steps: the rival is one grid-search step
-  await expect(page.locator(".node.visited")).toHaveCount(13);                   // 11 steps, start and end: not the item
+  expect(await timelineItems(page).count()).toBe(24);                            // 24 steps: the rival is one grid-search step
+  await expect(page.locator(".node.visited")).toHaveCount(14);                   // 12 steps, start and end: not the item
 });
 
 test("selecting the item by click shows what was excluded and the columns created, with a link to the Data tab", async ({ page }) => {
