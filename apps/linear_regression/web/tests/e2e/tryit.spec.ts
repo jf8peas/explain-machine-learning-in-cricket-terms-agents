@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
-import { open, playToEnd } from "./helpers";
+import { open, openTab, playToEnd } from "./helpers";
 
 // Plausible values for whatever the winning model asks for (the form is built from the model's own features).
 const PLAUSIBLE: Record<string, string> = {
@@ -21,6 +21,7 @@ const fillAll = async (page: Page, overrides: Record<string, string> = {}) => {
 
 test("the form is disabled until a run has finished", async ({ page }) => {
   await open(page);
+  await openTab(page, "try-your-own");
   await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeDisabled();
   await expect(page.getByTestId("tryit-hint")).toBeVisible();
 });
@@ -28,6 +29,7 @@ test("the form is disabled until a run has finished", async ({ page }) => {
 test("the form asks for the winning model's inputs only, starting with runs at 10 overs", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "try-your-own");
   await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
   const winner: string[] = final.sets[final.winner];
@@ -41,6 +43,7 @@ test("the form asks for the winning model's inputs only, starting with runs at 1
 test("valid input shows the model's prediction beside the TV projection", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "try-your-own");
   await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   await fillAll(page, { runs_at_10: "80" });
   await expect(page.getByTestId("tryit-tv")).toHaveText("160");
@@ -52,6 +55,7 @@ test("valid input shows the model's prediction beside the TV projection", async 
 test("invalid input shows a message and no prediction", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "try-your-own");
   await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
   for (const [name, value, msg] of [
     ["runs_at_10", "-5", "negative"],
@@ -68,6 +72,7 @@ test("invalid input shows a message and no prediction", async ({ page }) => {
 
 test("the Cricsheet attribution is visible beside the form", async ({ page }) => {
   await open(page);
+  await openTab(page, "try-your-own");
   await expect(page.getByTestId("tryit").getByTestId("attribution")).toContainText("Cricsheet");
 });
 
@@ -76,5 +81,6 @@ test("stepping back through the run does not disable try-your-own", async ({ pag
   await playToEnd(page);
   await page.getByTestId("back").click();
   await page.getByTestId("back").click();
+  await openTab(page, "try-your-own");
   await expect(page.getByRole("button", { name: "Predict", exact: true })).toBeEnabled();
 });

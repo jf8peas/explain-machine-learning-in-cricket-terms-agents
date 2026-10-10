@@ -26,6 +26,9 @@ export class Legend {
   private all!: HTMLButtonElement;
   private detail!: HTMLElement;
   private live!: HTMLElement;
+  /** Each stage's note can be opened and closed; all start closed. */
+  private toggles = new Map<string, { item: HTMLElement; button: HTMLButtonElement }>();
+  private allNotes!: HTMLButtonElement;
 
   constructor(private root: HTMLElement, private opts: LegendOptions) {
     this.render();
@@ -46,11 +49,24 @@ export class Legend {
         el("span", { class: "name" }, stage.name), el("span", { class: "question" }, stage.question));
       const note = notes?.stages?.[stage.id];
       if (!withNodes.has(stage.id)) button.append(el("span", { class: "no-node" }, "Not a step in this agent"));
-      if (note) button.append(el("span", { class: "stage-note" }, note));
+      const noteId = `note-${stage.id}`;
+      if (note) {
+        button.append(el("span", { class: "stage-note", id: noteId }, note));
+        button.classList.add("has-note");
+      }
       button.addEventListener("click", () => this.select(this.selectedId === stage.id ? null : stage.id));
       this.buttons.set(stage.id, button);
-      const item = el("li");
+      const item = el("li", { "data-notes": "closed" });
       item.append(button);
+      if (note) {
+        const toggle = el("button", {
+          type: "button", class: "note-toggle", "data-testid": "note-toggle", "data-stage": stage.id,
+          "aria-expanded": "false", "aria-controls": noteId, "aria-label": `Details for ${stage.name}`,
+        }, "▸ Details");
+        toggle.addEventListener("click", () => this.setOpen(stage.id, item.getAttribute("data-notes") !== "open"));
+        item.append(toggle);
+        this.toggles.set(stage.id, { item, button: toggle });
+      }
       list.append(item);
     }
     this.all = el("button", { type: "button", class: "legend-all", "data-testid": "legend-all" }, "All");
@@ -58,7 +74,11 @@ export class Legend {
     this.detail = el("p", { class: "legend-detail", "data-testid": "legend-detail" });
     this.live = el("div", { class: "sr-only", role: "status", "aria-live": "polite", "data-testid": "legend-live" });
     const general = this.opts.notes?.general;
-    const parts: HTMLElement[] = [el("h3", { id: "h-legend" }, "Stages"), list];
+    this.allNotes = el("button", { type: "button", class: "legend-notes-all", "data-testid": "notes-toggle-all" }, "Open all details");
+    this.allNotes.addEventListener("click", () => this.setAllOpen(!this.allOpen()));
+    const parts: HTMLElement[] = [el("h3", { id: "h-legend" }, "Stages")];
+    if (this.toggles.size) parts.push(this.allNotes);
+    parts.push(list);
     const loose = this.opts.unassigned ?? [];
     if (loose.length) {
       parts.push(el("p", { class: "legend-unassigned", "data-testid": "legend-unassigned" },
@@ -70,6 +90,24 @@ export class Legend {
     this.root.replaceChildren(...parts);
     this.root.hidden = false;
     this.showDetail();
+  }
+
+  private allOpen() {
+    return this.toggles.size > 0 && [...this.toggles.values()].every((t) => t.item.getAttribute("data-notes") === "open");
+  }
+
+  /** Open or close one stage's note. Only the note: the stage's selection is untouched. */
+  setOpen(id: string, open: boolean) {
+    const t = this.toggles.get(id);
+    if (!t) return;
+    t.item.setAttribute("data-notes", open ? "open" : "closed");
+    t.button.setAttribute("aria-expanded", String(open));
+    t.button.textContent = open ? "▾ Hide" : "▸ Details";
+    this.allNotes.textContent = this.allOpen() ? "Close all details" : "Open all details";
+  }
+
+  setAllOpen(open: boolean) {
+    for (const id of this.toggles.keys()) this.setOpen(id, open);
   }
 
   /** Select a stage, or clear with null; announces the change. */

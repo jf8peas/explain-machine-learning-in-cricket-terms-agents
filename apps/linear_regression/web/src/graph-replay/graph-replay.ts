@@ -22,6 +22,10 @@ export interface ReplayChangeDetail {
   state: Record<string, unknown>;
   /** Accumulated state after the last step, once the stream has finished; otherwise null. */
   finalState: Record<string, unknown> | null;
+  /** Counts the runs started: it goes up by one each time a new run starts, so a page can tell a new run from stepping. */
+  run: number;
+  /** True when the stream ended with an error event, or the connection was lost before the run finished. */
+  failed: boolean;
 }
 
 const esc = (s: unknown) =>
@@ -45,6 +49,8 @@ export class GraphReplay extends HTMLElement {
   /** The stage picked in the legend: a viewing preference, kept apart from the playback buffer. */
   private selectedStage: string | null = null;
   private abort: AbortController | null = null;
+  private runNumber = 0;
+  private runFailed = false;
   /** True from pressing Play until the stream ends (or is refused): Play is disabled meanwhile. */
   private running = false;
   private starting = false;
@@ -441,6 +447,8 @@ export class GraphReplay extends HTMLElement {
         this.message = "";
         this.messageIsError = false;
         this.markerCursor = -1;
+        this.runNumber += 1;
+        this.runFailed = false;
         this.buf.reset();
         this.buf.play();
       },
@@ -453,11 +461,12 @@ export class GraphReplay extends HTMLElement {
       },
       onStep: (e: StepEvent) => { if (!signal.aborted) this.buf.push(e); },
       onDone: () => { if (signal.aborted) return; this.running = false; this.buf.finish(); },
-      onError: (m) => { if (signal.aborted) return; this.running = false; this.setMessage(m, true); this.buf.finish(); },
+      onError: (m) => { if (signal.aborted) return; this.running = false; this.runFailed = true; this.setMessage(m, true); this.buf.finish(); },
       onDisconnect: () => {
         if (signal.aborted) return;
         this.running = false;
         this.starting = false;
+        this.runFailed = true;
         this.setMessage("The connection was lost before the run finished. The steps already received are still here to explore.", true);
         this.buf.finish();
       },
@@ -466,6 +475,7 @@ export class GraphReplay extends HTMLElement {
   }
 
   private resetAll() {
+    this.runFailed = false;
     this.abort?.abort();
     this.abort = null;
     this.running = false;
@@ -554,6 +564,7 @@ export class GraphReplay extends HTMLElement {
       detail: {
         cursor: b.cursor, steps: b.events.length, finished: b.finished, atEnd: b.atEnd, state: b.stateAt(),
         finalState: b.finished && b.events.length ? b.stateAt(b.events.length - 1) : null,
+        run: this.runNumber, failed: this.runFailed,
       },
       bubbles: true, composed: true,
     }));

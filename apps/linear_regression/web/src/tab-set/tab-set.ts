@@ -2,6 +2,12 @@
 // Generic: shows one child panel at a time. Children carry data-tab (id) and data-label (tab text).
 // Panels are hidden, never moved or re-created, so anything running inside them keeps its state.
 // The active tab lives in the URL hash (#id).
+//
+// Programmatic use (no app knowledge): select(id, { focus }) switches through the same hash mechanism as a click, so Back
+// and Forward still work, and with `focus` moves focus to the panel's first [tabindex="-1"] heading once it is shown;
+// setMarker(id, on) shows or hides a small marker on a tab (a dot plus visually hidden text, so it never relies on colour),
+// and showing a tab clears its marker. A polite live region announces programmatic switches. At narrow widths the tab list
+// scrolls sideways inside itself and the selected tab is kept in view. Nothing here animates.
 
 export interface TabEventDetail {
   id: string;
@@ -10,9 +16,9 @@ export interface TabEventDetail {
 const STYLE_ID = "tab-set-styles";
 const css = /* css */ `
 tab-set { display: block; }
-tab-set > [role=tablist] { display: flex; gap: 4px; border-bottom: 1px solid var(--ts-border, var(--border, #d5d9e0)); margin: 0 0 16px; }
+tab-set > [role=tablist] { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--ts-border, var(--border, #d5d9e0)); margin: 0 0 16px; }
 tab-set > [role=tablist] > button {
-  font: inherit; cursor: pointer; padding: 8px 18px; margin-bottom: -1px; color: var(--ts-muted, var(--muted, #5b6678));
+  font: inherit; cursor: pointer; padding: 8px 18px; flex: 0 0 auto; white-space: nowrap; position: relative; margin-bottom: -1px; color: var(--ts-muted, var(--muted, #5b6678));
   background: transparent; border: 1px solid transparent; border-radius: 8px 8px 0 0;
 }
 tab-set > [role=tablist] > button:hover { color: var(--ts-text, var(--text, #1b2230)); }
@@ -23,12 +29,19 @@ tab-set > [role=tablist] > button[aria-selected=true] {
 }
 tab-set > [role=tablist] > button:focus-visible { outline: 3px solid var(--ts-accent, var(--accent, #1d6fe0)); outline-offset: 2px; }
 tab-set > [role=tabpanel][hidden] { display: none; }
+tab-set .ts-marker { display: inline-block; width: .5em; height: .5em; margin-left: .45em; border-radius: 50%; background: currentColor; vertical-align: middle; }
+tab-set .ts-marker[hidden] { display: none; }
+tab-set .ts-sr, tab-set .ts-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 `;
 
 export class TabSet extends HTMLElement {
   private panels: HTMLElement[] = [];
   private tabs: HTMLButtonElement[] = [];
   private current = "";
+  private list!: HTMLElement;
+  private live!: HTMLElement;
+  /** Set by select(): the next show() (or this one, if the tab is already showing) announces and, with `focus`, focuses. */
+  private pending: { id: string; focus: boolean } | null = null;
 
   /** Id of the tab on display. */
   get active(): string {
@@ -66,7 +79,14 @@ export class TabSet extends HTMLElement {
       list.append(tab);
     }
     list.addEventListener("keydown", (ev) => this.onKey(ev));
+    this.list = list;
     this.prepend(list);
+    this.live = document.createElement("div");
+    this.live.className = "ts-live";
+    this.live.setAttribute("role", "status");
+    this.live.setAttribute("aria-live", "polite");
+    this.live.dataset.testid = "tab-live";
+    this.append(this.live);
 
     window.addEventListener("hashchange", this.onHash);
     const wanted = this.fromHash();
@@ -98,6 +118,47 @@ export class TabSet extends HTMLElement {
     }
   };
 
+  /** Switch to a tab from code, through the hash like a click (so Back and Forward work). With `focus`, focus moves to the
+   *  panel's first [tabindex="-1"] heading once the panel is shown. The change is announced to screen readers. */
+  select(id: string, opts: { focus?: boolean } = {}) {
+    if (!this.panels.some((p) => p.dataset.tab === id)) return;
+    this.pending = { id, focus: !!opts.focus };
+    if (id === this.current) this.finishSelect(id);
+    else this.go(id);
+  }
+
+  /** Show or hide the small marker on a tab. Showing the tab clears it. */
+  setMarker(id: string, on: boolean) {
+    const i = this.panels.findIndex((p) => p.dataset.tab === id);
+    if (i < 0) return;
+    const tab = this.tabs[i];
+    const had = !!tab.querySelector(".ts-marker");
+    if (on === had) return;
+    if (!on) { tab.querySelectorAll(".ts-marker, .ts-sr").forEach((el) => el.remove()); return; }
+    const dot = document.createElement("span");
+    dot.className = "ts-marker";
+    dot.setAttribute("aria-hidden", "true");
+    const text = document.createElement("span");
+    text.className = "ts-sr";
+    text.textContent = " (new results)";
+    tab.append(dot, text);
+  }
+
+  hasMarker(id: string): boolean {
+    const i = this.panels.findIndex((p) => p.dataset.tab === id);
+    return i >= 0 && !!this.tabs[i].querySelector(".ts-marker");
+  }
+
+  private finishSelect(id: string) {
+    const want = this.pending;
+    if (!want || want.id !== id) return;
+    this.pending = null;
+    const panel = this.panels.find((p) => p.dataset.tab === id)!;
+    this.live.textContent = "";                                             // so a repeat is announced again
+    this.live.textContent = `Now showing: ${panel.dataset.label ?? id}`;
+    if (want.focus) (panel.querySelector('[tabindex="-1"]') as HTMLElement | null)?.focus();
+  }
+
   /** One history step per real change; re-selecting the active tab does nothing. */
   private go(id: string) {
     if (id === this.current) return;
@@ -116,7 +177,18 @@ export class TabSet extends HTMLElement {
       tab.tabIndex = on ? 0 : -1;
     });
     this.current = id;
+    this.setMarker(id, false);
+    this.keepInView(this.tabs[this.panels.findIndex((p) => p.dataset.tab === id)]);
     if (previous) this.emit("tab-show", id);
+    this.finishSelect(id);
+  }
+
+  /** On a narrow screen the tab list scrolls inside itself; keep the selected tab inside its visible part. */
+  private keepInView(tab: HTMLElement) {
+    const l = this.list;
+    if (!l || !tab) return;
+    if (tab.offsetLeft < l.scrollLeft) l.scrollLeft = tab.offsetLeft;
+    else if (tab.offsetLeft + tab.offsetWidth > l.scrollLeft + l.clientWidth) l.scrollLeft = tab.offsetLeft + tab.offsetWidth - l.clientWidth;
   }
 
   private emit(type: "tab-hide" | "tab-show", id: string) {

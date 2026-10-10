@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { countRunRequests, open, playToEnd, timelineItems } from "./helpers";
+import { countRunRequests, open, openTab, playToEnd, timelineItems } from "./helpers";
 
 const current = (page: import("@playwright/test").Page) => page.locator('[data-testid=timeline-item][aria-current="step"]');
 
@@ -47,6 +47,7 @@ test("stepping past either end is ignored", async ({ page }) => {
 test("arrow keys do not step while typing in a field", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "try-your-own");
   await page.locator('input[name="runs_at_10"]').focus();
   await page.keyboard.press("ArrowLeft");
   await expect(current(page)).toContainText("explain_in_cricket_terms");

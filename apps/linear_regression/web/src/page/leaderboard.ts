@@ -36,6 +36,17 @@ function chips(setup: Parameters<typeof setupChips>[0]): HTMLElement {
     h("li", { class: "setup-chip", "data-testid": "setup-chip", "data-part": c.part }, c.text)));
 }
 
+/** The attempt with the lowest average error over the check years (the earliest wins a tie): the leading setup so far.
+ *  The leaderboard lists every attempt; the summary line under the graph names this one. */
+export function leader(attempts: Attempt[]): Attempt | null {
+  let best: Attempt | null = null;
+  for (const a of attempts) if (best === null || a.validation_mae < best.validation_mae) best = a;
+  return best;
+}
+
+/** Who proposed an attempt, as the leaderboard words it. */
+export const proposerName = who;
+
 export function renderLeaderboard(attempts: Attempt[], baseline: number | undefined): HTMLElement {
   const section = h("section", { "data-testid": "leaderboard", "aria-label": "Leaderboard" });
   section.append(h("h3", {}, "Leaderboard"),

@@ -215,10 +215,28 @@
     ol.build-up { margin: 0 0 8px; padding-left: 1.4em; font-size: .9rem; }
     .data-intro { max-width: 75ch; margin-top: 0; }
     .data-intro strong { color: var(--text); }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .run-summary { margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: .95rem; }
+    .run-summary .muted { margin: 0; }
+    .not-ready[hidden] { display: none; }
+    tab-set h2[tabindex="-1"]:focus { outline: none; }
+    tab-set h2[tabindex="-1"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   </style>
 </head>
 <body>
   <main>
+    <tab-set default-tab="working" aria-label="Page sections">
+    <div data-tab="data" data-label="Data" data-testid="data-panel">
+      <h2 tabindex="-1">The innings the agent works from</h2>
+      <p class="muted data-intro">
+        Every row is one real first innings. The agent reads these rows, learns from the earlier years
+        (<strong>Training</strong>), chooses features on the year before the latest (<strong>Validation</strong>) and is marked once on the latest year (<strong>Test</strong>). Sort, search and filter
+        them, copy cells into a spreadsheet, or download the lot.
+      </p>
+      <data-grid noun="innings"></data-grid>
+    </div>
+    <div data-tab="working" data-label="Working" data-testid="working-panel">
+      <h2 class="visually-hidden" tabindex="-1">Working</h2>
     <section class="intro" data-testid="intro" aria-labelledby="intro-title">
       <nav class="eyebrow" aria-label="Where this app fits">
         Part of <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a> · App 1 of 8: linear regression
@@ -257,9 +275,6 @@
         <div class="reference-detail" data-testid="reference-detail"></div>
       </details>
     </section>
-
-    <tab-set default-tab="working" aria-label="Page sections">
-    <div data-tab="working" data-label="Working">
     <details class="catalogue" data-testid="catalogue">
       <summary>What the agent can choose from</summary>
       <p class="muted" data-testid="catalogue-intro"></p>
@@ -274,34 +289,36 @@
       That is expected: the code checks and scores everything the model proposes, so the numbers stay honest.
     </p>
     <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
-
-    <h2>What the agent found</h2>
-    <section class="card" data-testid="results-card" aria-live="polite">
-      <div data-testid="results"></div>
-      <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
-    </section>
-
-    <h2>Try your own innings</h2>
-    <section class="card" data-testid="tryit">
-      <p class="muted" data-testid="tryit-hint">Run the agent first, then use its model on an innings of your own.</p>
-      <form novalidate>
-        <span class="tryit-fields" data-testid="tryit-fields"></span>
-        <button type="submit" disabled>Predict</button>
-      </form>
-      <p class="error" role="alert" data-testid="tryit-error"></p>
-      <div data-testid="tryit-result" hidden></div>
-      <p class="attribution" data-testid="attribution">The model was trained on ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>.</p>
-    </section>
-
+      <div class="run-summary" data-testid="run-summary" aria-live="polite"></div>
     </div>
-    <div data-tab="data" data-label="Data" data-testid="data-panel">
-      <h2>The innings the agent works from</h2>
-      <p class="muted data-intro">
-        Every row is one real first innings. The agent reads these rows, learns from the earlier years
-        (<strong>Training</strong>), chooses features on the year before the latest (<strong>Validation</strong>) and is marked once on the latest year (<strong>Test</strong>). Sort, search and filter
-        them, copy cells into a spreadsheet, or download the lot.
-      </p>
-      <data-grid noun="innings"></data-grid>
+    <div data-tab="found" data-label="What the agent found" data-testid="found-panel">
+      <h2 tabindex="-1">What the agent found</h2>
+      <p class="muted not-ready" data-testid="not-ready">The leaderboard, the rival's grid search and the language model's reasoning appear here once the agent starts working. <a href="#working">Go to Working and press Play</a>.</p>
+      <section class="card" data-testid="results-card" aria-live="polite">
+        <div data-testid="results"></div>
+        <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
+      </section>
+    </div>
+    <div data-tab="final-test" data-label="The final test" data-testid="final-panel">
+      <h2 tabindex="-1">The final test</h2>
+      <p class="muted not-ready" data-testid="not-ready">How every method does on the held-out year, and what it means in cricket terms, appear here when the agent reaches its final test. <a href="#working">Go to Working and press Play</a>.</p>
+      <section class="card" data-testid="results-final-card" aria-live="polite">
+        <div data-testid="results-final"></div>
+        <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
+      </section>
+    </div>
+    <div data-tab="try-your-own" data-label="Try your own innings" data-testid="tryit-panel">
+      <h2 tabindex="-1">Try your own innings</h2>
+      <section class="card" data-testid="tryit">
+        <p class="muted" data-testid="tryit-hint">Run the agent first on the <a href="#working">Working tab</a>, then use its model on an innings of your own.</p>
+        <form novalidate>
+          <span class="tryit-fields" data-testid="tryit-fields"></span>
+          <button type="submit" disabled>Predict</button>
+        </form>
+        <p class="error" role="alert" data-testid="tryit-error"></p>
+        <div data-testid="tryit-result" hidden></div>
+        <p class="attribution" data-testid="attribution">The model was trained on ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>.</p>
+      </section>
     </div>
     </tab-set>
 

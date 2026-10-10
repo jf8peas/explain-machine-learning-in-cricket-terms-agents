@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
-import { open, playToEnd, serveStructure, timelineItems } from "./helpers";
+import { afterRunOpen, open, playToEnd, serveStructure, timelineItems } from "./helpers";
 
 // Stage badges and rows, the legend, the panel and timeline cues, the done-beforehand item and the loop emphasis,
 // against the real app with the scripted fake model. Stage names come from /api/structure, never from this file.
@@ -187,6 +187,46 @@ test("every stage card shows its question and its technical note, and stage 5 is
   await expect(page.getByText("Choose the setup")).toHaveCount(0);
 });
 
+test("the notes start closed; each opens and closes on its own, and Open all and Close all work together", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page);
+  const notes = page.locator(".legend-stage .stage-note");
+  const toggles = page.getByTestId("note-toggle");
+  const count = await notes.count();
+  expect(count).toBe(8);
+  for (let i = 0; i < count; i++) await expect(notes.nth(i)).toBeHidden();
+  await expect(toggles.first()).toHaveAttribute("aria-expanded", "false");
+  await toggles.nth(1).click();                                                       // one at a time
+  await expect(notes.nth(1)).toBeVisible();
+  await expect(notes.nth(0)).toBeHidden();
+  await expect(toggles.nth(1)).toHaveAttribute("aria-expanded", "true");
+  await expect(legendStage(page, "split")).toHaveAttribute("aria-pressed", "false");   // opening a note does not select the stage
+  await toggles.nth(1).click();
+  await expect(notes.nth(1)).toBeHidden();
+  const all = page.getByTestId("notes-toggle-all");
+  await expect(all).toHaveText("Open all details");
+  await all.click();
+  for (let i = 0; i < count; i++) await expect(notes.nth(i)).toBeVisible();
+  await expect(all).toHaveText("Close all details");
+  await toggles.nth(2).click();                                                        // one closed, so the button offers Open again
+  await expect(all).toHaveText("Open all details");
+  await all.click();
+  await all.click();
+  for (let i = 0; i < count; i++) await expect(notes.nth(i)).toBeHidden();
+});
+
+test("selecting a stage does not open its note, and the note buttons are reachable by keyboard", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page);
+  await legendStage(page, "choose").click();
+  await expect(legendStage(page, "choose").locator(".stage-note")).toBeHidden();
+  const toggle = page.locator('[data-testid="note-toggle"][data-stage="choose"]');
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(legendStage(page, "choose").locator(".stage-note")).toBeVisible();
+  await expect(legendStage(page, "choose")).toHaveAttribute("aria-pressed", "true");     // still selected
+});
+
 test("the technical notes say where selection happens and what is held out", async ({ page }) => {
   await open(page);
   await expect(legendStage(page, "split").locator(".stage-note")).toContainText("held-out test set, read once");
@@ -294,7 +334,7 @@ test("selecting a stage mid-run does not interrupt the run, and the active node 
   });
   const before = await timelineItems(page).count();
   await legendStage(page, "assess").click();                                 // a stage the run has not reached yet
-  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 60_000 });
   expect(await timelineItems(page).count()).toBeGreaterThan(before);         // the run carried on, to the end
   await expect(page.getByTestId("pause")).toBeDisabled();
   const seen = await page.evaluate(() => {
@@ -496,7 +536,8 @@ test("opening the item mid-run does not interrupt the run or change the Event pa
   const before = await timelineItems(page).count();
   await itemNode(page).click();
   await expect(itemPanel(page)).toBeVisible();
-  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 60_000 });
+  await afterRunOpen(page, "working");                                           // the run ended: the page moved to the results
   expect(await timelineItems(page).count()).toBeGreaterThan(before);
   await expect(itemPanel(page)).toBeVisible();                                   // the replay did not close it
   await expect(page.getByTestId("event-node")).toBeVisible();                    // and the Event panel still shows the step

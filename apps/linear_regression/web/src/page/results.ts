@@ -56,26 +56,26 @@ function finalComparison(f: FinalState, explanation: Explanation | undefined, fa
   return box;
 }
 
-export function renderResults(target: HTMLElement, state: Record<string, unknown>): void {
-  const attempts = (state.attempts as Attempt[] | undefined) ?? [];
-  const rounds = (state.rounds as RoundNote[] | undefined) ?? [];
-  const final = state.final as FinalState | undefined;
-  const expl = state.explanation as Explanation | undefined;
+const fields = (state: Record<string, unknown>) => ({
+  attempts: (state.attempts as Attempt[] | undefined) ?? [],
+  rounds: (state.rounds as RoundNote[] | undefined) ?? [],
+  final: state.final as FinalState | undefined,
+  expl: state.explanation as Explanation | undefined,
+});
+
+/** What the agent found: the language model line and notice, the leaderboard, the grid search and the model's reasoning,
+ *  and once the final test is on display a link to it. Rendered from the state at the step on display. */
+export function renderFound(target: HTMLElement, state: Record<string, unknown>): void {
+  const { attempts, rounds, final } = fields(state);
   const baseline = state.baseline_validation_mae as number | undefined;
-  const dataError = state.data_error as string | null | undefined;
   const modelName = state.model_name as string | null | undefined;
   const status = state.llm_status as string | undefined;
   const failure = state.llm_failure as string | null | undefined;
 
-  if (dataError) {
-    target.replaceChildren(h("p", { class: "error", role: "alert", "data-testid": "data-error" }, dataError));
-    return;
-  }
   if (!attempts.length && !rounds.length && !final) {
-    target.replaceChildren(h("p", { class: "muted" }, "Results appear here as the agent works. Press Play above."));
+    target.replaceChildren();                       // nothing yet: the tab's "not ready" sentence says so
     return;
   }
-
   const parts: Node[] = [];
   if (modelName) parts.push(h("p", { class: "muted", "data-testid": "model-used" }, `Language model used: ${modelName}`));
   if (status === "failed" || status === "not_used") {
@@ -90,6 +90,22 @@ export function renderResults(target: HTMLElement, state: Record<string, unknown
   if (grid) parts.push(renderGrid(grid));
   const roundsEl = renderRounds(rounds, modelName);
   if (roundsEl) parts.push(roundsEl);
+  if (final) {
+    parts.push(h("p", { class: "next-link", "data-testid": "to-final" },
+      h("a", { href: "#final-test" }, "See how it did in The final test")));
+  }
+  target.replaceChildren(...parts);
+}
+
+/** The final test: the comparison, the accuracy table and chart, the two best setups, the explanation. */
+export function renderFinal(target: HTMLElement, state: Record<string, unknown>): void {
+  const { final, expl } = fields(state);
+  const failure = state.llm_failure as string | null | undefined;
+  if (!final && !expl) {
+    target.replaceChildren();
+    return;
+  }
+  const parts: Node[] = [];
   if (final) {
     parts.push(h("h3", {}, "The final test"), finalComparison(final, expl, failure));
     if (final.accuracy && final.methods && final.method_defs) {

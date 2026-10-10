@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
-import { open, playToEnd, serveRun, sse, timelineItems } from "./helpers";
+import { afterRunOpen, open, openTab, playToEnd, serveRun, sse, timelineItems } from "./helpers";
 
 // How good the references are: the introduction before any run, and the final results after one. Every figure on the
 // page is compared with what the server sent, never with a number typed in here.
@@ -199,6 +199,7 @@ test("bias reads in words and runs, and the table says how many innings it rests
 test("the existing comparison block and its test ids are still there, with the know-nothing figure beside them", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   for (const id of ["comparison", "final-llm", "final-forward", "final-tv", "winner", "verdict"]) await expect(page.getByTestId(id)).toBeVisible();
   const state = await runState(page);
   await expect(page.getByTestId("final-know-nothing")).toContainText(state.final.accuracy.know_nothing.average_miss.toFixed(1));
@@ -234,7 +235,9 @@ test("crafted states: the weak-projection findings and the same-direction large 
     await serveRun(page, sse("step", { step: 1, node: "final_test", summary: "x", changes: { final: crafted.final, chart_points: crafted.chart_points } })
       + sse("done", { steps: 1 }));
     await page.reload();
+    await openTab(page, "working");
     await page.getByTestId("play").click();
+    await afterRunOpen(page, "final-test");
     await expect(page.getByTestId("reference-finding")).toContainText(`CRAFTED ${finding}`);
     await expect(page.getByTestId("bias-finding")).toContainText("CRAFTED every method leans low.");
     await page.unroute("**/api/run*");
@@ -257,6 +260,7 @@ test("at phone width the table scrolls inside its own box and the page does not 
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const sizes = await page.evaluate(() => {
     const box = document.querySelector('[data-testid="accuracy-table"]')!.closest(".table-scroll") as HTMLElement;
     return { scroll: box.scrollWidth, client: box.clientWidth, overflow: getComputedStyle(box).overflowX,
@@ -289,6 +293,7 @@ test("the chart opens with the winning model and the TV projection, and its togg
 test("each shown method draws one mark per test innings, and switching it off removes exactly its marks", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const state = await runState(page);
   const n = state.final.accuracy.broadcaster.n;
   expect(state.chart_points.actual).toHaveLength(n);
@@ -306,6 +311,7 @@ test("each shown method draws one mark per test innings, and switching it off re
 test("with no method chosen the chart shows only the diagonal and a prompt", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const state = await runState(page);
   for (const m of ["broadcaster", state.final.winner]) await toggle(page, m).click();
   await expect(allMarks(page)).toHaveCount(0);
@@ -319,6 +325,7 @@ test("with no method chosen the chart shows only the diagonal and a prompt", asy
 test("the choice survives the replay moving on and back", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   await toggle(page, "know_nothing").click();
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("ArrowRight");
@@ -328,6 +335,7 @@ test("the choice survives the replay moving on and back", async ({ page }) => {
 test("the plot is square, with the same range on both axes and the diagonal corner to corner", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const area = await page.getByTestId("chart-plot-area").boundingBox();
   expect(Math.abs(area!.width - area!.height)).toBeLessThan(1.5);
   const diagonal = await page.getByTestId("chart-diagonal").evaluate((l) => {
@@ -375,6 +383,7 @@ test("two methods with identical predictions both draw all their marks, and the 
     + sse("done", { steps: 1 }));
   await page.reload();
   await page.getByTestId("play").click();
+    await afterRunOpen(page, "final-test");
   await toggle(page, "llm").click().catch(() => undefined);
   const n = crafted.final.accuracy.broadcaster.n;
   for (const m of ["llm", "forward"]) {
@@ -430,6 +439,7 @@ test("at phone width the chart fits its container and the page does not scroll s
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const sizes = await page.evaluate(() => {
     const svg = document.querySelector('[data-testid="chart-plot"]')!.getBoundingClientRect();
     const box = document.querySelector('[data-testid="accuracy-chart"]')!.getBoundingClientRect();
@@ -443,6 +453,7 @@ test("at phone width the chart fits its container and the page does not scroll s
 test("nothing on the chart is animated", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   await toggle(page, "know_nothing").click();
   const running = await page.getByTestId("accuracy-chart").evaluate((e) => (e as HTMLElement).getAnimations({ subtree: true }).length);
   expect(running).toBe(0);
@@ -454,6 +465,7 @@ test("nothing on the chart is animated", async ({ page }) => {
 test("near the final results the page says no method can be perfect, in plain words and without any figure", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const note = page.getByTestId("expectations-note");
   await expect(note).toBeVisible();
   const text = (await note.textContent()) ?? "";

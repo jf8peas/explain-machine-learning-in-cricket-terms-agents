@@ -1,6 +1,6 @@
 // The language-model run, against the scripted fake model: what the visitor sees and how it is explained.
 import { expect, test } from "./fixtures";
-import { open, playToEnd, timelineItems } from "./helpers";
+import { open, openTab, playToEnd, timelineItems } from "./helpers";
 
 // Positions in the default scripted run (fake/steady on the committed data), zero-based:
 // 0 load_data, 1 split, 2 explore, 3 baseline, 4 propose_features, 5 check_proposal, 6 fit_model, 7 evaluate, ...
@@ -145,7 +145,7 @@ test("changing the picker during a run does not affect that run", async ({ page 
   await page.getByTestId("play").click();
   await expect(page.locator("graph-replay")).toHaveAttribute("data-running", "true");
   await picker(page).selectOption({ label: "Quick" });              // too late for this run
-  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });   // the first run, still going
+  await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 45_000 });   // the first run, still going
   await expect(page.getByTestId("model-used")).toHaveText("Language model used: Thorough");
   expect(await proposals(page)).toBe(5);
   await expect(page.locator("graph-replay")).toHaveAttribute("run-url", "/api/run?model=m2");  // the next run uses Quick
@@ -188,7 +188,7 @@ test("Play and Reset are disabled while a run is in progress and come back when 
   await expect(page.getByTestId("play")).toBeDisabled();
   await expect(page.getByTestId("reset")).toBeDisabled();
   await expect(page.locator("graph-replay")).toHaveAttribute("data-running", "true");
-  await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 45_000 });
   await expect(page.getByTestId("play")).toBeEnabled();
   await expect(page.getByTestId("reset")).toBeEnabled();
   await expect(page.locator("graph-replay")).toHaveAttribute("data-running", "false");
@@ -207,7 +207,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
   await expect(page.getByTestId("status")).toContainText("minute");
   await expect(page.getByTestId("play")).toBeEnabled();                // nothing is running, so Play is available again
   expect(await page.getByTestId("attempt-row").count()).toBe(rows);    // the earlier results are untouched
-  await expect(page.getByTestId("explanation")).toBeVisible();
+  await expect(page.getByTestId("explanation")).toBeAttached();
   await expect(page.getByTestId("timeline-item")).toHaveCount(23);
 });
 
@@ -220,7 +220,7 @@ test("the limit is per visitor: another visitor can still run", async ({ page, b
   const p2 = await other.newPage();
   await open(p2);
   await playToEnd(p2);
-  await expect(p2.getByTestId("model-used")).toBeVisible();
+  await expect(p2.getByTestId("model-used")).toBeAttached();
   await other.close();
 });
 
@@ -252,6 +252,7 @@ test("a model that times out is explained in plain words", async ({ page }) => {
   await playToEnd(page);
   await expect(page.getByTestId("llm-notice")).toContainText("did not reply in time");
   await expect(page.getByTestId("attempt-row")).toHaveCount(1);
+  await openTab(page, "final-test");
   await expect(page.getByTestId("verdict")).toBeVisible();                     // the run still reached its conclusion
 });
 

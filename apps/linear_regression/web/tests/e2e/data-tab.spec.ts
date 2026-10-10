@@ -1,7 +1,7 @@
 // Data tab: tabs, spreadsheet grid, sort/search/filter, split visibility, summary, CSV download, failure.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
-import { countRunRequests, open, playToEnd, timelineItems } from "./helpers";
+import { countRunRequests, open, openTab, playToEnd, timelineItems } from "./helpers";
 
 const TOTAL = 5177; // manifest total_innings; checked against the agent's load_data step below
 
@@ -48,13 +48,14 @@ test.describe("tabs", () => {
     await page.getByTestId("tab-working").click();
     await page.getByTestId("tab-data").click();
     await page.getByTestId("tab-working").click();
-    await expect(page.getByTestId("explanation")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 45_000 });
     expect(runs.count()).toBe(1);
   });
 
   test("a finished run keeps its results, step and try-your-own inputs", async ({ page }) => {
     await open(page);
     await playToEnd(page);
+    await openTab(page, "try-your-own");
     const form = page.getByTestId("tryit");
     await form.locator("[name=runs_at_10]").fill("84");
     await form.locator("[name=wickets_at_10]").fill("2");
@@ -102,17 +103,20 @@ test.describe("tabs", () => {
   test("tabs work by keyboard and expose the tab roles", async ({ page }) => {
     await open(page);
     await expect(page.getByRole("tablist")).toBeVisible();
-    await expect(page.getByRole("tab")).toHaveCount(2);
+    await expect(page.getByRole("tab")).toHaveCount(5);
     await page.getByTestId("tab-working").focus();
-    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowLeft");                       // Data is first in the order
     await expect(page.getByTestId("tab-data")).toBeFocused();
     await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "tab-data");
-    await page.keyboard.press("ArrowRight"); // wraps
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("End");
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowLeft"); // wraps to the last tab
+    await expect(page.getByTestId("tab-try-your-own")).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("Home");
+    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("End");
+    await expect(page.getByTestId("tab-try-your-own")).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowRight");                      // wraps to Data
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-controls", "panel-working");
   });

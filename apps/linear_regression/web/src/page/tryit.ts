@@ -14,16 +14,30 @@ export function setupTryIt(root: HTMLElement): (model: Model | null) => void {
   let model: Model | null = null;
   let catalogue: Catalogue | null = null;
   let fields: Field[] = [];
+  /** What the visitor has typed, by field. A new run clears the form for a moment (no model yet) and rebuilds it for the
+   *  new model; whatever was typed for a field the new form also asks for is put back. */
+  const typed = new Map<string, string>();
+  const remember = (ev: Event) => {
+    const el = ev.target as HTMLInputElement | HTMLSelectElement | null;
+    if (el && el.name) typed.set(el.name, el.value);
+  };
+  form.addEventListener("input", remember);
+  form.addEventListener("change", remember);
 
   const control = (f: Field): HTMLElement => {
     if (f.kind === "choice") {
       const select = h("select", { name: f.id, "data-testid": `tryit-${f.id}` },
         ...f.options.map((o) => h("option", { value: o.value }, o.label)));
+      const kept = typed.get(f.id);
+      if (kept !== undefined && f.options.some((o) => o.value === kept)) select.value = kept;
       return h("label", {}, f.label, select);
     }
     const attrs: Record<string, string> = { name: f.id, type: "number", inputmode: "numeric", min: String(f.min) };
     if (f.max !== undefined) attrs.max = String(f.max);
-    return h("label", {}, f.label, h("input", attrs));
+    const input = h("input", attrs);
+    const kept = typed.get(f.id);
+    if (kept !== undefined) input.value = kept;
+    return h("label", {}, f.label, input);
   };
 
   const read = (): Entered => {

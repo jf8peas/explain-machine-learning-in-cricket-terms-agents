@@ -18,7 +18,7 @@ A framework-free web component that draws any agent graph and replays a run of i
 
 ## Events it emits
 
-`refused` when a start is refused, and `replaychange` (bubbles, composed) on every change. `detail`: `{ cursor, steps, finished, atEnd, state, finalState }`, where `state` is the accumulated state at the step on display and `finalState` is the state after the last step once the stream has finished. Host pages use this to show their own results; the component never interprets the state.
+`refused` when a start is refused, and `replaychange` (bubbles, composed) on every change. `detail`: `{ cursor, steps, finished, atEnd, state, finalState, run, failed }`, where `run` goes up by one each time a new run starts and `failed` is true when the stream ended with an error event or the connection was lost before the run finished, and where `state` is the accumulated state at the step on display and `finalState` is the state after the last step once the stream has finished. Host pages use this to show their own results; the component never interprets the state.
 
 ## Behaviour
 

@@ -2,7 +2,7 @@
 // with no changes to the component.
 import { readFileSync } from "node:fs";
 import { expect, test } from "./fixtures";
-import { serveRun, serveStructure, sse, timelineItems } from "./helpers";
+import { afterRunOpen, serveRun, serveStructure, sse, timelineItems } from "./helpers";
 
 const structure = JSON.parse(readFileSync("tests/fixtures/other-structure.json", "utf8"));
 const step = (n: number, node: string, summary: string, changes: object) => sse("step", { step: n, node, summary, changes });
@@ -89,6 +89,7 @@ test("another app's loop is emphasised from its second round, with its count", a
   await page.getByTestId("play").click();
   await expect(timelineItems(page)).toHaveCount(8, { timeout: 20_000 });
   await expect(page.getByTestId("pause")).toBeDisabled();
+  await afterRunOpen(page, "working");
   await timelineItems(page).nth(0).click();
   await expect(page.locator(".edge.loop")).toHaveCount(0);
   await timelineItems(page).nth(4).click();                                // the second visit to fetch, the loop's fit stage

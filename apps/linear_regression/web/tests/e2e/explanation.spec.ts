@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { open, playToEnd } from "./helpers";
+import { open, openTab, playToEnd } from "./helpers";
 
 test("the run ends with a cricket explanation and a clear comparison", async ({ page }) => {
   await open(page);
@@ -20,6 +20,7 @@ test("the run ends with a cricket explanation and a clear comparison", async ({ 
 test("the Cricsheet attribution is visible in the results area", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "found");
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toBeVisible();
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
 });

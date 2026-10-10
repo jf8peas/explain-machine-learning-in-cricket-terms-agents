@@ -129,6 +129,12 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 .legend-stage .question { color: var(--gr-muted); font-size: 12.5px; }
 .legend-stage .no-node { font-size: 12px; font-weight: 600; color: var(--gr-muted); }
 .legend-stage .stage-note { font-size: 12px; color: var(--gr-text); margin-top: 2px; }
+/* a stage's note is closed until its Details button (or Open all) opens it */
+.legend-list li { position: relative; }
+.legend-list li[data-notes="closed"] .stage-note { display: none; }
+.legend-stage.has-note { padding-right: 86px; }
+.note-toggle { position: absolute; top: 5px; right: 6px; font-size: 11px; padding: 1px 8px; }
+.legend-notes-all { margin: 0 0 6px; font-size: 12px; padding: 3px 10px; }
 .legend-stage[aria-pressed="true"] { background: var(--gr-accent-soft); border-color: var(--stage-colour); box-shadow: inset 0 0 0 2px var(--stage-colour); }
 .legend-all { margin-bottom: 6px; }
 .legend-unassigned { margin: 0 0 8px; padding: 4px 8px; border: 1px dashed var(--gr-muted); border-radius: 6px; font-size: 12.5px; color: var(--gr-muted); }
@@ -139,6 +145,8 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
   .legend-stage { display: inline-flex; width: auto; padding: 4px 8px; }
   .legend-stage .name, .legend-stage .question, .legend-stage .no-node, .legend-stage .stage-note { display: none; }
   .legend-stage .badge { grid-row: auto; }
+  .legend-stage.has-note { padding-right: 8px; }
+  .note-toggle, .legend-notes-all { display: none; }
   .legend-detail { display: block; }
 }
 /* dimming and highlight, chosen in the legend: classes only, no animation */
