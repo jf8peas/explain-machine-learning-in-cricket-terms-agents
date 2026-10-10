@@ -197,3 +197,30 @@ describe("row placement on another app's structure", () => {
     expect(layoutGraph({ ...other, stages: undefined }).rows).toEqual([]);
   });
 });
+
+describe("a taller drawing", () => {
+  const natural = layoutGraph(real);
+  const tall = layoutGraph(real, natural.height + 600);
+
+  it("is at least as tall as asked, with the extra shared out between the rows", () => {
+    expect(tall.height).toBeCloseTo(natural.height + 600, 3);
+    expect(tall.rows).toHaveLength(natural.rows.length);
+    const extra = 600 / natural.rows.length;
+    tall.rows.forEach((r, i) => expect(r.h).toBeCloseTo(natural.rows[i].h + extra, 3));
+  });
+
+  it("keeps every step in its row, with the same x and the rows stacked with no gaps", () => {
+    for (const n of tall.nodes) {
+      const was = natural.nodes.find((o) => o.id === n.id)!;
+      expect(n.x).toBeCloseTo(was.x, 3);
+      const row = tall.rows[n.row ?? 0];
+      expect(n.y).toBeGreaterThan(row.y);
+      expect(n.y).toBeLessThan(row.y + row.h);
+    }
+    for (let i = 1; i < tall.rows.length; i++) expect(tall.rows[i].y).toBeCloseTo(tall.rows[i - 1].y + tall.rows[i - 1].h, 3);
+  });
+
+  it("changes nothing when the asked height is below the natural one", () => {
+    expect(layoutGraph(real, 10).height).toBe(natural.height);
+  });
+});

@@ -32,6 +32,10 @@ export class GraphReplay extends HTMLElement {
 
   private buf = new ReplayBuffer(realClock, () => this.update());
   private layout: Layout | null = null;
+  /** The drawing height asked of the layout so far, to fill the column beside it (0: its natural height). */
+  private wantedHeight = 0;
+  private resizer: ResizeObserver | null = null;
+  private fitFrame = 0;
   private structure: Structure | null = null;
   private legend: Legend | null = null;
   private itemPanel: ItemPanel | null = null;
@@ -120,6 +124,8 @@ export class GraphReplay extends HTMLElement {
     this.abort?.abort();
     this.buf.reset();
     cancelAnimationFrame(this.raf);
+    cancelAnimationFrame(this.fitFrame);
+    this.resizer?.disconnect();
   }
 
   // ---------------- structure ----------------
@@ -134,23 +140,89 @@ export class GraphReplay extends HTMLElement {
       this.drawGraph();
       this.setupLegend();
       this.ready = true;
-      requestAnimationFrame(() => this.measureStartHeight());
+      requestAnimationFrame(() => { this.measureStartHeight(); this.watchSize(); });
       this.update();
     } catch {
       this.setMessage("Could not load the graph structure.", true);
     }
   }
 
-  /** On wide screens the graph is never shorter than the right-hand column was when the page loaded: legend and panels
-   *  at their natural heights, measured once before anything runs. (On a phone there is one column, so no minimum.) */
-  private measureStartHeight() {
-    const main = this.$(".main");
-    if (!main || window.matchMedia("(max-width: 760px)").matches) return;
+  /** The height of the right-hand column (legend and panels at their current heights), or null on a phone, where there is
+   *  one column. */
+  private columnHeight(): number | null {
+    if (!this.$(".main") || window.matchMedia("(max-width: 760px)").matches) return null;
     const legend = this.$(".legend");
     const panels = (Array.from(this.$(".side").children) as HTMLElement[]).filter((el) => !el.hidden);
     const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
-    const total = legend.hidden ? sideHeight : legend.offsetHeight + (panels.length ? 12 + sideHeight : 0);
-    main.style.setProperty("--graph-min", `${total}px`);
+    return legend.hidden ? sideHeight : legend.offsetHeight + (panels.length ? 12 + sideHeight : 0);
+  }
+
+  /** On wide screens the graph is never shorter than the right-hand column was when the page loaded: legend and panels
+   *  at their natural heights, measured once before anything runs. (On a phone there is one column, so no minimum.) */
+  private measureStartHeight() {
+    const total = this.columnHeight();
+    if (total !== null) this.$(".main").style.setProperty("--graph-min", `${total}px`);
+  }
+
+  /** Make the drawing as tall as the column beside it, now and whenever the legend, a panel or the width changes. */
+  private watchSize() {
+    if (typeof ResizeObserver === "undefined") return;
+    this.resizer?.disconnect();
+    this.resizer = new ResizeObserver(() => {
+      cancelAnimationFrame(this.fitFrame);
+      this.fitFrame = requestAnimationFrame(() => this.fitHeight());
+    });
+    for (const el of [this.$(".graph"), this.$(".legend"), ...Array.from(this.$(".side").children)]) this.resizer.observe(el);
+    this.fitHeight();
+  }
+
+  /** Redraw with the rows spread out so the drawing fills the column's height. The drawing is scaled to the card's
+   *  width, so the height asked of the layout is the column height divided by that scale. */
+  private fitHeight() {
+    if (!this.structure || !this.layout) return;
+    const col = this.columnHeight();
+    const natural = layoutGraph(this.structure);
+    let want = 0;
+    if (col !== null && natural.rows.length) {
+      const scale = Math.min(1, (this.$(".graph").clientWidth - 12) / natural.width);
+      if (scale > 0) want = Math.max(0, (col - 14) / scale);        // minus the card's padding and border
+    }
+    if (want <= natural.height) want = 0;
+    if (Math.abs(want - this.wantedHeight) < 4) return;
+    this.wantedHeight = want;
+    this.layout = want ? layoutGraph(this.structure, want) : natural;
+    this.moveGraph(this.layout);
+  }
+
+  /** Move what is already drawn to a new layout of the same graph (same nodes and edges, other y positions): nothing is
+   *  rebuilt, so the selection, focus, the open item and a marker in flight all carry on. */
+  private moveGraph(L: Layout) {
+    const root = this.$("svg") as unknown as SVGSVGElement;
+    root.setAttribute("viewBox", `0 0 ${Math.ceil(L.width)} ${Math.ceil(L.height)}`);
+    const rowEls = Array.from(root.querySelectorAll(".bands > .stage-row"));
+    L.rows.forEach((row, i) => {
+      const rect = rowEls[i]?.querySelector("rect");
+      rect?.setAttribute("y", String(row.y));
+      rect?.setAttribute("height", String(row.h));
+      rowEls[i]?.querySelector(".band-label")?.setAttribute("transform", `translate(${row.label.x},${row.label.y})`);
+    });
+    for (const n of L.nodes) (n.kind === "item" ? this.itemEls : this.nodeEls).get(n.id)?.setAttribute("transform", `translate(${n.x},${n.y})`);
+    for (const e of L.edges) {
+      const g = this.edgeEls.get(`${e.source}->${e.target}`);
+      g?.querySelector("path")?.setAttribute("d", pathData(e.points));
+      const t = g?.querySelector("text");
+      if (t && e.label) { t.setAttribute("x", String(e.label.x)); t.setAttribute("y", String(e.label.y + 4)); }
+      const pill = this.loopPills.get(`${e.source}->${e.target}`);
+      if (pill) {
+        const mid = e.label ?? e.points[Math.floor(e.points.length / 2)];
+        const at = e.pill ?? { x: mid.x + 52, y: mid.y };
+        pill.setAttribute("transform", `translate(${at.x},${at.y})`);
+      }
+    }
+    if (this.$(".wrap").dataset.animating !== "true" && this.buf.cursor >= 0) {     // a marker at rest follows its node
+      const node = L.nodes.find((n) => n.id === this.buf.events[this.buf.cursor].node);
+      if (node && this.marker) { this.marker.setAttribute("cx", node.x.toFixed(1)); this.marker.setAttribute("cy", node.y.toFixed(1)); }
+    }
   }
 
   /** Open an item's summary, or close it if it is already open. Never touches playback. */
@@ -251,7 +323,7 @@ export class GraphReplay extends HTMLElement {
     this.itemEls.clear();
     this.loopKeys.clear();
     this.loopPills.clear();
-    this.itemPanel = new ItemPanel(this.$(".item-panel"), () => this.itemPanel?.hide());
+    this.itemPanel ??= new ItemPanel(this.$(".item-panel"), () => this.itemPanel?.hide());   // kept across a redraw
 
     for (const e of L.edges) {
       const g = svg("g", { class: `edge${e.conditional ? " conditional" : ""}${e.item ? " item-edge" : ""}`, "data-edge": `${e.source}->${e.target}` });
@@ -562,7 +634,11 @@ export class GraphReplay extends HTMLElement {
       const pt = path.getPointAtLength(total * t);
       place(pt.x, pt.y);
       if (t < 1) this.raf = requestAnimationFrame(frame);
-      else { place(node.x, node.y); this.$(".wrap").dataset.animating = "false"; }
+      else {
+        const end = this.layout!.nodes.find((n) => n.id === active) ?? node;   // the layout may have moved meanwhile
+        place(end.x, end.y);
+        this.$(".wrap").dataset.animating = "false";
+      }
     };
     this.raf = requestAnimationFrame(frame);
   }

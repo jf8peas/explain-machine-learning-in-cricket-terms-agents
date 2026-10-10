@@ -42,8 +42,9 @@ short, and a step sits under its nearest earlier predecessor, so the main sequen
 are straight or have one turn; a loop-back within a row arcs above it (the row grows to make room), and a long edge
 that would cross other steps runs down the right margin. A step with no (known) stage is drawn in the row of its
 predecessor and keeps its "–" badge. A visited step shows a tick with its visit count (`✓1`, `✓6`) from the first visit.
-The graph takes the full width of the component, with the legend and panels beneath it; on a phone it keeps its natural
-size and scrolls sideways.
+On wide screens the drawing is stretched to the height of the column beside it (legend and panels): the extra height is
+shared equally between the rows, so nodes keep their size and edges lengthen. On a phone it keeps its natural size and
+scrolls sideways.
 
 | Structure field | What the component does with it |
 |---|---|

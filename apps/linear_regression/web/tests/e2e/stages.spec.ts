@@ -723,3 +723,20 @@ for (const scheme of ["light", "dark"] as const) {
     for (const t of read.tints) expect(Number(t)).toBeLessThanOrEqual(0.1);       // a light tint, so the text stays legible on it
   });
 }
+
+test("the drawing fills the height of the column beside it, and keeps filling it as the panels grow", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, 40);
+  const gap = () => page.evaluate(() => {
+    const r = document.querySelector("graph-replay")!.shadowRoot!;
+    const g = r.querySelector(".graph") as HTMLElement;
+    const s = r.querySelector("svg")!.getBoundingClientRect();
+    return g.getBoundingClientRect().height - 14 - s.height;       // card minus its padding and border, less the drawing
+  });
+  await expect.poll(gap).toBeLessThan(6);
+  expect(await gap()).toBeGreaterThan(-6);
+  await playToEnd(page);                                           // the panels fill and the column grows
+  await expect.poll(gap).toBeLessThan(6);
+  expect(await gap()).toBeGreaterThan(-6);
+  expect(await graphScale(page)).toBeLessThanOrEqual(1.001);       // taller, not larger: the text is the same size
+});

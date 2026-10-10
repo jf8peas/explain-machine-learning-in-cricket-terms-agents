@@ -108,9 +108,10 @@ function layoutFlat(structure: Structure): Layout {
 /**
  * The rows, stacked from the top with no gaps: Start, one per stage in `stages` order, Finish. Each is `ROW_LINE` high
  * (Start also has `START_PAD` above, for an item's tag), plus `extraTop[i]` where arcs need room above the nodes. A stage
- * with no nodes still gets a row. `nodes` is left empty for the caller to fill.
+ * with no nodes still gets a row. `line` is the height of the node line (more than `ROW_LINE` when the drawing is
+ * stretched to a taller space). `nodes` is left empty for the caller to fill.
  */
-export function computeRows(stages: StageDef[], width: number, extraTop: number[] = [], labelX = 22): Row[] {
+export function computeRows(stages: StageDef[], width: number, extraTop: number[] = [], labelX = 22, line = ROW_LINE): Row[] {
   const defs: Pick<Row, "key" | "kind" | "stage" | "number" | "name">[] = [
     { key: "start", kind: "start", stage: null, number: null, name: "Start" },
     ...stages.map((s, i) => ({ key: s.id, kind: "stage" as const, stage: s.id, number: i + 1, name: s.name })),
@@ -119,8 +120,8 @@ export function computeRows(stages: StageDef[], width: number, extraTop: number[
   let y = 0;
   return defs.map((d, i) => {
     const pad = (extraTop[i] ?? 0) + (i === 0 ? START_PAD : 0);
-    const h = pad + ROW_LINE;
-    const row: Row = { ...d, x: 0, y, w: width, h, label: { x: labelX, y: y + pad + ROW_LINE / 2 }, nodes: [] };
+    const h = pad + line;
+    const row: Row = { ...d, x: 0, y, w: width, h, label: { x: labelX, y: y + pad + line / 2 }, nodes: [] };
     y += h;
     return row;
   });
@@ -163,7 +164,7 @@ const longestSegment = (pts: Point[]) => {
 };
 
 /** With stages: one row per stage. Dagre only gives each row's starting order; the row comes from the node's stage. */
-function layoutRows(structure: Structure, flat: Layout): Layout {
+function layoutRows(structure: Structure, flat: Layout, line = ROW_LINE): Layout {
   const stages = structure.stages as StageDef[];
   const last = stages.length + 1;
   const stageRow = new Map(stages.map((s, i) => [s.id, i + 1]));
@@ -251,7 +252,7 @@ function layoutRows(structure: Structure, flat: Layout): Layout {
       extraTop[r] = Math.max(extraTop[r], k * TRACK + ARC_BASE - 8);
     }
   }
-  const rows = computeRows(stages, 0, extraTop);
+  const rows = computeRows(stages, 0, extraTop, 22, line);
   for (const n of nodes) { n.row = rowOf.get(n.id); n.y = rows[n.row as number].label.y; rows[n.row as number].nodes.push(n.id); }
   for (const it of items) { it.y = rows[0].label.y; rows[0].nodes.push(it.id); }
 
@@ -320,9 +321,14 @@ function layoutRows(structure: Structure, flat: Layout): Layout {
   return { nodes: [...nodes, ...items], edges: laid, rows, width, height: lastRow.y + lastRow.h };
 }
 
-export function layoutGraph(structure: Structure): Layout {
+/** `minHeight`, when given, is the least height wanted for the drawing: with rows, the extra is shared out equally
+ *  between them (a row's nodes stay the same size, with longer edges between rows). */
+export function layoutGraph(structure: Structure, minHeight = 0): Layout {
   const flat = layoutFlat(structure);
-  return structure.stages && structure.stages.length ? layoutRows(structure, flat) : flat;
+  if (!structure.stages || !structure.stages.length) return flat;
+  const natural = layoutRows(structure, flat);
+  if (minHeight <= natural.height) return natural;
+  return layoutRows(structure, flat, ROW_LINE + (minHeight - natural.height) / natural.rows.length);
 }
 
 export function pathData(points: Point[]): string {
