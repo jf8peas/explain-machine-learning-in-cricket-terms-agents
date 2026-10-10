@@ -517,15 +517,18 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
                 written.append({**b, "title": cricket_blocks.fill(w["title"], facts) if "title" in w else b["title"],
                                 "sentences": [cricket_blocks.fill(x, facts) for x in w["sentences"]]
                                 if "sentences" in w else b["sentences"], "from_model": sorted(w)})
-        except (UnusableReply, cricket_blocks.UnknownFact):
-            log.warning("language model writing reply unusable: model=%s", model_id)
-            return _keep_templates(state, "The language model's wording could not be used, so the wording is from "
-                                          "templates.")
+        except (UnusableReply, cricket_blocks.UnknownFact) as exc:
+            # the message names the rule that failed (never the model's own text), so it is safe to log and to show
+            detail = str(exc) if isinstance(exc, UnusableReply) else f"a placeholder names a fact that does not exist ({exc})"
+            log.warning("language model writing reply unusable: model=%s reason=%s", model_id, detail)
+            return _keep_templates(state, f"The language model's wording could not be used ({detail}), so the wording is "
+                                          f"from templates.")
         by_id = {b["id"]: b for b in written}
         order = ["verdict", *(wording.order or [i for i in expl["order"] if i in cricket_blocks.MOVABLE]), "closing"]
         order = [i for i in order if i in by_id]
         covered = sum(1 for b in written if b["from_model"])
         if not covered:
+            log.warning("language model writing reply had no usable wording: model=%s", model_id)
             return _keep_templates(state, "The language model's reply had no wording for any block, so the wording is "
                                           "from templates.")
         return {"explanation": {**expl, "blocks": written, "order": order, "source": "language model",

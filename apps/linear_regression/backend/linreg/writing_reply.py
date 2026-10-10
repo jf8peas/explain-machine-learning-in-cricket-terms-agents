@@ -32,10 +32,15 @@ class Wording:
     closing_lead: str | None = None
 
 
+def _safe(name: str) -> str:
+    """A name from the reply, cut down to letters, digits and underscores so it can be shown or logged."""
+    return "".join(ch for ch in name if ch.isascii() and (ch.isalnum() or ch == "_"))[:40]
+
+
 def _check_text(text: str, facts: Mapping[str, Fact], what: str) -> None:
     for fid in PLACEHOLDER.findall(text):
         if fid not in facts:
-            raise UnusableReply(f"the {what} names a fact that does not exist ({fid})")
+            raise UnusableReply(f"the {what} names a fact that does not exist ({_safe(fid)})")
     bare = PLACEHOLDER.sub("", text)
     if "{" in bare or "}" in bare:
         raise UnusableReply(f"the {what} has a brace that is not a fact placeholder")
@@ -51,7 +56,7 @@ def _load(text: str) -> dict:
             continue
         if isinstance(value, dict):
             return value
-    raise UnusableReply("the reply was not JSON")
+    raise UnusableReply("the reply was not valid JSON")
 
 
 def parse_writing_reply(text: str, facts: Mapping[str, Fact], available: list[str]) -> Wording:
@@ -59,7 +64,7 @@ def parse_writing_reply(text: str, facts: Mapping[str, Fact], available: list[st
     data = _load(text)
     raw_blocks = data.get("blocks")
     if not isinstance(raw_blocks, dict):
-        raise UnusableReply("the reply has no blocks")
+        raise UnusableReply("the reply had no blocks object")
     wording = Wording()
     for bid, entry in raw_blocks.items():
         if bid not in BLOCK_IDS or bid not in available or not isinstance(entry, dict):
@@ -69,17 +74,17 @@ def parse_writing_reply(text: str, facts: Mapping[str, Fact], available: list[st
         if isinstance(title, str) and title.strip():
             _check_text(title, facts, f"title of {bid}")
             if len(title) > MAX_TITLE:
-                raise UnusableReply(f"the title of {bid} is too long")
+                raise UnusableReply(f"the title of {bid} is over {MAX_TITLE} characters")
             out["title"] = title.strip()
         sentences = entry.get("sentences")
         if isinstance(sentences, list):
             good = [s.strip() for s in sentences if isinstance(s, str) and s.strip()]
             if len(good) > max_sentences(bid):
-                raise UnusableReply(f"{bid} has too many sentences")
+                raise UnusableReply(f"{bid} has more than {max_sentences(bid)} sentence{'s' if max_sentences(bid) != 1 else ''}")
             for s in good:
                 _check_text(s, facts, f"sentence in {bid}")
                 if len(s) > MAX_SENTENCE:
-                    raise UnusableReply(f"a sentence in {bid} is too long")
+                    raise UnusableReply(f"a sentence in {bid} is over {MAX_SENTENCE} characters")
             if good:
                 out["sentences"] = good
         if out:

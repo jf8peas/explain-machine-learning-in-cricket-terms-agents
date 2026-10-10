@@ -74,6 +74,35 @@ def test_a_rejected_reply_is_never_shown_and_the_template_wording_stays(run_grap
     check_section_numbers(expl)
 
 
+@pytest.mark.parametrize("bad,words", [
+    (writing_reply({"verdict": block("Fine", "The winner missed by 18 runs.")}), ["sentence in verdict", "number written by the model"]),
+    (writing_reply({"verdict": block("The 10th over")}), ["title of verdict", "number written by the model"]),
+    (writing_reply({"verdict": block("Fine", "It cost {made_up} runs.")}), ["does not exist", "made_up"]),
+    (writing_reply({"verdict": block("x" * 80)}), ["title of verdict", "over 50 characters"]),
+    (writing_reply({"verdict": block("Fine", "y" * 300)}), ["sentence in verdict", "over 130 characters"]),
+    (writing_reply({"verdict": block("Fine", "One.", "Two.", "Three.")}), ["verdict", "more than 2 sentences"]),
+    ("this is not json", ["not valid JSON"]),
+    ("{}", ["no blocks"]),
+])
+def test_the_cause_of_a_rejection_is_in_the_line_the_page_shows_and_in_the_log(run_graph, path, caplog, bad, words):
+    with caplog.at_level("WARNING", logger="linreg.llm"):
+        _, _, state = run(run_graph, path, writer=bad)
+    line = state["explanation"]["fallback_reason"]
+    assert line.startswith("The language model's wording could not be used (") and line.endswith("so the wording is from templates.")
+    for word in words:
+        assert word in line, (word, line)
+    logged = " ".join(r.getMessage() for r in caplog.records if "writing reply unusable" in r.getMessage())
+    assert words[0] in logged                                          # the same reason, in the server log
+
+
+def test_the_reason_never_carries_the_models_own_wording(run_graph, path):
+    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("Fine", "It cost {<script>alert_x</script>} runs.")}))
+    line = state["explanation"]["fallback_reason"]
+    assert "<" not in line and "alert" not in line          # the model's own text is never put in the line
+    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("Fine", "It cost {" + "z" * 200 + "} runs.")}))
+    assert "z" * 41 not in state["explanation"]["fallback_reason"]          # a long made-up name is cut down
+
+
 def test_a_reply_that_leaves_out_a_block_keeps_that_blocks_template_and_the_models_wording_elsewhere(run_graph, path):
     events, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("The model's verdict title")}))
     expl = state["explanation"]
