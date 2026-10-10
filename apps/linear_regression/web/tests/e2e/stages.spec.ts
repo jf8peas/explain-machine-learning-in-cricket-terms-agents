@@ -581,6 +581,17 @@ test("the loop emphasis does not rely on animation", async ({ page }) => {
 
 // ---------------- the graph's size ----------------
 
+/** What the right-hand column measured when the page loaded: the legend and the side panels at their natural heights. */
+async function rightColumnStart(page: Page) {
+  return page.evaluate(() => {
+    const root = document.querySelector("graph-replay")!.shadowRoot!;
+    const legend = root.querySelector(".legend") as HTMLElement;
+    const panels = (Array.from(root.querySelector(".side")!.children) as HTMLElement[]).filter((el) => !el.hidden);
+    const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
+    return legend.offsetHeight + 12 + sideHeight;
+  });
+}
+const graphHeight = (page: Page) => page.evaluate(() => (document.querySelector("graph-replay")!.shadowRoot!.querySelector(".graph") as HTMLElement).offsetHeight);
 /** How much the drawing is scaled: 1 is its natural size, where the text is the size it was designed at. */
 const graphScale = (page: Page) => page.evaluate(() => {
   const svg = document.querySelector("graph-replay")!.shadowRoot!.querySelector("svg")!;
@@ -588,11 +599,22 @@ const graphScale = (page: Page) => page.evaluate(() => {
   return svg.getBoundingClientRect().width / vb[2];
 });
 
+test("on a wide screen the graph is at least as tall as the right-hand column was at the start, and stays so", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, 40);
+  const start = await rightColumnStart(page);
+  expect(start).toBeGreaterThan(300);
+  expect(await graphHeight(page)).toBeGreaterThanOrEqual(start);
+  await playToEnd(page);                                                   // the panels fill with content and grow
+  expect(await rightColumnStart(page)).toBeGreaterThan(start);
+  expect(await graphHeight(page)).toBeGreaterThanOrEqual(start);
+});
+
 test("the graph is drawn large enough to read, and never larger than its natural size", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page);
   const scale = await graphScale(page);
-  expect(scale).toBeGreaterThanOrEqual(0.95);                              // it was about 0.5 when the SVG was capped at 640 px
+  expect(scale).toBeGreaterThanOrEqual(0.55);                              // the rows are about 930 px wide in a column of about 560 px
   expect(scale).toBeLessThanOrEqual(1.001);
 });
 
@@ -601,6 +623,14 @@ test("on a phone the graph is also drawn at a readable size", async ({ page }) =
   await open(page);
   expect(await graphScale(page)).toBeGreaterThanOrEqual(0.8);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("a small graph from another app still fills the card's minimum height", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await serveStructure(page, JSON.parse((await import("node:fs")).readFileSync("tests/fixtures/other-structure.json", "utf8")));
+  await page.goto("/");
+  await expect(page.locator('[data-node="fetch"]')).toBeVisible();
+  expect(await graphHeight(page)).toBeGreaterThanOrEqual(await rightColumnStart(page));
 });
 
 test("each row's label fits inside its row", async ({ page }) => {

@@ -44,15 +44,15 @@ button:disabled { opacity: 0.5; cursor: default; }
 label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: center; }
 .status { min-height: 1.4em; color: var(--gr-muted); margin-bottom: 6px; }
 .status.error { color: var(--gr-error); font-weight: 600; }
-/* the rows need the room: the graph takes the full width, with the legend and the panels side by side beneath it */
 .main {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); grid-template-rows: auto auto; gap: 12px; align-items: start;
-  grid-template-areas: "graph graph" "legend side";
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px;
+  grid-template-areas: "graph legend" "graph side";
 }
 .main > .graph { grid-area: graph; } .main > .legend { grid-area: legend; } .main > .side { grid-area: side; }
 @media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "legend" "graph" "side"; } }
-/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays readable. */
-.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; }
+/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays
+   readable, and the card is never shorter than the right-hand column was when the page loaded (--graph-min). */
+.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; min-height: var(--graph-min, 0); }
 svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 /* the rows need their width: on a phone the drawing stays at its natural size and the panel scrolls sideways */
 @media (max-width: 760px) { svg { width: var(--graph-w) !important; max-width: none !important; } }

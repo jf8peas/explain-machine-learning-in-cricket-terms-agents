@@ -134,10 +134,23 @@ export class GraphReplay extends HTMLElement {
       this.drawGraph();
       this.setupLegend();
       this.ready = true;
+      requestAnimationFrame(() => this.measureStartHeight());
       this.update();
     } catch {
       this.setMessage("Could not load the graph structure.", true);
     }
+  }
+
+  /** On wide screens the graph is never shorter than the right-hand column was when the page loaded: legend and panels
+   *  at their natural heights, measured once before anything runs. (On a phone there is one column, so no minimum.) */
+  private measureStartHeight() {
+    const main = this.$(".main");
+    if (!main || window.matchMedia("(max-width: 760px)").matches) return;
+    const legend = this.$(".legend");
+    const panels = (Array.from(this.$(".side").children) as HTMLElement[]).filter((el) => !el.hidden);
+    const sideHeight = panels.reduce((sum, el) => sum + el.offsetHeight, 0) + 10 * Math.max(0, panels.length - 1);
+    const total = legend.hidden ? sideHeight : legend.offsetHeight + (panels.length ? 12 + sideHeight : 0);
+    main.style.setProperty("--graph-min", `${total}px`);
   }
 
   /** Open an item's summary, or close it if it is already open. Never touches playback. */

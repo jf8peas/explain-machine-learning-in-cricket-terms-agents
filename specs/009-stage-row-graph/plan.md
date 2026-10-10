@@ -104,7 +104,7 @@ The label column is 200px by default and widens to fit the longest stage name (a
 
 ## Changes made while implementing
 
-- **Page layout**: the graph is now about 930px wide at its natural size, but the old two-column layout gave it 560px (and the existing readability tests need it near natural size). The graph now takes the full width of the component with the legend and the panels side by side beneath it; on a phone it keeps its natural size and scrolls sideways. The graph's minimum height, which matched the old right-hand column, was removed, along with its tests, since the column no longer sits beside the graph.
+- **Page layout**: the graph stays in the left column at the width it had before (about 560px at a 1280px window), with the legend and panels on the right and the old minimum height. The rows are about 930px wide at natural size, so the drawing is scaled to about 0.59 there. On a phone it keeps its natural size and scrolls sideways.
 - **Row line** is 64px (not 60) so a loop-round pill fits between two stacked nodes; arcs run 24px above their nodes so they clear a step's LLM tag.
 - **Tick**: one text `✓N` (no separate bold tspan); styled bold at 10px.
 - **Ordering**: within a row, nodes are ordered by trying every order (up to 7 nodes) and keeping the one with the shortest edges and fewest leftward ones, with dagre's order breaking ties; this gives evaluate, propose_features, check_proposal, grid_search.
