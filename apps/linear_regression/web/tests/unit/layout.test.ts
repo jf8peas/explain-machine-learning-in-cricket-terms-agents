@@ -205,8 +205,8 @@ describe("a taller drawing", () => {
   it("is at least as tall as asked, with the extra shared out between the rows", () => {
     expect(tall.height).toBeCloseTo(natural.height + 600, 3);
     expect(tall.rows).toHaveLength(natural.rows.length);
-    const extra = 600 / natural.rows.length;
-    tall.rows.forEach((r, i) => expect(r.h).toBeCloseTo(natural.rows[i].h + extra, 3));
+    const lines = natural.rows.reduce((sum, r) => sum + r.lines.length, 0);
+    tall.rows.forEach((r, i) => expect(r.h).toBeCloseTo(natural.rows[i].h + (600 / lines) * r.lines.length, 3));
   });
 
   it("keeps every step in its row, with the same x and the rows stacked with no gaps", () => {
@@ -222,5 +222,40 @@ describe("a taller drawing", () => {
 
   it("changes nothing when the asked height is below the natural one", () => {
     expect(layoutGraph(real, 10).height).toBe(natural.height);
+  });
+});
+
+describe("row labels", () => {
+  const out = layoutGraph(real);
+  const row = (stage: string) => out.rows.find((r) => r.stage === stage)!;
+  it("sits on the node line when nothing covers it, and in the corner when something does", () => {
+    expect(row("split").corner).toBe(false);
+    expect(row("split").label.y).toBe(row("split").line);
+    expect(out.rows[0].corner).toBe(true);                // the item is at the left edge of the Start row
+    expect(out.rows[0].label.y).toBeLessThan(out.rows[0].line);
+  });
+});
+
+describe("a crowded row", () => {
+  const out = layoutGraph(real);
+  const at = (id: string) => out.nodes.find((n) => n.id === id) as LaidNode;
+  const choose = out.rows.find((r) => r.stage === "choose")!;
+
+  it("puts the step the loop comes back to on a second line, under the step it leads to", () => {
+    expect(choose.lines).toHaveLength(2);
+    expect(at("evaluate").y).toBeCloseTo(choose.lines[1], 3);
+    for (const id of ["propose_features", "check_proposal", "grid_search"]) expect(at(id).y).toBeCloseTo(choose.lines[0], 3);
+    expect(at("evaluate").x).toBeCloseTo(at("propose_features").x, 3);
+  });
+
+  it("leaves every other row on one line, and keeps check_proposal's way down to fit_model clear", () => {
+    expect(out.rows.filter((r) => r.lines.length > 1)).toHaveLength(1);
+    const down = out.edges.find((e) => e.source === "check_proposal" && e.target === "fit_model")!;
+    expect(down.points).toHaveLength(2);
+  });
+
+  it("does not let one wide step widen the drawing past the widest line", () => {
+    const widest = Math.max(...choose.nodes.map((id) => at(id).x + at(id).w / 2));
+    for (const n of out.nodes.filter((o) => o.kind === "node")) expect(n.x + n.w / 2).toBeLessThanOrEqual(widest + 0.5);
   });
 });

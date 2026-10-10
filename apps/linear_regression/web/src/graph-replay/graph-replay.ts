@@ -3,7 +3,7 @@
 import { ReplayBuffer, realClock, type StepEvent } from "./buffer";
 import { drawRows } from "./bands";
 import { ItemPanel, Legend } from "./legend";
-import { layoutGraph, pathData, type LaidEdge, type LaidNode, type Layout, type Structure } from "./layout";
+import { layoutGraph, pathData, wrapLabel, type LaidEdge, type LaidNode, type Layout, type Structure } from "./layout";
 import { streamRun, type Refusal } from "./sse";
 import { loopEdges, resolveStage, roundAt, visitTick, type Resolved } from "./stages";
 import { summarise } from "./state-view";
@@ -247,8 +247,13 @@ export class GraphReplay extends HTMLElement {
       g.appendChild(svg("rect", { class: "stage-halo", x: -n.w / 2 - 4, y: -n.h / 2 - 4, width: n.w + 8, height: n.h + 8, rx: 11 }));
     }
     g.appendChild(svg("rect", { class: "body", x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: 8 }));
-    const t = svg("text", { x: 0, y: 2 });
-    t.textContent = n.label ?? id;
+    const lines = wrapLabel(n.label ?? id);
+    const t = svg("text", { x: 0, y: lines.length > 1 ? -5 : 2 });
+    lines.forEach((l, i) => {
+      const ts = svg("tspan", { x: 0, dy: i === 0 ? 0 : 14 });
+      ts.textContent = l;
+      t.appendChild(ts);
+    });
     g.appendChild(t);
     g.appendChild(svg("rect", { class: "item-tag-bg", x: n.w / 2 - 82, y: -n.h / 2 - 8, width: 86, height: 15, rx: 7 }));
     const tag = svg("text", { class: "item-tag", x: n.w / 2 - 39, y: -n.h / 2 - 0.5 });

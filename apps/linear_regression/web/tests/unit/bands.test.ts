@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { computeRows, labelWidth, layoutGraph, type LaidNode, type Structure } from "../../src/graph-replay/layout";
+import { computeRows, labelSpan, layoutGraph, type LaidNode, type Structure } from "../../src/graph-replay/layout";
 import { resolveStage, type StageDef } from "../../src/graph-replay/stages";
 
 // `linreg-structure.json` is this app's real /api/structure response. A pytest test (test_structure_stages.py) fails
@@ -57,9 +57,16 @@ describe("computeRows", () => {
     expect(out.rows[2].h).toBe(out.rows[3].h);
   });
 
-  it("widens the label column to fit a long stage name", () => {
-    expect(labelWidth(stages)).toBe(200);
-    expect(labelWidth(stageDefs(["A stage with a really rather long name indeed, long"]))).toBeGreaterThan(200);
+  it("puts a label in the row's top-left corner when it is asked to, and on the node line otherwise", () => {
+    const up = computeRows(stages, 800, [], 22, 64, [false, false, true, false, false]);
+    expect(up[2].corner).toBe(true);
+    expect(up[2].label.y).toBe(up[2].y + 12);
+    expect(up[1].corner).toBe(false);
+    expect(up[1].label.y).toBe(up[1].y + 32);
+  });
+
+  it("reckons a long name to reach further than a short one", () => {
+    expect(labelSpan("A stage with a really rather long name indeed")).toBeGreaterThan(labelSpan("Short"));
   });
 });
 
@@ -132,9 +139,9 @@ describe("done-beforehand items in the layout", () => {
     expect(end.y).toBeCloseTo(start.y, 3);
   });
 
-  it("keeps the item clear of the label column", () => {
-    const item = out.nodes.find((n) => n.id === itemId) as LaidNode;
-    expect(item.x - item.w / 2).toBeGreaterThanOrEqual(labelWidth(real.stages ?? []));
+  it("moves the Start label to the row's corner, since the item would cover it", () => {
+    expect(out.rows[0].corner).toBe(true);
+    expect(out.rows[0].label.y).toBeLessThan((out.nodes.find((n) => n.id === itemId) as LaidNode).y - 18);
   });
 
   it("ignores an item whose target node does not exist, without failing", () => {
