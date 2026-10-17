@@ -16,7 +16,7 @@ export interface TabEventDetail {
 const STYLE_ID = "tab-set-styles";
 const css = /* css */ `
 tab-set { display: block; }
-tab-set > [role=tablist] { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--ts-border, var(--border, #d5d9e0)); margin: 0 0 16px; }
+tab-set > [role=tablist] { position: relative; display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; overflow-y: hidden; padding-bottom: 1px; box-shadow: inset 0 -1px 0 var(--ts-border, var(--border, #d5d9e0)); margin: 0 0 16px; }
 tab-set > [role=tablist] > button {
   font: inherit; cursor: pointer; padding: 8px 18px; flex: 0 0 auto; white-space: nowrap; position: relative; margin-bottom: -1px; color: var(--ts-muted, var(--muted, #5b6678));
   background: transparent; border: 1px solid transparent; border-radius: 8px 8px 0 0;
@@ -27,7 +27,7 @@ tab-set > [role=tablist] > button[aria-selected=true] {
   border-color: var(--ts-border, var(--border, #d5d9e0)); border-bottom-color: var(--ts-bg, var(--bg, #fff));
   box-shadow: inset 0 3px 0 var(--ts-accent, var(--accent, #1d6fe0));
 }
-tab-set > [role=tablist] > button:focus-visible { outline: 3px solid var(--ts-accent, var(--accent, #1d6fe0)); outline-offset: 2px; }
+tab-set > [role=tablist] > button:focus-visible { outline: 3px solid var(--ts-accent, var(--accent, #1d6fe0)); outline-offset: -3px; }
 tab-set > [role=tabpanel][hidden] { display: none; }
 tab-set .ts-marker { display: inline-block; width: .5em; height: .5em; margin-left: .45em; border-radius: 50%; background: currentColor; vertical-align: middle; }
 tab-set .ts-marker[hidden] { display: none; }
