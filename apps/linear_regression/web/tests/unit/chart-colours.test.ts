@@ -50,3 +50,17 @@ describe("the chart's method colours", () => {
     for (const m of METHODS) expect(light[`m-${m}`]).toMatch(/^var\(--(muted|text|accent|win)\)$/);
   });
 });
+
+// The TV colour (feature 013) labels the TV's line, its average miss and its figure, on the page and on the chart's
+// "future" region (--surface), so it needs 4.5:1 (the WCAG minimum for text) on both in both themes.
+describe("the TV colour", () => {
+  for (const theme of ["light", "dark"] as const) {
+    it(`${theme}: --tv is a real colour with at least 4.5:1 on the page and on the surface`, () => {
+      const vars = blocks()[theme];
+      const tv = resolve(vars, "tv");
+      expect(tv, "--tv").toMatch(/^#[0-9a-f]{6}$/i);
+      expect(contrast(tv, resolve(vars, "bg")), `${theme} on --bg`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(tv, resolve(vars, "surface")), `${theme} on --surface`).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});

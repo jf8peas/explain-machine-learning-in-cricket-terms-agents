@@ -1,4 +1,6 @@
 """GET /api/reference: how good the two references are on the training years, for the introduction (feature 006)."""
+import shutil
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -37,7 +39,8 @@ def independent(path=DEFAULT_PATH):
 
 def test_the_response_has_the_goal_the_four_methods_the_training_years_and_both_references():
     body = client.get("/api/reference").json()
-    assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message"}
+    assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message",
+                         "average_total", "example", "hero"}
     assert body["goal"] == goal()
     assert body["methods"] == method_defs()
     assert set(body["figures"]) == {"know_nothing", "broadcaster"}
@@ -96,6 +99,7 @@ def test_changing_every_validation_and_test_year_value_changes_nothing_in_the_re
             changed.loc[later, column] = rng.integers(1, 250, int(later.sum()))
     path = tmp_path / "innings.csv"
     changed.to_csv(path, index=False)
+    shutil.copy(DEFAULT_PATH.with_name("overs.csv"), tmp_path / "overs.csv")   # the hero's example is read from here
 
     def response(csv):
         api = FastAPI()
@@ -113,7 +117,7 @@ def test_when_the_data_cannot_be_read_the_goal_and_methods_are_still_sent(tmp_pa
     body = r.json()
     assert r.status_code == 200
     assert body["goal"] == goal() and body["methods"] == method_defs()
-    for key in ("training", "figures", "gap", "finding", "words", "sentences", "meter"):
+    for key in ("training", "figures", "gap", "finding", "words", "sentences", "meter", "average_total", "example", "hero"):
         assert body[key] is None
     assert "could not be loaded" in body["message"]
 
@@ -188,3 +192,34 @@ def test_the_lead_is_sent_even_when_the_figures_are_not(tmp_path):
     body = TestClient(api).get("/api/reference").json()
     assert body["meter"] is None
     assert body["goal"]["lead"] == goal()["lead"]
+
+
+# --- the hero's figures (feature 013) ----------------------------------------------------------------------------
+
+def test_the_average_total_is_the_know_nothing_mean_of_the_training_rows():
+    body = client.get("/api/reference").json()
+    df = pd.read_csv(DEFAULT_PATH, parse_dates=["match_date"])
+    year = df["match_date"].dt.year
+    train = df[(year < year.max() - 3) & (df["in_test_population"] == 1)]
+    assert body["average_total"] == round(train["final_total"].mean())
+    assert isinstance(body["average_total"], int)
+
+
+def test_the_hero_block_is_built_from_the_responses_own_figures():
+    from linreg import hero_text
+    body = client.get("/api/reference").json()
+    want = hero_text.build_hero(body["figures"], body["training"], body["goal"]["margin_runs"], body["average_total"],
+                                body["example"])
+    assert body["hero"] == want
+    assert body["example"] is not None and body["hero"]["caption"] and body["hero"]["chart_text"]
+
+
+def test_a_missing_overs_file_gives_no_example_but_keeps_the_rest(tmp_path, caplog):
+    shutil.copy(DEFAULT_PATH, tmp_path / "innings.csv")
+    api = FastAPI()
+    api.include_router(reference_api.create_router(data_path=tmp_path / "innings.csv"), prefix="/api")
+    with caplog.at_level("WARNING", logger="linreg.reference"):
+        body = TestClient(api).get("/api/reference").json()
+    assert body["example"] is None and body["hero"]["caption"] is None and body["hero"]["chart_text"] is None
+    assert body["figures"] and body["hero"]["panel"] and body["hero"]["footnote"] and body["average_total"]
+    assert "example innings" in caplog.text

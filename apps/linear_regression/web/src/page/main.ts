@@ -3,9 +3,9 @@ import "../tab-set/tab-set";
 import type { TabSet } from "../tab-set/tab-set";
 import type { ReplayChangeDetail } from "../graph-replay/graph-replay";
 import type { Model } from "./predict";
-import { loadCatalogue, setupCatalogue } from "./catalogue";
+import { loadCatalogue } from "./catalogue";
+import { setupHero } from "./hero";
 import { setupModels } from "./models";
-import { setupReference } from "./reference";
 import { renderFinal, renderFound } from "./results";
 import { initial, step, type Action, type ResultTab } from "./readiness";
 import { renderSummary } from "./summary";
@@ -63,8 +63,7 @@ replay.addEventListener("replaychange", (ev) => {
 });
 draw({});
 setupModels(document.querySelector("[data-testid=model-picker]") as HTMLElement, replay);
-setupCatalogue(document.querySelector("[data-testid=catalogue]") as HTMLElement);
-void setupReference(document.querySelector("[data-testid=reference]") as HTMLElement, document.querySelector("[data-testid=reference-details]") as HTMLElement);
+void setupHero(document.querySelector("[data-testid=hero]") as HTMLElement);
 void loadCatalogue().then(() => draw(shown)); // feature wording arrives with the catalogue
 
 // The Data tab loads the first time it is shown (or straight away at #data); the Working tab never waits on it.

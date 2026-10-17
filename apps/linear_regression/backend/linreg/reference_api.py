@@ -4,6 +4,10 @@ Worked out on the test-population innings in the years before the first check ye
 the test year stay unseen and every method is scored on the kind of innings the whole app is judged on. The result is computed once per
 process and kept; a failure is not kept, so the next request tries again. If the data cannot be read the goal and the
 method names are still sent, with a message, so the page can show the goal and say the figures could not be loaded.
+
+The hero (feature 013) adds `average_total` (the know-nothing value), `example` (the innings named by
+settings.EXAMPLE_MATCH_ID, from the same training rows, or None with a logged warning when it cannot be drawn) and `hero`
+(the caption, panel sentence, footnote and chart text, worked out in hero_text).
 """
 from __future__ import annotations
 
@@ -14,12 +18,13 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from . import accuracy_text
+from . import accuracy_text, hero_text, settings
 from .accuracy import accuracy, display
-from .data_loading import load_innings
+from .data_loading import DataError, load_innings
 from .evaluation import broadcaster_projection, know_nothing_guess
 from .goal import goal, meter, reference_finding
 from .methods import method_defs
+from .overs_loading import example_innings, load_overs, overs_path_for
 from .season_split import rolling_checks
 
 log = logging.getLogger("linreg.reference")
@@ -38,6 +43,8 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
     years = sorted(int(y) for y in train["match_date"].dt.year.unique())
     finding = reference_finding(known["average_miss"], projected["average_miss"])
     training = {"first_year": years[0], "last_year": years[-1], "innings": len(train)}
+    average_total = round(float(actual.mean()))
+    example = _example(train, path)
     return {
         "goal": goal(),
         "methods": method_defs(),
@@ -55,13 +62,28 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
             "bias": accuracy_text.projection_bias_sentence(projected["bias"]),
         },
         "meter": meter(known["average_miss"], projected["average_miss"], training),
+        "average_total": average_total,
+        "example": example,
+        "hero": hero_text.build_hero({"know_nothing": known, "broadcaster": projected}, training,
+                                     goal()["margin_runs"], average_total, example),
         "message": None,
     }
 
 
+def _example(train, path: str | Path | None) -> dict[str, Any] | None:
+    """The example innings for the hero; None (with a warning) when the per-over data or the innings cannot be used."""
+    try:
+        overs = load_overs(overs_path_for(path))
+    except DataError as exc:
+        log.warning("the example innings cannot be drawn: %s", exc)
+        return None
+    return example_innings(train, overs, settings.EXAMPLE_MATCH_ID)
+
+
 def _unavailable() -> dict[str, Any]:
     return {"goal": goal(), "methods": method_defs(), "training": None, "figures": None, "gap": None,
-            "finding": None, "words": None, "sentences": None, "meter": None, "message": NOT_LOADED}
+            "finding": None, "words": None, "sentences": None, "meter": None, "average_total": None, "example": None,
+            "hero": None, "message": NOT_LOADED}
 
 
 def create_router(data_path: str | Path | None = None) -> APIRouter:

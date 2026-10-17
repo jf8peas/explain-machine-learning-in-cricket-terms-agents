@@ -271,11 +271,11 @@
         "rows": [
           {
             "label": "Excluded: No result",
-            "value": "98"
+            "value": "100"
           },
           {
             "label": "Excluded: Rain-affected (DLS)",
-            "value": "183"
+            "value": "184"
           },
           {
             "label": "Excluded: Reduced overs",

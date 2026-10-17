@@ -123,6 +123,7 @@ def old_style_files(folder: Path, competitions=("t20i", "ipl", "bbl", "ipl"), wi
                 "counts": {"ipl": {"matches_read": 5, "excluded": {"dls": 1}, "innings_kept": 2},
                            "total_innings": len(competitions)}, "attribution": "Cricsheet"}
     (folder / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (folder / "overs.csv").write_text("match_id,over,runs,wickets\n", encoding="utf-8")  # --from-existing needs it to exist
 
 
 def test_from_existing_adds_the_dummies_and_changes_nothing_else(tmp_path):
@@ -177,3 +178,55 @@ def test_main_flag_runs_the_rebuild_without_downloading(tmp_path, monkeypatch):
     monkeypatch.setattr(prepare_data, "fetch_zip", lambda url: pytest.fail("must not download"))
     prepare_data.main(["--from-existing"])
     assert list(read(tmp_path / "innings.csv")[0]) == PREPARED_COLUMNS
+
+
+# --- overs.csv ---------------------------------------------------------------------------------------------------
+
+OVERS_COLUMNS = ["match_id", "over", "runs", "wickets"]
+
+
+def test_download_writes_overs_csv_in_innings_order_and_records_it_in_the_manifest(tmp_path):
+    prepare_data.run_download(tmp_path, SOURCES, fetcher(ZIPS), today="2026-10-03")
+    innings = read(tmp_path / "innings.csv")
+    overs = read(tmp_path / "overs.csv")
+    assert list(overs[0]) == OVERS_COLUMNS
+    assert len(overs) == 20 * len(innings)
+    assert [o["match_id"] for o in overs[::20]] == [r["match_id"] for r in innings]
+    for r in innings:
+        mine = [o for o in overs if o["match_id"] == r["match_id"]]
+        assert [int(o["over"]) for o in mine] == list(range(1, 21))
+        assert (mine[9]["runs"], mine[9]["wickets"]) == (r["runs_at_10"], r["wickets_at_10"])
+        assert mine[19]["runs"] == r["final_total"]
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["overs"] == {"file": "overs.csv", "rows": len(overs)}
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_a_failed_write_leaves_overs_csv_unchanged_too(tmp_path, monkeypatch):
+    prepare_data.run_download(tmp_path, SOURCES, fetcher(ZIPS), today="2026-10-03")
+    before = (tmp_path / "overs.csv").read_bytes()
+
+    def boom(*a, **k):
+        raise OSError("disk full")
+    monkeypatch.setattr(prepare_data.os, "replace", boom)
+    with pytest.raises(OSError):
+        prepare_data.run_download(tmp_path, SOURCES, fetcher(ZIPS), today="2030-01-01")
+    assert (tmp_path / "overs.csv").read_bytes() == before
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_from_existing_stops_when_overs_csv_is_missing_and_changes_nothing(tmp_path):
+    old_style_files(tmp_path)
+    (tmp_path / "overs.csv").unlink()
+    before = snapshot(tmp_path)
+    with pytest.raises(prepare_data.PrepareError, match="overs.csv"):
+        prepare_data.run_from_existing(tmp_path)
+    assert snapshot(tmp_path) == before
+    assert not (tmp_path / "overs.csv").exists()
+
+
+def test_from_existing_leaves_overs_csv_untouched(tmp_path):
+    old_style_files(tmp_path)
+    (tmp_path / "overs.csv").write_text("match_id,over,runs,wickets\nid0,1,5,0\n", encoding="utf-8")
+    prepare_data.run_from_existing(tmp_path)
+    assert (tmp_path / "overs.csv").read_text(encoding="utf-8") == "match_id,over,runs,wickets\nid0,1,5,0\n"

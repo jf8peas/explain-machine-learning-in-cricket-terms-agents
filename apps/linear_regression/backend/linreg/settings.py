@@ -10,6 +10,10 @@ import logging
 log = logging.getLogger("linreg.settings")
 _QUOTES = "\"'"
 
+# The innings drawn as a "worm" in the Working tab hero (a Cricsheet match id: the SCG, 8 December 2020). It must be a
+# test-population innings from the years the introduction's figures use, with all 20 overs; otherwise the hero leaves the chart out.
+EXAMPLE_MATCH_ID = 1223954
+
 
 def unwrap(value: str | None) -> str | None:
     """The value without surrounding whitespace and one pair of matching quote marks. None stays None."""

@@ -8,8 +8,12 @@ Run manually (never at request time):
 dummy columns and the manifest's "dummies" entry, and keeps the same innings, order and download date.
 
 Every row carries the competition dummies (is_ipl, is_bbl), defined once in backend/linreg/competition_dummies.py.
-An unrecognised competition stops the run before anything is written. Both output files are written to
+An unrecognised competition stops the run before anything is written. All output files are written to
 temporary files and only replace the real ones after everything has succeeded.
+
+A download also writes data/overs.csv: for every kept innings, the cumulative runs and wickets at the end of each over
+bowled, built in the same pass over the balls. --from-existing cannot make it (it needs the balls), so it stops when the
+file is missing.
 
 Data: https://cricsheet.org (Open Data Commons Attribution License).
 """
@@ -45,6 +49,7 @@ SOURCES = {
 ATTRIBUTION = ("Ball-by-ball data from Cricsheet (https://cricsheet.org), "
                "used under the Open Data Commons Attribution License.")
 COLUMNS = features.PREPARED_COLUMNS  # defined once, in the feature catalogue (linreg/features.py)
+OVERS_COLUMNS = ["match_id", "over", "runs", "wickets"]  # cumulative at the end of each over bowled (over is 1 to 20)
 NOT_A_DISMISSAL = {"retired hurt", "retired not out"}
 NOT_A_LEGAL_BALL = {"wides", "noballs"}
 POWERPLAY_LAST_OVER = 5  # overs are zero-indexed: indexes 0 to 5 are overs 1 to 6
@@ -67,12 +72,14 @@ def _teams(match: dict, aliases: dict[str, str] | None) -> tuple[str, str] | Non
     return setup_settings.canonical_team(batting, aliases), setup_settings.canonical_team(others[0], aliases)
 
 
-def rollup_match(match: dict, competition: str, match_id: str,
-                 aliases: dict[str, str] | None = None) -> tuple[dict | None, str | None]:
+def rollup_match(match: dict, competition: str, match_id: str, aliases: dict[str, str] | None = None,
+                 overs_out: list[dict] | None = None) -> tuple[dict | None, str | None]:
     """Return (row, None) for a kept first innings or (None, reason) when excluded.
 
     An unrecognised competition raises UnknownCompetition, even if the match would be excluded. `aliases` maps a team's
-    spelling in the source to its canonical name (default: the settings module's map).
+    spelling in the source to its canonical name (default: the settings module's map). When `overs_out` is given, a kept
+    innings appends one {match_id, over, runs, wickets} per over bowled (cumulative at the end of the over); an excluded
+    one appends nothing.
     """
     dummies = dummy_values(competition)  # raises for an unknown competition, before anything else
     info = match.get("info", {})
@@ -99,6 +106,8 @@ def rollup_match(match: dict, competition: str, match_id: str,
     pp_wickets = runs_7_10 = wickets_7_10 = fours = sixes = dots = extras = 0
     partnership_runs = balls_since_wicket = 0
     last_over = -1
+    all_wickets = 0
+    per_over: list[dict] = []
     for over in first.get("overs", []):
         idx = over["over"]
         last_over = max(last_over, idx)
@@ -106,9 +115,10 @@ def rollup_match(match: dict, competition: str, match_id: str,
             runs = d["runs"]
             r = runs["total"]
             total += r
+            w = sum(1 for x in d.get("wickets", []) if x.get("kind") not in NOT_A_DISMISSAL)
+            all_wickets += w
             if idx > LAST_OVER:
                 continue  # the target (final_total) uses the whole innings; every candidate stops at over 10
-            w = sum(1 for x in d.get("wickets", []) if x.get("kind") not in NOT_A_DISMISSAL)
             runs_10 += r
             wickets_10 += w
             if idx <= POWERPLAY_LAST_OVER:
@@ -127,6 +137,7 @@ def rollup_match(match: dict, competition: str, match_id: str,
             else:
                 partnership_runs += r
                 balls_since_wicket += not (NOT_A_LEGAL_BALL & set(d.get("extras", {})))
+        per_over.append({"match_id": match_id, "over": idx + 1, "runs": total, "wickets": all_wickets})
     if last_over < LAST_OVER or wickets_10 >= 10:
         return None, "ended_before_10_overs"
 
@@ -161,10 +172,13 @@ def rollup_match(match: dict, competition: str, match_id: str,
         "final_total": total,
     })
     assert all(row[c] == v for c, v in dummies.items())  # the recipes and the shared mapping agree
+    if overs_out is not None:
+        overs_out.extend(per_over)
     return {column: row[column] for column in COLUMNS}, None
 
 
-def process_zip(zf: zipfile.ZipFile, competition: str) -> tuple[list[dict], Counter, int]:
+def process_zip(zf: zipfile.ZipFile, competition: str,
+                overs_out: list[dict] | None = None) -> tuple[list[dict], Counter, int]:
     rows: list[dict] = []
     excluded: Counter = Counter()
     read = 0
@@ -173,7 +187,7 @@ def process_zip(zf: zipfile.ZipFile, competition: str) -> tuple[list[dict], Coun
             continue
         read += 1
         match = json.loads(zf.read(name))
-        row, reason = rollup_match(match, competition, Path(name).stem)
+        row, reason = rollup_match(match, competition, Path(name).stem, overs_out=overs_out)
         if row:
             rows.append(row)
         else:
@@ -189,21 +203,30 @@ def fetch_zip(url: str) -> bytes:
     return resp.content
 
 
-def write_outputs(rows: list[dict], manifest: dict, data_dir: Path) -> None:
-    """Write innings.csv and manifest.json via temporary files; the real files change only after both are ready."""
+def write_outputs(rows: list[dict], manifest: dict, data_dir: Path, overs_rows: list[dict] | None = None) -> None:
+    """Write innings.csv, manifest.json and (when given) overs.csv via temporary files; the real files change only after
+    every one is ready. With `overs_rows` None, overs.csv is left exactly as it is."""
     data_dir.mkdir(parents=True, exist_ok=True)
     csv_final, manifest_final = data_dir / "innings.csv", data_dir / "manifest.json"
     csv_tmp, manifest_tmp = data_dir / "innings.csv.tmp", data_dir / "manifest.json.tmp"
+    overs_final, overs_tmp = data_dir / "overs.csv", data_dir / "overs.csv.tmp"
     try:
         with open(csv_tmp, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=COLUMNS)
             w.writeheader()
             w.writerows(rows)
         manifest_tmp.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        if overs_rows is not None:
+            with open(overs_tmp, "w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=OVERS_COLUMNS)
+                w.writeheader()
+                w.writerows(overs_rows)
         os.replace(csv_tmp, csv_final)
         os.replace(manifest_tmp, manifest_final)
+        if overs_rows is not None:
+            os.replace(overs_tmp, overs_final)
     finally:
-        for tmp in (csv_tmp, manifest_tmp):
+        for tmp in (csv_tmp, manifest_tmp, overs_tmp):
             tmp.unlink(missing_ok=True)
 
 
@@ -246,13 +269,17 @@ def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
                  fetch: Callable[[str], bytes] = fetch_zip, today: str | None = None) -> None:
     """Download every source, roll up the matches and write the data files."""
     all_rows: list[dict] = []
+    overs_by_innings: dict[tuple[str, str], list[dict]] = {}
     manifest: dict = {"download_date": today or date.today().isoformat(), "sources": [], "counts": {},
                       "attribution": ATTRIBUTION}
     for comp, url in sources.items():
         dummy_values(comp)  # an unrecognised competition stops the run before anything is downloaded
         print(f"Downloading {url}")
         with zipfile.ZipFile(io.BytesIO(fetch(url))) as zf:
-            rows, excluded, read = process_zip(zf, comp)
+            overs: list[dict] = []
+            rows, excluded, read = process_zip(zf, comp, overs)
+        for o in overs:
+            overs_by_innings.setdefault((comp, o["match_id"]), []).append(o)
         all_rows += rows
         manifest["sources"].append({"competition": comp, "url": url})
         manifest["counts"][comp] = {
@@ -266,16 +293,19 @@ def run_download(data_dir: Path = DATA_DIR, sources: dict[str, str] = SOURCES,
     manifest["dummies"] = manifest_entry()
     manifest["features"] = features.manifest_entry()
     manifest.update(team_manifest(all_rows))
+    overs_rows = [o for r in all_rows for o in overs_by_innings[(r["competition"], r["match_id"])]]
+    manifest["overs"] = {"file": "overs.csv", "rows": len(overs_rows)}
     print_team_report(all_rows)
-    write_outputs(all_rows, manifest, data_dir)
-    print(f"Wrote {len(all_rows)} innings")
+    write_outputs(all_rows, manifest, data_dir, overs_rows)
+    print(f"Wrote {len(all_rows)} innings and {len(overs_rows)} over totals")
 
 
 def run_from_existing(data_dir: Path = DATA_DIR) -> None:
     """Add or refresh the dummy and derived columns and the manifest entries on the existing files, without downloading.
 
-    Every original value, the row order and the download date are kept exactly as they are. The measured columns
-    need the ball-by-ball data, so if the file lacks any of them this stops with a clear message.
+    Every original value, the row order and the download date are kept exactly as they are. The measured columns and
+    overs.csv need the ball-by-ball data, so if the file lacks any of the columns, or overs.csv is missing, this stops
+    with a clear message. overs.csv itself is left untouched.
     """
     with open(data_dir / "innings.csv", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -287,6 +317,11 @@ def run_from_existing(data_dir: Path = DATA_DIR) -> None:
         raise PrepareError(
             "The existing innings.csv has no ball-by-ball columns for: " + ", ".join(missing) + ". They cannot be "
             "worked out from the file, so --from-existing cannot add them. Run scripts/prepare_data.py without "
+            "--from-existing to download fresh data.")
+    if not (data_dir / "overs.csv").exists():
+        raise PrepareError(
+            "There is no overs.csv next to the existing innings.csv. The cumulative runs and wickets at the end of each "
+            "over need the ball-by-ball data, so --from-existing cannot make it. Run scripts/prepare_data.py without "
             "--from-existing to download fresh data.")
     for row in rows:
         dummy_values(row["competition"])  # an unrecognised competition stops here, before any write

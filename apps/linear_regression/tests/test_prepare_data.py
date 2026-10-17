@@ -72,3 +72,59 @@ def test_retired_hurt_not_counted_as_wicket():
         "wickets": [{"player_out": "A", "kind": "retired hurt"}]})
     row, _ = rollup_match(make_match([inn, make_innings([5] * 20)]), "ipl", "m1")
     assert row["wickets_at_10"] == 0
+
+
+# --- cumulative runs and wickets at the end of every over (overs.csv) ---------------------------------------------
+
+def test_overs_out_has_cumulative_runs_and_wickets_for_every_over():
+    overs = []
+    row, reason = rollup_match(normal_match(), "ipl", "m1", overs_out=overs)
+    assert reason is None
+    assert [o["over"] for o in overs] == list(range(1, 21))
+    assert {o["match_id"] for o in overs} == {"m1"}
+    assert [o["runs"] for o in overs] == [sum(NORMAL_RUNS[:i + 1]) for i in range(20)]
+    # wickets fell in over indexes 2, 5, 9 and 12
+    assert [o["wickets"] for o in overs] == [0, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4]
+
+
+def test_overs_out_agrees_with_the_row_at_over_10_and_over_20():
+    overs = []
+    row, _ = rollup_match(normal_match(), "ipl", "m1", overs_out=overs)
+    assert (overs[9]["runs"], overs[9]["wickets"]) == (row["runs_at_10"], row["wickets_at_10"])
+    assert overs[19]["runs"] == row["final_total"]
+
+
+def test_overs_out_leaves_out_retired_hurt():
+    inn = make_innings([5] * 20)
+    inn["overs"][12]["deliveries"].append({
+        "batter": "A", "bowler": "B", "runs": {"batter": 0, "extras": 0, "total": 0},
+        "wickets": [{"player_out": "A", "kind": "retired hurt"}]})
+    overs = []
+    rollup_match(make_match([inn, make_innings([5] * 20)]), "ipl", "m1", overs_out=overs)
+    assert overs[-1]["wickets"] == 0
+
+
+def test_an_innings_that_ends_early_has_only_the_overs_bowled():
+    inn = make_innings([5] * 12, {1: 3, 5: 3, 9: 3, 11: 1})
+    overs = []
+    rollup_match(make_match([inn, make_innings([5] * 20)]), "ipl", "m1", overs_out=overs)
+    assert [o["over"] for o in overs] == list(range(1, 13))
+    assert overs[-1]["wickets"] == 10
+
+
+@pytest.mark.parametrize("kwargs", [{"gender": "female"}, {"method": "DLS"}, {"overs": 10}])
+def test_an_excluded_match_adds_no_overs(kwargs):
+    overs = []
+    row, _ = rollup_match(normal_match(**kwargs), "ipl", "m1", overs_out=overs)
+    assert row is None and overs == []
+
+
+def test_an_innings_ending_before_ten_overs_adds_no_overs():
+    overs = []
+    rollup_match(make_match([make_innings([5] * 8), make_innings([5] * 20)]), "ipl", "m1", overs_out=overs)
+    assert overs == []
+
+
+def test_rollup_match_without_overs_out_is_unchanged():
+    row, reason = rollup_match(normal_match(), "ipl", "m1")
+    assert reason is None and row["final_total"] == NORMAL["total"]

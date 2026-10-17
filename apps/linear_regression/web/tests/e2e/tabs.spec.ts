@@ -27,10 +27,10 @@ test("five tabs in the order of the process, Data first, with the right names", 
   for (const [i, id] of TABS.entries()) await expect(tabs.nth(i)).toHaveAttribute("data-testid", `tab-${id}`);
 });
 
-test("on first load Working shows with the intro, picker, graph and summary, and none of the results", async ({ page }) => {
+test("on first load Working shows with the hero, picker, graph and summary, and none of the results", async ({ page }) => {
   await open(page);
   await selected(page, "working");
-  for (const id of ["intro", "model-picker", "replay", "run-summary"]) await expect(page.getByTestId(id)).toBeVisible();
+  for (const id of ["hero", "model-picker", "replay", "run-summary"]) await expect(page.getByTestId(id)).toBeVisible();
   await expect(page.getByTestId("run-summary")).toContainText("Results will appear here");
   for (const id of ["results", "results-final"]) await expect(page.getByTestId(id)).toBeHidden();
   await expect(page.getByTestId("results")).toBeEmpty();

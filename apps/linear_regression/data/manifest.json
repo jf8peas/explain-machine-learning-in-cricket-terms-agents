@@ -1,5 +1,5 @@
 {
-  "download_date": "2026-10-09",
+  "download_date": "2026-10-17",
   "sources": [
     {
       "competition": "t20i",
@@ -16,18 +16,18 @@
   ],
   "counts": {
     "t20i": {
-      "matches_read": 3592,
+      "matches_read": 3627,
       "excluded": {
         "women": 0,
-        "no_result": 78,
-        "dls": 128,
+        "no_result": 80,
+        "dls": 129,
         "reduced_overs": 11,
         "super_over": 0,
         "ended_before_10_overs": 27,
         "no_first_innings": 0,
         "no_team_names": 0
       },
-      "innings_kept": 3348
+      "innings_kept": 3380
     },
     "ipl": {
       "matches_read": 1243,
@@ -57,7 +57,7 @@
       },
       "innings_kept": 619
     },
-    "total_innings": 5177
+    "total_innings": 5209
   },
   "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License.",
   "dummies": {
@@ -160,12 +160,12 @@
     "Afghanistan"
   ],
   "population": {
-    "in": 2867,
-    "out": 2310,
+    "in": 2872,
+    "out": 2337,
     "by_competition": {
       "t20i": {
-        "in": 1038,
-        "out": 2310
+        "in": 1043,
+        "out": 2337
       },
       "ipl": {
         "in": 1210,
@@ -176,5 +176,9 @@
         "out": 0
       }
     }
+  },
+  "overs": {
+    "file": "overs.csv",
+    "rows": 102788
   }
 }

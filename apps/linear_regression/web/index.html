@@ -8,14 +8,14 @@
   <style>
     :root {
       --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
-      --accent: #1d6fe0; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
+      --accent: #1d6fe0; --tv: #a85600; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
       /* the chart's four method colours, taken from the colours above so they follow the theme */
       --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
-        --accent: #6ea8ff; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
+        --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
       }
     }
     * { box-sizing: border-box; }
@@ -24,109 +24,53 @@
     h1 { font-size: 1.6rem; margin: 0 0 6px; }
     h2 { font-size: 1.15rem; margin: 28px 0 8px; }
     h3 { font-size: 1rem; margin: 16px 0 6px; }
-    .intro { margin-bottom: 16px; }
-    .eyebrow { color: var(--muted); font-size: .85rem; margin: 0 0 4px; }
-    /* the introduction: lead line, miss meter, chips, two closed sections (feature 007) */
-    .intro-lead { color: var(--muted); max-width: 70ch; margin: 0 0 10px; }
-    .meter { display: flex; flex-direction: column; gap: 6px; padding: 14px 20px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
-    .meter-top { display: flex; justify-content: space-between; gap: 12px; font-size: .8rem; color: var(--muted); }
-    .meter-caption { text-align: center; }
-    .meter-track { position: relative; margin: 0 30px; }
-    .meter-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--muted); }
-    .meter-zone { position: absolute; left: 0; height: 14px; border: 1px solid var(--win); border-radius: 4px 0 0 4px; background: var(--win-bg); }
-    .meter-mark { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; color: var(--text); }
-    .meter-mark[data-mark=know_nothing] { color: var(--muted); }
-    .meter-mark[data-mark=goal] { color: var(--win); }
-    .mark-name { font-size: .8rem; font-weight: 600; text-align: center; }
-    .mark-shape { position: relative; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
-    .meter-mark[data-shape=line] .mark-shape { background: none; border-radius: 0; }
-    .meter-mark[data-shape=line] .mark-shape::after { content: ""; position: absolute; left: 50%; width: 2px; transform: translateX(-50%); background: currentColor; }
-    .mark-value { position: relative; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
-    .mark-name, .mark-value { background: var(--bg); }
-    .meter-footer { margin: 4px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: .85rem; color: var(--muted); }
-    .meter-footer strong { color: var(--text); }
-    .intro-live > .meter-footer { margin: 0 0 6px; padding-top: 0; border-top: 0; }
-    @media (min-width: 760px) {
-      /* labels above the line, values below; marks that are close to each other take a second row */
-      .meter-track { height: 98px; }
-      .meter-track[data-rows-wide="2"] { height: 128px; }
-      .meter-line { top: 53px; }
-      .meter-zone { top: 47px; }
-      .meter-mark { top: 0; }
-      .mark-name { height: 20px; line-height: 20px; margin-top: 22px; white-space: nowrap; }
-      .mark-shape { margin-top: 6px; }
-      .mark-value { font-size: 1.4rem; margin-top: 10px; }
-      .meter-mark[data-shape=line] .mark-shape::after { top: -10px; height: 32px; }
-      .meter-mark[data-row-wide="1"] .mark-name { margin-top: 0; }
-      .meter-mark[data-row-wide="1"] .mark-shape { margin-top: 28px; }
-      .meter-mark[data-row-wide="1"] .mark-value { margin-top: 39px; }
-      .meter-mark[data-row-wide="1"] .mark-shape::before,
-      .meter-mark[data-row-wide="1"] .mark-value::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; background: var(--border); }
-      .meter-mark[data-row-wide="1"] .mark-shape::before { height: 28px; }
-      .meter-mark[data-row-wide="1"] .mark-value::before { height: 39px; }
+    /* the breadcrumb above the tab bar, and the Working tab's hero (feature 013) */
+    .breadcrumb { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; margin: 0 0 14px; font-size: .875rem; color: var(--muted); }
+    .breadcrumb a { color: var(--accent); text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb [aria-current] { color: var(--text); font-weight: 600; }
+    .hero { margin: 0 0 14px; }
+    .hero [hidden] { display: none !important; }
+    .hero-head { display: flex; flex-direction: column; gap: 6px; max-width: 860px; margin: 0 0 16px; }
+    .hero-eyebrow { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+    .hero h1 { margin: 0; font-size: 44px; line-height: 1.1; font-weight: 750; letter-spacing: -.01em; text-wrap: balance; }
+    .hero-lead { margin: 0; font-size: 1.125rem; line-height: 1.5; color: var(--muted); max-width: 66ch; }
+    .hero-unavailable { margin: 0 0 12px; color: var(--muted); font-style: italic; }
+    .hero-grid { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; }
+    .worm-card { flex: 3 1 560px; min-width: 0; margin: 0; padding: 12px 16px 6px; border: 1px solid var(--border); border-radius: 14px; }
+    .worm { display: block; width: 100%; height: auto; }
+    .worm-card figcaption { padding: 4px 4px 0; font-size: .8125rem; line-height: 1.5; color: var(--muted); }
+    .worm-key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0 0; padding: 0 4px; list-style: none; font-size: .8125rem; }
+    .worm-key-item { display: flex; align-items: center; gap: 6px; }
+    .worm-key-item::before { content: ""; width: 22px; border-top: 3px solid currentColor; }
+    .worm-key-actual { color: var(--text); font-weight: 700; }
+    .worm-key-tv { color: var(--tv); font-weight: 700; }
+    .worm-key-tv::before { border-top-style: dashed; }
+    .worm-key-nothing { color: var(--muted); }
+    .worm-key-nothing::before { border-top-style: dotted; }
+    .worm-key-agent { color: var(--accent); font-weight: 700; }
+    .worm-key-agent::before { display: none; }
+    .hero-side { flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+    .tv-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--surface); }
+    .tv-panel h2 { margin: 0; font-size: 1.125rem; }
+    .tv-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .tv-figure { display: flex; flex-direction: column; gap: 2px; }
+    .tv-figure .num { font-size: 1.875rem; font-weight: 750; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .tv-figure .what { font-size: .8125rem; color: var(--muted); }
+    .tv-figure.tv .num { color: var(--tv); }
+    .tv-figure.nothing .num { color: var(--muted); }
+    .tv-sentence { margin: 0; font-size: .875rem; line-height: 1.5; }
+    .tv-footnote { margin: 0; font-size: .75rem; color: var(--muted); }
+    .hero-steps { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: .9375rem; line-height: 1.45; }
+    .hero-steps li { display: flex; gap: 12px; align-items: flex-start; }
+    .hero-steps .num { flex: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; }
+    .hero-steps .then { color: var(--muted); }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 30px; }
+      .hero-lead { font-size: 1rem; }
+      .worm-card { padding: 10px 10px 6px; }
     }
-    @media (min-width: 1100px) {
-      /* the track is long and fixed here, so marks need less of it before their text must take a second row */
-      .meter-track[data-rows-wide="2"] { height: 98px; }
-      .meter-track[data-rows-xwide="2"] { height: 128px; }
-      .meter-mark[data-row-wide="1"] .mark-name { margin-top: 22px; }
-      .meter-mark[data-row-wide="1"] .mark-shape { margin-top: 6px; }
-      .meter-mark[data-row-wide="1"] .mark-value { margin-top: 10px; }
-      .meter-mark[data-row-wide="1"] .mark-shape::before, .meter-mark[data-row-wide="1"] .mark-value::before { content: none; }
-      .meter-mark[data-row-xwide="1"] .mark-name { margin-top: 0; }
-      .meter-mark[data-row-xwide="1"] .mark-shape { margin-top: 28px; }
-      .meter-mark[data-row-xwide="1"] .mark-value { margin-top: 39px; }
-      .meter-mark[data-row-xwide="1"] .mark-shape::before,
-      .meter-mark[data-row-xwide="1"] .mark-value::before { content: ""; position: absolute; left: 50%; bottom: 100%; width: 1px; background: var(--border); }
-      .meter-mark[data-row-xwide="1"] .mark-shape::before { height: 28px; }
-      .meter-mark[data-row-xwide="1"] .mark-value::before { height: 39px; }
-    }
-    @media (max-width: 759.98px) {
-      /* the goal above the line, the two references below it; no "better" / "worse" end labels */
-      .meter { padding: 14px 12px 12px; }
-      .meter-end { display: none; }
-      .meter-top { justify-content: center; }
-      .meter-track { height: 166px; margin: 0 34px; }
-      .meter-track[data-rows-narrow="2"] { height: 246px; }
-      .meter-line { top: 91px; }
-      .meter-zone { top: 85px; }
-      .meter-mark { max-width: 7.5em; }
-      .mark-name { max-width: 7.5em; line-height: 1.25; }
-      .mark-value { font-size: 1.1rem; margin-top: 2px; }
-      .meter-mark[data-side-narrow=above] { top: 0; height: 98px; justify-content: flex-end; }
-      .meter-mark[data-side-narrow=above] .mark-name { order: 1; }
-      .meter-mark[data-side-narrow=above] .mark-value { order: 2; }
-      .meter-mark[data-side-narrow=above] .mark-shape { order: 3; margin-top: 4px; }
-      .meter-mark[data-side-narrow=below] { top: 86px; }
-      .meter-mark[data-side-narrow=below] .mark-shape { order: 0; }
-      .meter-mark[data-side-narrow=below] .mark-name { order: 1; margin-top: 8px; }
-      .meter-mark[data-side-narrow=below] .mark-value { order: 2; }
-      .meter-mark[data-shape=line] .mark-shape::after { top: 0; height: 16px; }
-      .meter-mark[data-side-narrow=below][data-row-narrow="1"] .mark-name { margin-top: 88px; }
-      .meter-mark[data-side-narrow=below][data-row-narrow="1"] .mark-shape::before { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 88px; background: var(--border); }
-    }
-    .intro-population { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px 8px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .85rem; }
-    .chip { padding: 2px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); white-space: nowrap; }
-    .chip strong { color: var(--text); }
-    .chip-llm { border-color: var(--accent); }
-    .chip-llm strong { color: var(--accent); }
-    details.intro-more { margin-top: 12px; font-size: .95rem; }
-    details.intro-more + details.intro-more { margin-top: 6px; }
-    details.intro-more summary { cursor: pointer; color: var(--accent); }
-    .intro-full-body { color: var(--muted); }
-    .intro-full-body p { margin: 8px 0 0; max-width: 75ch; }
-    .intro-full-body strong { color: var(--text); }
-    .reference-detail { max-width: 720px; margin-top: 6px; font-size: .85rem; color: var(--muted); }
-    .reference-detail p { margin: 0 0 6px; max-width: 70ch; }
-    .reference-detail .reference-lead { color: var(--text); }
     .table-scroll { overflow-x: auto; margin: 4px 0 6px; }
-    table.reference-table { border-collapse: collapse; width: 100%; font-size: .8rem; font-variant-numeric: tabular-nums; }
-    table.reference-table th, table.reference-table td { padding: 2px 6px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
-    table.reference-table th:first-child { text-align: left; }
-    table.reference-table thead th { color: var(--muted); font-weight: 600; white-space: normal; vertical-align: bottom; line-height: 1.2; }
-    table.reference-table tbody th { color: var(--text); font-weight: 600; }
-    .reference-error { color: var(--muted); font-style: italic; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
     .muted { color: var(--muted); }
@@ -193,10 +137,6 @@
     .variation-note strong { color: var(--text); }
     .model-picker { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 10px; }
     .model-picker select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-left: 6px; }
-    details.catalogue { margin: 0 0 12px; font-size: .95rem; }
-    details.catalogue summary { cursor: pointer; color: var(--accent); }
-    .catalogue-list { margin: 8px 0 0; padding-left: 1.2em; columns: 2 24em; column-gap: 28px; }
-    .catalogue-list li { margin-bottom: 6px; break-inside: avoid; }
     ol.rounds { padding-left: 1.4em; max-width: 80ch; }
     ol.rounds li { margin-bottom: 12px; }
     .reason { margin: 4px 0 4px; padding: 6px 12px; border-left: 4px solid var(--accent); background: var(--bg); color: var(--text); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
@@ -260,6 +200,11 @@
 </head>
 <body>
   <main>
+    <nav class="breadcrumb" data-testid="breadcrumb" aria-label="Breadcrumb">
+      <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
+      <span aria-hidden="true">›</span>
+      <span aria-current="page">Linear regression</span>
+    </nav>
     <tab-set default-tab="working" aria-label="Page sections">
     <div data-tab="data" data-label="Data" data-testid="data-panel">
       <h2 tabindex="-1">The innings the agent works from</h2>
@@ -272,49 +217,36 @@
     </div>
     <div data-tab="working" data-label="Working" data-testid="working-panel">
       <h2 class="visually-hidden" tabindex="-1">Working</h2>
-    <section class="intro" data-testid="intro" aria-labelledby="intro-title">
-      <nav class="eyebrow" aria-label="Where this app fits">
-        Part of <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a> · App 1 of 8: linear regression
-      </nav>
-      <h1 id="intro-title">Can an agent beat the TV projected score?</h1>
-      <div class="intro-live" data-testid="reference" aria-live="polite"></div>
-      <p class="intro-population" data-testid="intro-population">The agent is tested on IPL and BBL innings and on T20 internationals between ICC full members.</p>
-      <ul class="chips" data-testid="chips">
-        <li class="chip"><strong>Agent</strong> a LangGraph graph of steps</li>
-        <li class="chip chip-llm"><strong>Language model</strong> picks features</li>
-        <li class="chip"><strong>Code</strong> makes every number</li>
-        <li class="chip"><strong>Linear regression</strong> runs per unit</li>
-        <li class="chip"><strong>Rival</strong> forward selection</li>
-      </ul>
-      <details class="intro-more" data-testid="intro-full">
-        <summary>How this works, in full</summary>
-        <div class="intro-full-body">
-          <p>
-            This app uses LangGraph to build an <strong>agent</strong>: a <strong>graph</strong> of steps, each doing one
-            job and passing its results on. Press Play to watch it work one step at a time. One step is different from the
-            rest: a <strong>language model</strong> decides which features to try next, using what it knows about cricket
-            and the results so far. Every other step is ordinary code, and <strong>every number you see comes from that
-            code</strong>, never from the language model.
-          </p>
-          <p>
-            The problem: predict a T20 first innings' final total after 10 overs, from measurements taken at that point
-            (runs, wickets, boundaries, the current partnership and more) in past men's T20 internationals, IPL and BBL
-            innings. <strong>Linear regression</strong> fits a straight line, so each feature gets a simple "runs per
-            unit" effect we can explain in cricket terms. <strong>Forward selection</strong>, a simple mechanical method,
-            runs alongside as a rival.
-          </p>
+    <section class="hero" data-testid="hero" aria-labelledby="hero-title">
+      <header class="hero-head">
+        <p class="hero-eyebrow">An AI agent experiment · linear regression</p>
+        <h1 id="hero-title" data-testid="hero-title">Halfway through a T20 innings. Where will it finish?</h1>
+        <p class="hero-lead">An AI agent learns from past innings to predict the final total from the score after 10 overs. Can it beat the TV's projection?</p>
+      </header>
+      <p class="hero-unavailable" data-testid="hero-unavailable" role="status" hidden></p>
+      <div class="hero-grid">
+        <figure class="worm-card" data-testid="worm-card" hidden>
+          <div data-testid="worm-chart"></div>
+          <figcaption data-testid="worm-caption"></figcaption>
+        </figure>
+        <div class="hero-side">
+          <section class="tv-panel" data-testid="tv-panel" aria-labelledby="tv-good" hidden>
+            <h2 id="tv-good">How good is the TV projection?</h2>
+            <div class="tv-figures">
+              <div class="tv-figure tv"><span class="num" data-testid="tv-miss"></span><span class="what">runs off the final total, on average</span></div>
+              <div class="tv-figure nothing"><span class="num" data-testid="nothing-miss"></span><span class="what">runs off for the know-nothing guess</span></div>
+            </div>
+            <p class="tv-sentence" data-testid="tv-sentence"></p>
+            <p class="tv-footnote" data-testid="tv-footnote"></p>
+          </section>
+          <ol class="hero-steps" data-testid="hero-steps">
+            <li><span class="num" aria-hidden="true">1</span><span><strong>An AI agent picks the clues</strong> <span class="then">from the first 10 overs</span></span></li>
+            <li><span class="num" aria-hidden="true">2</span><span><strong>Code fits a linear regression</strong> <span class="then">to past innings</span></span></li>
+            <li><span class="num" aria-hidden="true">3</span><span><strong>Judged on a season it never saw</strong> <span class="then">against the TV and the know-nothing guess</span></span></li>
+          </ol>
         </div>
-      </details>
-      <details class="intro-more" data-testid="reference-details" hidden>
-        <summary>Full figures for the two simple guesses</summary>
-        <div class="reference-detail" data-testid="reference-detail"></div>
-      </details>
+      </div>
     </section>
-    <details class="catalogue" data-testid="catalogue">
-      <summary>What the agent can choose from</summary>
-      <p class="muted" data-testid="catalogue-intro"></p>
-      <ul class="catalogue-list" data-testid="catalogue-list"></ul>
-    </details>
     <div class="model-picker" data-testid="model-picker">
       <label>Language model <select data-testid="model-select" aria-describedby="model-note"></select></label>
       <span class="muted" id="model-note" data-testid="model-note"></span>

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
 import { countRunRequests, open, openTab, playToEnd, timelineItems } from "./helpers";
 
-const TOTAL = 5177; // manifest total_innings; checked against the agent's load_data step below
+const TOTAL = 5209; // manifest total_innings; checked against the agent's load_data step below
 
 const count = (page: Page) => page.getByTestId("data-count");
 const cell = (page: Page, row: number, field: string) =>

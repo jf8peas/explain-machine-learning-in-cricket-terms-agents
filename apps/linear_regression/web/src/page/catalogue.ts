@@ -38,26 +38,3 @@ export function loadCatalogue(url = "/api/catalogue"): Promise<Catalogue> {
   cached.catch(() => { cached = null; }); // a failed fetch can be tried again
   return cached;
 }
-
-export function renderCatalogue(root: HTMLElement, catalogue: Catalogue): void {
-  const intro = root.querySelector("[data-testid=catalogue-intro]") as HTMLElement;
-  const list = root.querySelector("[data-testid=catalogue-list]") as HTMLElement;
-  intro.textContent = `These are the measurements the agent may try, all taken at the end of the 10th over. ` +
-    `A language model proposes which to use; code checks and scores each proposal. A model can use at most ` +
-    `${catalogue.limit} features.`;
-  list.replaceChildren(...catalogue.features.map((f) => {
-    const li = document.createElement("li");
-    li.dataset.testid = "catalogue-item";
-    const name = document.createElement("strong");
-    name.textContent = f.label;
-    li.append(name, ` (${f.unit}): ${f.description}`);
-    return li;
-  }));
-}
-
-export function setupCatalogue(root: HTMLElement): void {
-  loadCatalogue().then((c) => renderCatalogue(root, c)).catch(() => {
-    (root.querySelector("[data-testid=catalogue-intro]") as HTMLElement).textContent =
-      "The list of features could not be loaded just now.";
-  });
-}

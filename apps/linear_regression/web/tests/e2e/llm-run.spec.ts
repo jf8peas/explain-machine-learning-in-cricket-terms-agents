@@ -268,19 +268,6 @@ test("the unreliable model's run can be followed by a normal one", async ({ page
 
 // --- what the page says about the language model ---
 
-test("the intro says a language model decides what to try and that every number comes from code", async ({ page }) => {
-  await open(page);
-  const intro = page.getByTestId("intro");
-  await expect(page.getByTestId("intro-full")).not.toHaveAttribute("open", "");           // closed until the visitor opens it
-  await page.getByTestId("intro-full").locator("summary").click();
-  await expect(page.getByTestId("intro-full").locator("p").first()).toBeVisible();
-  await expect(intro).toContainText("language model");
-  await expect(intro).toContainText("decides which features to try next");
-  await expect(intro).toContainText("every number you see comes from that code");
-  await expect(intro).not.toContainText("no AI language model");
-  await expect(intro).toContainText("Forward selection");
-});
-
 test("a note says runs can differ because a language model is involved, and that this is expected", async ({ page }) => {
   await open(page);
   const note = page.getByTestId("variation-note");

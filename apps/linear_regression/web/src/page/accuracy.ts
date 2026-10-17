@@ -2,7 +2,7 @@
 // All figures and sentences come from the run state, which the server built from code; everything goes in as text.
 import { renderChart, type ChartPoints } from "./accuracy-chart";
 import { fmt, h } from "./dom";
-import type { Figures, MethodDef } from "./reference";
+import type { Figures, MethodDef } from "./reference-types";
 
 export interface FinalAccuracy {
   winner: string;

@@ -3,7 +3,7 @@
 // selection rules) are exported for tests; renderChart draws the whole thing. Colours come from the page's CSS
 // variables, but the marker shape is what tells methods apart. Nothing animates.
 import { h } from "./dom";
-import type { MethodDef } from "./reference";
+import type { MethodDef } from "./reference-types";
 
 export interface ChartPoints { actual: number[]; predicted: Record<string, number[]> }
 export interface Range { min: number; max: number; step: number }
