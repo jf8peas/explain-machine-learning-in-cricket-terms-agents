@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from . import features, setup_settings
+from .state import ROUND_CAP
 from .data_table import COMPETITION_NAMES
 
 CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400"
@@ -15,7 +16,8 @@ def create_router() -> APIRouter:
 
     @router.get("/catalogue")
     def catalogue() -> JSONResponse:
-        body = {**features.public_catalogue(COMPETITION_NAMES), "setup_menus": setup_settings.public_menus()}
+        body = {**features.public_catalogue(COMPETITION_NAMES), "setup_menus": setup_settings.public_menus(),
+                "round_cap": ROUND_CAP, "grid_combinations": setup_settings.grid_combinations()}
         return JSONResponse(body, headers={"Cache-Control": CACHE_CONTROL})
 
     return router

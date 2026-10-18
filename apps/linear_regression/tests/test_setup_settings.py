@@ -74,7 +74,14 @@ def test_public_menus_carry_ids_and_labels_for_the_page():
     menus = s.public_menus()
     assert set(menus) == {"window", "weighting", "training_innings"}
     assert [m["id"] for m in menus["window"]] == [o.id for o in s.WINDOWS]
-    assert all(set(m) == {"id", "label"} for group in menus.values() for m in group)
+    assert all(set(m) == {"id", "label", "short"} for group in menus.values() for m in group)
+    for group in menus.values():                # a short label beside each plain label, unique within its menu
+        assert all(m["short"].strip() for m in group)
+        assert len({m["short"] for m in group}) == len(group)
+
+
+def test_grid_combinations_is_the_product_of_the_three_menus():
+    assert s.grid_combinations() == len(s.WINDOWS) * len(s.WEIGHTINGS) * len(s.TRAINING_INNINGS)
 
 
 # --- single source: nothing else spells out a member name or a distinctive menu id ----------------------------------

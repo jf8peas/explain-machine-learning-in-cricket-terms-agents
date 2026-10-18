@@ -1,6 +1,6 @@
 // A setup in words (app-specific, pure): chips for the parts of a setup other than its features, and the check errors
 // labelled by year. Every label comes from the menus the server sends with the catalogue; nothing is typed here.
-export interface MenuOption { id: string; label: string }
+export interface MenuOption { id: string; label: string; short?: string }
 export interface Menus { window: MenuOption[]; weighting: MenuOption[]; training_innings: MenuOption[] }
 export type MenuName = keyof Menus;
 export type Labeller = (menu: MenuName, id: string) => string;
@@ -19,6 +19,14 @@ const PARTS: MenuName[] = ["window", "weighting", "training_innings"];
 /** The menu's wording for an option id; the id itself while the menus have not arrived or if the id is not on the menu. */
 export function menuLabeller(menus: Menus | undefined): Labeller {
   return (menu, id) => menus?.[menu]?.find((o) => o.id === id)?.label ?? id;
+}
+
+/** The menu's short wording for an option id (for grid headings); its plain label if it has no short form. */
+export function menuShortLabeller(menus: Menus | undefined): Labeller {
+  return (menu, id) => {
+    const option = menus?.[menu]?.find((o) => o.id === id);
+    return option?.short || option?.label || id;
+  };
 }
 
 /** One chip for each part of the setup that is there, in the order window, weighting, training innings. */

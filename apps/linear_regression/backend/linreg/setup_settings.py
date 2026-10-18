@@ -43,23 +43,24 @@ class Option:
     id: str
     label: str            # plain words, used in sentences and on the page
     param: float | int | None = None   # window: years before the year checked (None = all); weighting: half-life in years
+    short: str = ""       # a few words for a grid heading
 
 
 WINDOWS: tuple[Option, ...] = (
-    Option("all", "all available seasons", None),
-    Option("last_10", "the last 10 seasons", 10),
-    Option("last_5", "the last 5 seasons", 5),
-    Option("last_3", "the last 3 seasons", 3),
+    Option("all", "all available seasons", None, "all seasons"),
+    Option("last_10", "the last 10 seasons", 10, "last 10"),
+    Option("last_5", "the last 5 seasons", 5, "last 5"),
+    Option("last_3", "the last 3 seasons", 3, "last 3"),
 )
 # Half-lives in years: an innings `age` years before the year being scored counts 0.5 ** (age / half_life).
 WEIGHTINGS: tuple[Option, ...] = (
-    Option("none", "every season counting equally", None),
-    Option("gentle", "recent seasons counting a little more", 6),
-    Option("strong", "recent seasons counting much more", 2),
+    Option("none", "every season counting equally", None, "all equal"),
+    Option("gentle", "recent seasons counting a little more", 6, "a bit more"),
+    Option("strong", "recent seasons counting much more", 2, "much more"),
 )
 TRAINING_INNINGS: tuple[Option, ...] = (
-    Option("population", "full-member and league innings only"),
-    Option("all", "all innings, including associate nations"),
+    Option("population", "full-member and league innings only", short="full members and leagues"),
+    Option("all", "all innings, including associate nations", short="all innings"),
 )
 
 HALF_LIVES: dict[str, int | None] = {o.id: o.param for o in WEIGHTINGS}
@@ -98,10 +99,15 @@ def setup_words(window: str, weighting: str, training_innings: str) -> str:
             f"using {label('training_innings', training_innings)}")
 
 
+def grid_combinations() -> int:
+    """How many setups the rival's grid search tries: one for every combination of the three menus."""
+    return len(WINDOWS) * len(WEIGHTINGS) * len(TRAINING_INNINGS)
+
+
 def public_menus() -> dict[str, list[dict[str, str]]]:
-    """The menus as the page reads them (ids and labels only)."""
+    """The menus as the page reads them (ids, plain labels and short labels)."""
     def group(options: tuple[Option, ...]) -> list[dict[str, str]]:
-        return [{"id": o.id, "label": o.label} for o in options]
+        return [{"id": o.id, "label": o.label, "short": o.short} for o in options]
     return {"window": group(WINDOWS), "weighting": group(WEIGHTINGS), "training_innings": group(TRAINING_INNINGS)}
 
 

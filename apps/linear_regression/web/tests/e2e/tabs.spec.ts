@@ -34,14 +34,14 @@ test("on first load Working shows with the hero, picker, graph and summary, and 
   await expect(page.getByTestId("run-summary")).toContainText("Results will appear here");
   for (const id of ["results", "results-final"]) await expect(page.getByTestId(id)).toBeHidden();
   await expect(page.getByTestId("results")).toBeEmpty();
-  for (const id of ["leaderboard", "comparison", "explanation", "tryit"]) await expect(page.getByTestId(id)).not.toBeVisible();
+  for (const id of ["ranking", "comparison", "explanation", "tryit"]) await expect(page.getByTestId(id)).not.toBeVisible();
 });
 
 test("every result of the old page is in exactly one tab after a run", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const where: Record<string, string> = {
-    leaderboard: "found", model: "found", "model-used": "found", comparison: "final-test", "accuracy-table": "final-test",
+    ranking: "found", "found-section-1": "found", "winner-panel": "found", model: "found", "model-used": "found", comparison: "final-test", "accuracy-table": "final-test",
     "accuracy-chart": "final-test", explanation: "final-test", verdict: "final-test", winner: "final-test",
     "expectations-note": "final-test", tryit: "try-your-own", "tryit-fields": "try-your-own", intro: "working",
     "model-picker": "working", catalogue: "working",
@@ -52,7 +52,7 @@ test("every result of the old page is in exactly one tab after a run", async ({ 
     const homes = await loc.evaluateAll((els) => els.map((el) => el.closest("[data-tab]")?.getAttribute("data-tab")));
     expect(new Set(homes), testid).toEqual(new Set([tab]));
   }
-  expect(await panelOf(page, "rounds")).toBe("found");                           // the model's reasoning
+  expect(await panelOf(page, "found-section-4")).toBe("found");                  // the AI's rounds
   expect(await page.locator("graph-replay").evaluate((el) => el.closest("[data-tab]")?.getAttribute("data-tab"))).toBe("working");
 });
 
@@ -122,7 +122,7 @@ test("a full run moves to What the agent found at the end, with focus on its hea
   await expect(page.locator('[data-tab="found"]')).toBeVisible();
   await expect(heading(page, "What the agent found")).toBeFocused();
   await expect(page.getByTestId("tab-live")).toHaveText("Now showing: What the agent found");
-  await expect(page.getByTestId("leaderboard")).toBeVisible();
+  await expect(page.getByTestId("ranking")).toBeVisible();
   await expect(page.getByTestId("to-final").getByRole("link")).toHaveAttribute("href", "#final-test");   // the way on to The final test
 });
 

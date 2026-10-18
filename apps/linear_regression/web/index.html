@@ -137,16 +137,10 @@
     .variation-note strong { color: var(--text); }
     .model-picker { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 10px; }
     .model-picker select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-left: 6px; }
-    ol.rounds { padding-left: 1.4em; max-width: 80ch; }
-    ol.rounds li { margin-bottom: 12px; }
     .reason { margin: 4px 0 4px; padding: 6px 12px; border-left: 4px solid var(--accent); background: var(--bg); color: var(--text); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
     .tag { display: inline-block; margin-left: 8px; font-size: .75rem; font-weight: 600; color: var(--muted); }
-    .outcome { font-size: .9rem; color: var(--muted); }
-    .outcome.rejected { color: var(--lose); }
-    .outcome.fit { color: var(--win); }
     .notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); }
     .winner { flex-basis: 100%; margin: 0; font-weight: 600; }
-    section[data-testid=leaderboard] h3, section[data-testid=rounds] h3 { margin-top: 12px; }
     /* the final results: every method side by side */
     table.accuracy-table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: .9rem; font-variant-numeric: tabular-nums; }
     table.accuracy-table caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
@@ -175,19 +169,106 @@
     .chart-tick.y { text-anchor: end; }
     .chart-title { fill: var(--muted); font-size: 12px; text-anchor: middle; }
     /* setups: chips on the leaderboard and the rounds, and the rival's grid search */
-    table.attempts tbody th[scope=row] { min-width: 15rem; }          /* the setup column keeps a readable width; the table scrolls in its own box */
     ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 4px 0 0; padding: 0; }
     li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
-    td.check-errors { white-space: nowrap; font-size: .85rem; }
-    td.check-errors span { display: inline-block; margin-right: 8px; }
-    table.grid-table { border-collapse: collapse; margin: 6px 0 12px; font-variant-numeric: tabular-nums; }
+    /* What the agent found (feature 014): six numbered sections, never collapsible */
+    .found-lead { margin: 0 0 8px; max-width: 62ch; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
+    .found-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
+    .found-section > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
+    .found-section > p { margin: 0; }
+    .found-lead-text { max-width: 72ch; line-height: 1.5; color: var(--muted); }
+    .found-section .small { font-size: .8125rem; color: var(--muted); }
+    .found-section .small strong, .found-lead-text strong { color: var(--text); }
+    .contest-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .contest-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 18px; border: 2px solid var(--border); border-radius: 14px; }
+    .contest-card p { margin: 0; line-height: 1.5; }
+    .contest-ai { border-color: var(--m-llm); }
+    .contest-rival { border-color: var(--m-forward); }
+    .contest-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
+    .contest-name { font-size: 1.25rem; font-weight: 750; }
+    .contest-ai .contest-name { color: var(--m-llm); }
+    .contest-rival .contest-name { color: var(--m-forward); }
+    .contest-kind { font-size: .8125rem; color: var(--muted); }
+    .contest-notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); font-size: .9rem; }
+    .contest-strip { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 14px 18px; border-radius: 12px; background: var(--surface); }
+    .contest-strip p { flex: 1 1 280px; margin: 0; font-size: .9375rem; line-height: 1.5; }
+    .seasons { display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1.3fr; gap: 6px; font-size: .875rem; }
+    .season { display: flex; flex-direction: column; min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
+    .season span { color: var(--muted); }
+    .season-check { text-align: center; border-color: var(--m-llm); }
+    .season-test { text-align: center; background: var(--text); color: var(--bg); border-color: var(--text); }
+    .season-test span { color: inherit; }
+    .race-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+    .race-card { flex: 3 1 480px; min-width: 0; margin: 0; padding: 12px 12px 6px; border: 1px solid var(--border); border-radius: 14px; }
+    .race-scroll { overflow-x: auto; }
+    .race-svg { display: block; width: 100%; height: auto; min-width: 520px; font-size: 12px; }
+    .race-card figcaption { padding: 4px 4px 0; font-size: .8125rem; line-height: 1.5; color: var(--muted); }
+    .race-grid line { stroke: var(--border); stroke-width: 1; }
+    .race-ticks text, .race-axis, .mark-word { fill: var(--muted); font-size: 12px; }
+    .mark-word { font-size: 11px; }
+    .race-line { fill: none; stroke-width: 2.5; }
+    .race-ai { stroke: var(--m-llm); stroke-width: 3; }
+    .race-rival { stroke: var(--m-forward); stroke-dasharray: 3 5; stroke-linecap: round; }
+    .race-tv { stroke: var(--tv); stroke-dasharray: 8 6; }
+    .mark-best { fill: var(--m-llm); }
+    .mark-open { fill: var(--bg); stroke: var(--m-llm); stroke-width: 2.5; }
+    .mark-cross { stroke: var(--muted); stroke-width: 2.5; stroke-linecap: round; }
+    .race-end { font-size: 13px; font-weight: 700; }
+    .race-end-ai { fill: var(--m-llm); }
+    .race-end-rival { fill: var(--m-forward); }
+    .race-end-tv { fill: var(--tv); }
+    .winner-panel { flex: 2 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 14px; border-left: 8px solid var(--border); background: var(--surface); }
+    .winner-panel p { margin: 0; line-height: 1.5; }
+    .winner-ai, .winner-tie { border-left-color: var(--m-llm); background: color-mix(in srgb, var(--m-llm) 10%, var(--bg)); }
+    .winner-rival { border-left-color: var(--m-forward); background: color-mix(in srgb, var(--m-forward) 10%, var(--bg)); }
+    .winner-kicker { font-size: .8125rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .winner-big { font-size: 1.625rem; line-height: 1.2; font-weight: 750; }
+    .winner-panel .small { font-size: .875rem; color: var(--muted); }
+    .round-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .round-card { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) 11rem; gap: 8px 16px; align-items: start; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; }
+    .round-rejected { border-style: dashed; background: var(--surface); color: var(--muted); }
+    .round-best { border: 2px solid var(--m-llm); background: color-mix(in srgb, var(--m-llm) 8%, var(--bg)); }
+    .round-number { font-size: .8125rem; font-weight: 700; color: var(--muted); }
+    .round-best .round-number { color: var(--m-llm); }
+    .round-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .round-setup { margin: 0; overflow-wrap: anywhere; }
+    .round-body .reason { margin: 0; padding: 0 0 0 12px; border-left: 3px solid var(--m-llm); background: none; font-style: italic; border-radius: 0; overflow-wrap: anywhere; }
+    .round-result { display: flex; flex-direction: column; text-align: right; font-size: .9375rem; overflow-wrap: anywhere; }
+    .round-miss { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+    .round-fitted .round-result span { color: var(--muted); }
+    .round-best .round-result span { color: var(--m-llm); font-weight: 600; }
+    .grid-groups { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+    .grid-groups .table-scroll { flex: 1 1 320px; min-width: 0; }
+    table.grid-table { border-collapse: collapse; width: 100%; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
     table.grid-table caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
-    table.grid-table th, table.grid-table td { border: 1px solid var(--border); padding: 4px 10px; text-align: center; font-size: .85rem; }
+    table.grid-table th, table.grid-table td { border: 1px solid var(--border); padding: 5px 8px; text-align: center; font-size: .85rem; }
     table.grid-table thead th { color: var(--muted); font-weight: 600; }
     table.grid-table tbody th { text-align: left; font-weight: 600; white-space: nowrap; }
-    table.grid-table td.thin { color: var(--muted); font-style: italic; }
-    table.grid-table td.best { outline: 3px solid var(--text); outline-offset: -3px; font-weight: 700; background: var(--win-bg); }
-    ol.build-up { margin: 0 0 8px; padding-left: 1.4em; font-size: .9rem; }
+    table.grid-table td.grid-none { color: var(--muted); }
+    table.grid-table td.grid-step-0 { background: color-mix(in srgb, var(--m-forward) 50%, var(--bg)); }
+    table.grid-table td.grid-step-1 { background: color-mix(in srgb, var(--m-forward) 38%, var(--bg)); }
+    table.grid-table td.grid-step-2 { background: color-mix(in srgb, var(--m-forward) 27%, var(--bg)); }
+    table.grid-table td.grid-step-3 { background: color-mix(in srgb, var(--m-forward) 16%, var(--bg)); }
+    table.grid-table td.grid-step-4 { background: color-mix(in srgb, var(--m-forward) 7%, var(--bg)); }
+    table.grid-table td.grid-best { outline: 3px solid var(--text); outline-offset: -3px; font-weight: 800; }
+    .grid-best-line { margin: 0; max-width: 72ch; line-height: 1.5; }
+    table.ranking { border-collapse: collapse; width: 100%; }
+    table.ranking th, table.ranking td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+    table.ranking thead th { color: var(--muted); font-weight: 600; font-size: .85rem; }
+    table.ranking tbody th { min-width: 15rem; font-weight: 400; }
+    table.ranking td.rank-miss { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+    table.ranking td.found-by { font-weight: 700; white-space: nowrap; }
+    table.ranking td.found-by-ai { color: var(--m-llm); }
+    table.ranking td.found-by-rival { color: var(--m-forward); }
+    @media (max-width: 640px) {
+      .found-section > h3 { font-size: 19px; }
+      .contest-cards { grid-template-columns: minmax(0, 1fr); }
+      .seasons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .season-learning { grid-column: 1 / -1; }
+      .season-test { grid-column: 1 / -1; }
+      .round-card { grid-template-columns: minmax(0, 1fr); }
+      .round-result { text-align: left; }
+    }
     .data-intro { max-width: 75ch; margin-top: 0; }
     .data-intro strong { color: var(--text); }
     .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -260,7 +341,7 @@
     </div>
     <div data-tab="found" data-label="What the agent found" data-testid="found-panel">
       <h2 tabindex="-1">What the agent found</h2>
-      <p class="muted not-ready" data-testid="not-ready">The leaderboard, the rival's grid search and the language model's reasoning appear here once the agent starts working. <a href="#working">Go to Working and press Play</a>.</p>
+      <p class="muted not-ready" data-testid="not-ready">The contest between the AI agent and the rival, how each one searched, and which setup goes forward appear here once the agent starts working. <a href="#working">Go to Working and press Play</a>.</p>
       <section class="card" data-testid="results-card" aria-live="polite">
         <div data-testid="results"></div>
         <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>

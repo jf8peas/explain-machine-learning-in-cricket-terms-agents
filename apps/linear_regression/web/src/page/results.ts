@@ -5,9 +5,6 @@ import { fmt, h } from "./dom";
 import { renderAccuracy, type FinalAccuracy } from "./accuracy";
 import { buildCricketTerms, type CricketExplanation } from "./cricket-terms";
 import type { ChartPoints } from "./accuracy-chart";
-import { renderGrid } from "./grid-view";
-import type { Grid } from "./grid";
-import { renderLeaderboard, renderRounds, type Attempt, type RoundNote } from "./leaderboard";
 import { menuLabel } from "./catalogue";
 import { setupChips } from "./setup";
 
@@ -52,45 +49,9 @@ function finalComparison(f: FinalState, explanation: CricketExplanation | undefi
 }
 
 const fields = (state: Record<string, unknown>) => ({
-  attempts: (state.attempts as Attempt[] | undefined) ?? [],
-  rounds: (state.rounds as RoundNote[] | undefined) ?? [],
   final: state.final as FinalState | undefined,
   expl: state.explanation as CricketExplanation | undefined,
 });
-
-/** What the agent found: the language model line and notice, the leaderboard, the grid search and the model's reasoning,
- *  and once the final test is on display a link to it. Rendered from the state at the step on display. */
-export function renderFound(target: HTMLElement, state: Record<string, unknown>): void {
-  const { attempts, rounds, final } = fields(state);
-  const baseline = state.baseline_validation_mae as number | undefined;
-  const modelName = state.model_name as string | null | undefined;
-  const status = state.llm_status as string | undefined;
-  const failure = state.llm_failure as string | null | undefined;
-
-  if (!attempts.length && !rounds.length && !final) {
-    target.replaceChildren();                       // nothing yet: the tab's "not ready" sentence says so
-    return;
-  }
-  const parts: Node[] = [];
-  if (modelName) parts.push(h("p", { class: "muted", "data-testid": "model-used" }, `Language model used: ${modelName}`));
-  if (status === "failed" || status === "not_used") {
-    const tookPart = final?.llm_took_part === true; // it had made proposals before it failed
-    parts.push(h("p", { class: "notice", role: "status", "data-testid": "llm-notice" },
-      tookPart
-        ? `The language model stopped early${failure ? `: ${failure}` : "."} Its best set so far was kept, and forward selection carried on.`
-        : `The language model did not take part in this run${failure ? `: ${failure}` : "."} Forward selection, the mechanical method, carried on alone.`));
-  }
-  parts.push(renderLeaderboard(attempts, baseline));
-  const grid = state.grid as Grid | undefined;
-  if (grid) parts.push(renderGrid(grid));
-  const roundsEl = renderRounds(rounds, modelName);
-  if (roundsEl) parts.push(roundsEl);
-  if (final) {
-    parts.push(h("p", { class: "next-link", "data-testid": "to-final" },
-      h("a", { href: "#final-test" }, "See how it did in The final test")));
-  }
-  target.replaceChildren(...parts);
-}
 
 /** The final test: the comparison, the accuracy table and chart, the two best setups, the explanation. */
 export function renderFinal(target: HTMLElement, state: Record<string, unknown>): void {

@@ -35,11 +35,10 @@ test("a proposal shows the model's reason, labelled, and then the code's check",
   await playToEnd(page);
   await timelineItems(page).nth(FIRST_CHECK).click();
   const round = page.getByTestId("round-item").first();
-  await expect(round.locator(".tag")).toHaveText("The model's reasoning:");
   await expect(page.getByTestId("model-reason").first()).toHaveText(FIRST_REASON);
   await expect(round).toContainText("runs scored at the halfway mark");
-  await expect(round).toContainText("Accepted and fitted");
-  await expect(page.getByTestId("rounds").locator("h3")).toContainText("The model's reasoning");
+  await expect(round).toContainText("being scored");                  // accepted by code, scored at the next step
+  await expect(page.getByTestId("found-section-4").locator("h3")).toContainText("The AI's rounds");
 });
 
 test("a rejected proposal is shown with the code's reason, and the model tries again", async ({ page }) => {
@@ -47,7 +46,8 @@ test("a rejected proposal is shown with the code's reason, and the model tries a
   await playToEnd(page);
   const rejected = page.locator('[data-testid=round-item][data-outcome="rejected"]');
   await expect(rejected).toHaveCount(1);
-  await expect(rejected).toContainText("Rejected by code: That candidate model was already tried");
+  await expect(rejected).toContainText("✕ Rejected");
+  await expect(rejected).toContainText("That candidate model was already tried");
   await expect(rejected.getByTestId("model-reason")).toHaveText("Let me try that once more.");
 });
 
@@ -56,16 +56,16 @@ test("each evaluation shows the validation error and whether it improved", async
   await playToEnd(page);
   await timelineItems(page).nth(FIRST_EVALUATE).click();
   const first = page.getByTestId("attempt-row").first();
-  await expect(first).toContainText("Language model");
-  await expect(first).toContainText("improved");
-  const error = Number(await first.locator("td").nth(1).textContent());
+  await expect(first).toContainText("AI agent");
+  await expect(page.getByTestId("round-item").first()).toContainText("first score");
+  const error = Number(await first.locator(".rank-miss").textContent());
   expect(error).toBeGreaterThan(0);
   await expect(page.getByTestId("event-summary")).toContainText("misses by");
   await timelineItems(page).nth(SECOND_EVALUATE).click();
   await expect(page.getByTestId("attempt-row")).toHaveCount(2);
 });
 
-test("the leaderboard builds step by step: every attempt, who proposed it, its validation error", async ({ page }) => {
+test("the ranking builds step by step: every attempt, who found it, its validation error", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const count = () => page.getByTestId("attempt-row").count();
@@ -76,21 +76,24 @@ test("the leaderboard builds step by step: every attempt, who proposed it, its v
   await timelineItems(page).nth(SECOND_EVALUATE).click();
   expect(await count()).toBe(2);
   await timelineItems(page).last().click();
-  expect(await count()).toBe(3 + 1);                              // three language-model setups and the rival's best setup
+  const cells = await page.getByTestId("grid-cell").filter({ hasNotText: "–" }).count();
+  expect(cells).toBeGreaterThan(1);
+  expect(await count()).toBe(3 + cells);                          // three language-model setups and the best of each allowed grid cell
   const proposers = await page.getByTestId("attempt-row").evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.proposer));
-  expect(proposers).toEqual([...Array(3).fill("llm"), "forward_selection"]);
-  await expect(page.getByTestId("leaderboard")).toContainText("TV projected score");
+  expect(proposers.filter((p) => p === "llm")).toHaveLength(3);
+  expect(proposers.filter((p) => p === "forward_selection")).toHaveLength(cells);
+  await expect(page.getByTestId("ranking-tv")).toContainText("The TV projection missed by");
 });
 
-test("the rival is one grid-search step with one row on the leaderboard", async ({ page }) => {
+test("the rival is one grid-search step with its rows in the ranking", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const names = await timelineItems(page).allTextContents();
   expect(names.filter((n) => n.includes("grid_search"))).toHaveLength(1);
   expect(names.filter((n) => n.includes("forward_selection"))).toHaveLength(0);
   const forward = page.locator('[data-testid=attempt-row][data-proposer="forward_selection"]');
-  await expect(forward).toHaveCount(1);
-  await expect(forward.first()).toContainText("Forward selection");
+  expect(await forward.count()).toBeGreaterThan(1);
+  await expect(forward.first()).toContainText("Rival");
 });
 
 test("the final results compare the three test-year errors and name the winner", async ({ page }) => {
@@ -200,7 +203,7 @@ test("a refused start shows the message and keeps the earlier results", async ({
   await open(page);
   await playToEnd(page);                                               // run 1 of the 5 allowed an hour
   const rows = await page.getByTestId("attempt-row").count();
-  expect(rows).toBe(4);
+  expect(rows).toBeGreaterThan(3);
   for (let i = 0; i < 4; i++) expect((await page.request.get("/api/run")).status()).toBe(200);   // runs 2 to 5
   await page.getByTestId("play").click();                              // the sixth start
   await expect(page.getByTestId("status")).toContainText("You can start another run", { timeout: 15_000 });
@@ -237,7 +240,8 @@ test("an unreliable model: a clear failure, forward selection still completes, a
   await expect(page.getByTestId("event-summary")).toContainText("could not take part");
   await timelineItems(page).last().click();
   const rows = page.getByTestId("attempt-row");
-  await expect(rows).toHaveCount(1);                                           // the rival alone
+  await expect(rows.first()).toBeAttached();                                  // the rival alone
+  await expect(rows).toHaveCount(await page.getByTestId("grid-cell").filter({ hasNotText: "–" }).count());
   expect(await rows.evaluateAll((r) => r.every((x) => (x as HTMLElement).dataset.proposer === "forward_selection"))).toBe(true);
   await timelineItems(page).last().click();
   await expect(page.getByTestId("winner")).toContainText("did not take part");
@@ -251,7 +255,7 @@ test("a model that times out is explained in plain words", async ({ page }) => {
   await picker(page).selectOption({ label: "Sluggish" });
   await playToEnd(page);
   await expect(page.getByTestId("llm-notice")).toContainText("did not reply in time");
-  await expect(page.getByTestId("attempt-row")).toHaveCount(1);
+  await expect(page.getByTestId("attempt-row").first()).toBeAttached();
   await openTab(page, "final-test");
   await expect(page.getByTestId("verdict")).toBeVisible();                     // the run still reached its conclusion
 });
@@ -262,7 +266,7 @@ test("the unreliable model's run can be followed by a normal one", async ({ page
   await playToEnd(page);
   await picker(page).selectOption({ label: "Fast" });
   await page.getByTestId("play").click();
-  await expect(page.getByTestId("attempt-row")).toHaveCount(4, { timeout: 45_000 });  // the new run replaced the old one
+  await expect(page.locator('[data-testid=attempt-row][data-proposer="llm"]')).toHaveCount(3, { timeout: 45_000 });  // the new run replaced the old one
   await expect(page.getByTestId("llm-notice")).toHaveCount(0);
 });
 
@@ -300,24 +304,27 @@ const menuLabel = async (page: import("./fixtures").Page) => {
   return (menu: string, id: string) => menus[menu].find((o) => o.id === id)!.label;
 };
 
-test("every leaderboard entry shows the setup chips, its average error and the error in each of the three checks", async ({ page }) => {
+test("every ranked setup shows its chips and average miss, with no per-season column", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const state = await runState(page);
   const label = await menuLabel(page);
+  const aiAttempts = state.attempts.filter((a) => (a as unknown as { proposer: string }).proposer === "llm");
+  const cells = state.grid.cells.filter((c) => c.allowed);
   const rows = page.getByTestId("attempt-row");
-  await expect(rows).toHaveCount(state.attempts.length);
-  for (const [i, a] of state.attempts.entries()) {
-    const row = rows.nth(i);
-    expect(await row.getByTestId("setup-chip").allTextContents()).toEqual(
-      [label("window", a.window), label("weighting", a.weighting), label("training_innings", a.training_innings)]);
-    expect(await row.getByTestId("check-error").allTextContents()).toEqual(a.checks.map((c) => `${c.year}: ${c.mae.toFixed(1)}`));
-    expect(a.checks).toHaveLength(3);
-    await expect(row.locator("td").nth(1)).toHaveText(a.validation_mae.toFixed(1));
-  }
+  await expect(rows).toHaveCount(aiAttempts.length + cells.length);
+  const chips = await rows.evaluateAll((els) => els.map((r) => Array.from(r.querySelectorAll(".setup-chip")).map((c) => c.textContent)));
+  const wanted = [...aiAttempts, ...cells].map((a) => [label("window", a.window), label("weighting", a.weighting), label("training_innings", a.training_innings)]);
+  expect(chips.map((c) => c.join("|")).sort()).toEqual(wanted.map((c) => c.join("|")).sort());
+  const misses = (await rows.locator(".rank-miss").allTextContents()).map(Number);
+  expect(misses).toEqual([...misses].sort((x, y) => x - y));                      // ranked by average miss
+  expect([...misses].sort((x, y) => x - y)).toEqual([...aiAttempts, ...cells].map((a) => Number(a.validation_mae!.toFixed(1))).sort((x, y) => x - y));
+  await expect(page.getByTestId("check-error")).toHaveCount(0);
+  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Setup", "Found by", "Average miss (runs)"]);
+  await expect(page.getByTestId("ranking")).not.toContainText("Each check year");
 });
 
-test("the rival's grid shows every combination in two grids with the best cell outlined, and its build-up", async ({ page }) => {
+test("the rival's grid shows every combination in two grids with the best cell outlined, and its best named", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const state = await runState(page);
@@ -325,8 +332,8 @@ test("the rival's grid shows every combination in two grids with the best cell o
   const tables = page.getByTestId("grid-table");
   await expect(tables).toHaveCount(2);
   await expect(page.getByTestId("grid-cell")).toHaveCount(24);
-  await expect(page.getByTestId("grid-caption")).toHaveText(state.grid.caption);
-  expect(state.grid.caption).toContain("hyperparameters");
+  await expect(page.getByTestId("found-section-5")).toContainText("hyperparameters");
+  await expect(page.getByTestId("found-section-5")).toContainText("grid search");
   for (const t of await tables.all()) {
     expect(await t.locator("tbody tr").count()).toBe(4);                         // the four windows
     expect(await t.locator("thead th").count()).toBe(1 + 3);                     // the row heading and the three weightings
@@ -335,16 +342,14 @@ test("the rival's grid shows every combination in two grids with the best cell o
     [...new Set(state.grid.cells.map((c) => c.training_innings))]);
   const best = page.locator('[data-testid="grid-cell"][data-best="true"]');
   await expect(best).toHaveCount(1);
-  await expect(best).toHaveText(state.grid.best.validation_mae!.toFixed(1));
+  await expect(best).toHaveText(`★ ${state.grid.best.validation_mae!.toFixed(1)}`);
+  await expect(page.getByTestId("grid-best")).toContainText(`The rival's best: ${state.grid.best.validation_mae!.toFixed(1)} runs.`);
   const style = await best.evaluate((el) => { const s = getComputedStyle(el); return { width: s.outlineWidth, style: s.outlineStyle, weight: s.fontWeight }; });
   expect(style.style).not.toBe("none");                                          // an outline, so it does not rely on colour
   expect(parseFloat(style.width)).toBeGreaterThanOrEqual(2);
   expect(Number(style.weight)).toBeGreaterThanOrEqual(600);
   const plain = await page.locator('[data-testid="grid-cell"]:not([data-best="true"])').first().evaluate((el) => getComputedStyle(el).outlineStyle);
   expect(plain).toBe("none");
-  const steps = await page.getByTestId("grid-build-up").locator("li").allTextContents();
-  expect(steps).toHaveLength(state.grid.build_up.length);
-  expect(steps[steps.length - 1]).toContain(state.grid.best.validation_mae!.toFixed(1));
   expect(label("window", state.grid.best.window)).toBeTruthy();
 });
 

@@ -52,6 +52,14 @@ def test_the_setup_menus_carry_the_ids_and_labels_the_page_shows():
     assert all(m["label"].strip() for group in body["setup_menus"].values() for m in group)
 
 
+def test_the_catalogue_carries_the_round_cap_and_the_number_of_grid_combinations():
+    from linreg import selection, setup_settings, state
+    body = get()
+    assert body["round_cap"] == state.ROUND_CAP
+    assert body["grid_combinations"] == setup_settings.grid_combinations() == len(selection.GRID)
+    assert all(m["short"].strip() for group in body["setup_menus"].values() for m in group)
+
+
 def test_the_two_team_candidates_are_in_the_catalogue_with_their_inputs():
     by_id = {f["id"]: f for f in get()["features"]}
     assert by_id["batting_full_member"]["source"] == {"measured": True}
