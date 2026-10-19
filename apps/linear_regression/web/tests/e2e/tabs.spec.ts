@@ -34,16 +34,15 @@ test("on first load Working shows with the hero, picker, graph and summary, and 
   await expect(page.getByTestId("run-summary")).toContainText("Results will appear here");
   for (const id of ["results", "results-final"]) await expect(page.getByTestId(id)).toBeHidden();
   await expect(page.getByTestId("results")).toBeEmpty();
-  for (const id of ["ranking", "comparison", "explanation", "tryit"]) await expect(page.getByTestId(id)).not.toBeVisible();
+  for (const id of ["ranking", "race", "explanation", "tryit"]) await expect(page.getByTestId(id)).not.toBeVisible();
 });
 
 test("every result of the old page is in exactly one tab after a run", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const where: Record<string, string> = {
-    ranking: "found", "found-section-1": "found", "winner-panel": "found", model: "found", "model-used": "found", comparison: "final-test", "accuracy-table": "final-test",
-    "accuracy-chart": "final-test", explanation: "final-test", verdict: "final-test", winner: "final-test",
-    "expectations-note": "final-test", tryit: "try-your-own", "tryit-fields": "try-your-own", intro: "working",
+    ranking: "found", "found-section-1": "found", "winner-panel": "found", model: "found", "model-used": "found", race: "final-test", close: "final-test",
+    explanation: "final-test", verdict: "final-test", "close-note": "final-test", "rule-of-thumb": "final-test", tryit: "try-your-own", "tryit-fields": "try-your-own", intro: "working",
     "model-picker": "working", catalogue: "working",
   };
   for (const [testid, tab] of Object.entries(where)) {
@@ -225,7 +224,7 @@ test("What the agent found fills in as steps are shown, and The final test only 
   await openTab(page, "found");
   await expect(page.getByTestId("attempt-row").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-tab="found"] [data-testid="not-ready"]')).toBeHidden();
-  await expect(page.getByTestId("comparison")).toHaveCount(0);                     // not shown yet
+  await expect(page.getByTestId("race")).toHaveCount(0);                           // not shown yet
   await expect(page.locator('[data-tab="final-test"] [data-testid="not-ready"]')).toBeAttached();
 });
 
@@ -331,7 +330,7 @@ test("after a run, a result tab can be opened from What the agent found, and the
   await playAndWaitForSwitch(page);
   await page.getByTestId("to-final").getByRole("link").click();
   await selected(page, "final-test");
-  await expect(page.getByTestId("comparison")).toBeVisible();
+  await expect(page.getByTestId("race")).toBeVisible();
   await afterRunOpen(page, "working").catch(() => openTab(page, "working"));
   await expect(page.getByTestId("run-summary")).toContainText("Best candidate model so far");
   await expect(page.getByTestId("run-summary").getByRole("link")).toHaveAttribute("href", "#found");

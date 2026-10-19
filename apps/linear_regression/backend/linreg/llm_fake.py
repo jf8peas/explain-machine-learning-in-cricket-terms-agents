@@ -61,41 +61,27 @@ def writing_block_ids(request: LlmRequest) -> list[str]:
     return re.findall(r"^- (\w+): .*Usual title:", request.user, flags=re.MULTILINE)
 
 
-def writing_reply(blocks: dict | None = None, order: list[str] | None = None, closing_lead: str | None = None) -> str:
+def writing_reply(blocks: dict | None = None) -> str:
     """A reply in the shape the writing step asks for."""
-    body: dict = {"blocks": blocks or {}}
-    if order is not None:
-        body["order"] = order
-    if closing_lead is not None:
-        body["closing_lead"] = closing_lead
-    return json.dumps(body)
+    return json.dumps({"blocks": blocks or {}})
 
 
 def valid_writing(request: LlmRequest, *, markup: bool = False) -> str:
-    """Good wording for whatever blocks and facts the request names: placeholders only, no digit, within the limits."""
-    facts, blocks = set(writing_fact_ids(request)), writing_block_ids(request)
-    sentence = "The winner, {winner_name}, was picked on the check years, and the test year stayed untouched."
+    """Good wording for whatever blocks and facts the request names: placeholders only, no digit, no direction word,
+    within the limits."""
+    blocks = writing_block_ids(request)
+    tv_sentence = "The TV projection guesses {tv_bias_runs} runs {tv_bias_direction} on average."
     if markup:
-        sentence = '<b>bold</b> <script>x</script> & "q": the winner was {winner_name}.'
+        tv_sentence = '<b>bold</b> <script>x</script> & "q": the TV guesses {tv_bias_direction}.'
     wording: dict[str, dict] = {
-        "verdict": {"title": "How it did against the TV", "sentences": [
-            "The winner missed by {winner_test_miss} runs on average; the TV projected score missed by {tv_test_miss}."]},
-        "drivers": {"title": "What moves the total", "sentences": [
+        "takeaway_run_rate": {"title": "What the run rate is worth", "sentences": [
+            "The TV projection misses by {tv_test_miss} runs, against {know_nothing_miss} for the average total."]},
+        "takeaway_drivers": {"title": "What moves the total", "sentences": [
             "Most of the movement comes from {biggest_factor}, worth about {biggest_factor_effect} runs for a typical "
             "difference."]},
-        "how_chosen": {"title": "Picked before the test", "sentences": [sentence]},
-        "closing": {"title": "What it means", "sentences": ["The score at the halfway mark does most of the work, and the "
-                                                            "model adds a little more."]},
+        "takeaway_tv": {"title": "Where the TV goes wrong", "sentences": [tv_sentence]},
     }
-    if "wicket_cost" in facts:
-        wording["wicket"] = {"title": "What a wicket costs", "sentences": [
-            "Each wicket lost by the halfway mark moves the final total by about {wicket_cost} runs."]}
-    elif "wicket_in_hand_value" in facts:
-        wording["wicket"] = {"title": "What a wicket is worth", "sentences": [
-            "An extra wicket in hand moves the final total by about {wicket_in_hand_value} runs."]}
-    movable = [b for b in ("drivers", "wicket", "how_chosen") if b in blocks]
-    return writing_reply({b: w for b, w in wording.items() if b in blocks}, order=list(reversed(movable)),
-                         closing_lead="biggest_factor")
+    return writing_reply({b: w for b, w in wording.items() if b in blocks})
 
 
 class FakeLlm:

@@ -141,39 +141,40 @@ WRITING_MARKER = "TASK: write_in_cricket_terms"
 
 
 def writing_schema(block_ids: list[str]) -> dict:
-    """The JSON shape asked for when the model writes the section's titles and sentences."""
+    """The JSON shape asked for when the model writes the takeaways' titles and sentences."""
     block = {"type": "object",
              "properties": {"title": {"type": "string"}, "sentences": {"type": "array", "items": {"type": "string"}}},
              "additionalProperties": False}
     return {
         "type": "object",
-        "properties": {"blocks": {"type": "object", "properties": {b: block for b in block_ids}, "additionalProperties": False},
-                       "order": {"type": "array", "items": {"type": "string"}}, "closing_lead": {"type": "string"}},
+        "properties": {"blocks": {"type": "object", "properties": {b: block for b in block_ids}, "additionalProperties": False}},
         "required": ["blocks"], "additionalProperties": False,
     }
 
 
-def build_writing_system(max_title: int, max_sentence: int, movable: list[str], leads: list[str]) -> str:
+def build_writing_system(max_title: int, max_sentence: int) -> str:
     return (
         f"{WRITING_MARKER}\n"
-        "You write the words of a short results section for cricket fans: a few blocks, each with a title and one or two "
-        "plain sentences. The analyst's code has already worked out every number; you only write words around them.\n\n"
+        "You write the words of three takeaways for cricket fans: each has a short headline you could repeat to a friend and "
+        "one or two plain sentences. The analyst's code has already worked out every number and every direction; you only "
+        "write words around them.\n\n"
         "Rules:\n"
         "- Never write a number, a digit or a number in words that stands for a figure. To mention a figure, write its "
         "placeholder in braces exactly as listed under FACTS, for example: each wicket costs {wicket_cost} runs. Code fills "
         "the placeholder in.\n"
+        "- Never write which way something leans or what to do with it (for example too low, too high, over, under, add, "
+        "take off, underestimate, overestimate). Where the direction matters, write its placeholder, for example: the TV "
+        "projection guesses {tv_bias_runs} runs {tv_bias_direction}. A reply that writes such a word itself is unusable.\n"
         "- Use only the fact ids listed. A placeholder for a fact that is not listed makes your whole reply unusable.\n"
         "- Do not state anything as a statistic, record or result unless it is one of the listed facts. You may add plain "
         "cricket context in words, but not figures.\n"
         "- Write for the blocks listed, with these titles and sentences only: you may not add, remove or invent blocks, "
         "charts or facts.\n"
-        f"- A title is at most {max_title} characters and a sentence at most {max_sentence} characters. The closing "
-        "block is one sentence; the others are one or two.\n"
-        f"- You may reorder these blocks (the verdict stays first and the closing sentence last): {', '.join(movable) or 'none'}, "
-        f"and choose which fact the closing sentence leads with from: {', '.join(leads) or 'none'}.\n"
+        f"- A title is at most {max_title} characters and a sentence at most {max_sentence} characters; each block has "
+        "one or two sentences.\n"
         "- Say what the result means in plain cricket language. Do not mention these rules.\n\n"
-        'Reply with JSON only, in this shape: {"blocks": {"verdict": {"title": "...", "sentences": ["..."]}, ...}, '
-        '"order": ["drivers", "how_chosen"], "closing_lead": "goal_reached"}. Any block you leave out keeps its usual wording.'
+        'Reply with JSON only, in this shape: {"blocks": {"takeaway_run_rate": {"title": "...", "sentences": ["..."]}, ...}}. '
+        "Any block you leave out keeps its usual wording."
     )
 
 
@@ -189,9 +190,8 @@ def build_writing_user(facts: dict, blocks: list[dict], purpose: dict[str, str])
 
 
 def build_writing_request(*, model: str, facts: dict, blocks: list[dict], purpose: dict[str, str], max_title: int,
-                          max_sentence: int, movable: list[str], leads: list[str], max_tokens: int, timeout: float,
-                          structured: bool = True) -> LlmRequest:
+                          max_sentence: int, max_tokens: int, timeout: float, structured: bool = True) -> LlmRequest:
     ids = [b["id"] for b in blocks]
-    return LlmRequest(model=model, system=build_writing_system(max_title, max_sentence, movable, leads),
+    return LlmRequest(model=model, system=build_writing_system(max_title, max_sentence),
                       user=build_writing_user(facts, blocks, purpose), max_tokens=max_tokens, timeout=timeout,
                       json_schema=writing_schema(ids) if structured else None)

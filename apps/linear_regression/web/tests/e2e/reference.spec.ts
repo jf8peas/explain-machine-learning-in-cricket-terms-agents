@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
-import { afterRunOpen, open, openTab, playToEnd, serveRun, sse, timelineItems } from "./helpers";
+import { open, openTab, playToEnd } from "./helpers";
 
 // How good the references are: the hero before any run (its own tests are in hero.spec.ts), and the final results after one.
 // Every figure on the page is compared with what the server sent, never with a number typed in here.
@@ -29,388 +29,37 @@ async function serveReference(page: Page, change: (body: Reference) => Reference
   await page.route("**/api/reference", (route) => route.fulfill({ json: change(structuredClone(real)) }));
 }
 
-// ---------------- US2: every method side by side at the end ----------------
+// The comparison box, the accuracy table and the predicted-versus-actual chart were replaced by the three sections of
+// The final test tab (feature 015); their tests are in final.spec.ts. What stays here is the goal's wording.
 
-interface Final {
-  winner: "llm" | "forward"; llm_took_part: boolean; methods: string[]; identical: string[][];
-  accuracy: Record<string, Figures>; bias_words: Record<string, string>; bias_sentence: string | null;
-  bias_finding: { same_direction_large: boolean; direction: string | null };
-  reference_finding: { finding: string; gap_runs: number; gap_percent: number | null; sentence: string };
-  verdict: { improvement_runs: number; improvement_percent: number | null; beat: boolean; reached: boolean };
-  verdict_sentence: string;
-  method_defs: { id: string; name: string; note: string; marker: string }[];
-}
-interface RunState { final: Final; chart_points: { actual: number[]; predicted: Record<string, number[]> } }
-
-/** The state the server sends for a whole run (the fake model is deterministic, so a second run matches the first). */
-async function runState(page: Page, model = ""): Promise<RunState> {
-  const text = await (await page.request.get(`/api/run${model}`)).text();
-  const state: Record<string, unknown> = {};
-  for (const block of text.trim().split("\n\n")) {
-    const [event, data] = block.split("\n");
-    if (event === "event: step") Object.assign(state, JSON.parse(data.replace("data: ", "")).changes);
-  }
-  return state as unknown as RunState;
-}
-const accRow = (page: Page, method: string) => page.locator(`[data-testid="accuracy-row"][data-method="${method}"]`);
-const accCell = (page: Page, method: string, col: string) => accRow(page, method).locator(`[data-col="${col}"]`);
-const modelOption = async (page: Page, label: string) => page.getByTestId("model-select").selectOption({ label });
-
-test("after a run the results show all four methods side by side, with the server's figures", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  const f = state.final;
-  await expect(page.getByTestId("accuracy-row")).toHaveCount(4);
-  expect(f.methods).toEqual(["know_nothing", "broadcaster", "llm", "forward"]);
-  for (const m of f.methods) {
-    const a = f.accuracy[m];
-    await expect(accRow(page, m)).toContainText(f.method_defs.find((d) => d.id === m)!.name);
-    await expect(accCell(page, m, "average_miss")).toContainText(a.average_miss.toFixed(1));
-    await expect(accCell(page, m, "within_10")).toContainText(a.within_10.toFixed(1));
-    await expect(accCell(page, m, "within_20")).toContainText(a.within_20.toFixed(1));
-    await expect(accCell(page, m, "miss_percent")).toContainText(a.miss_percent.toFixed(1));
-    await expect(accCell(page, m, "bias")).toHaveText(f.bias_words[m]);
-    await expect(accCell(page, m, "n")).toHaveText(String(a.n));
-  }
-});
-
-test("each heading gives the plain name and the technical name once, in brackets", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const head = page.getByTestId("accuracy-table").locator("thead");
-  for (const [plain, technical] of [["Average miss", "mean absolute error"], ["Hit rate", "share within a tolerance"],
-    ["Miss as a share of a typical total", "relative error"], ["Bias", "mean signed error"]]) {
-    await expect(head).toContainText(`${plain} (${technical})`);
-  }
-  expect(((await head.textContent()) ?? "").match(/\(/g)?.length).toBe(4);       // once each, nowhere else
-  await expect(head).toContainText("Within 10 runs");
-  await expect(head).toContainText("Within 20 runs");
-});
-
-test("bias reads in words and runs, and the table says how many innings it rests on", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await expect(accCell(page, "broadcaster", "bias")).toContainText(/guesses \d+\.\d runs? too (low|high)|leans neither way/);
-  const state = await runState(page);
-  await expect(page.getByTestId("accuracy-caption")).toContainText(String(state.final.accuracy.broadcaster.n));
-});
-
-test("the existing comparison block and its test ids are still there, with the know-nothing figure beside them", async ({ page }) => {
+test("the verdict reads in the goal's words, with the runs, and says whether the goal was reached", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
   await openTab(page, "final-test");
-  for (const id of ["comparison", "final-llm", "final-forward", "final-tv", "winner", "verdict"]) await expect(page.getByTestId(id)).toBeVisible();
-  const state = await runState(page);
-  await expect(page.getByTestId("final-know-nothing")).toContainText(state.final.accuracy.know_nothing.average_miss.toFixed(1));
-  await expect(page.getByTestId("verdict")).toContainText(state.final.verdict_sentence);
+  const ref = await reference(page);
+  const expl = JSON.parse((await page.locator('[data-key="explanation"] pre').textContent())!) as { facts: Record<string, { display: string }> };
+  const v = page.getByTestId("verdict");
+  await expect(v).toContainText(/Goal (reached|missed)\./);
+  await expect(v).toContainText(`at least ${ref.goal.margin_runs} runs`);
+  await expect(v).toContainText(`${expl.facts.beat_tv_by.display} runs`);
+  await expect(page.getByTestId("verdict-shape")).toBeVisible();                          // a shape as well as words
 });
 
-test("without the language model there are three rows and a plain note that its model is absent", async ({ page }) => {
-  await open(page, 40);
-  await modelOption(page, "Unreliable");
-  await playToEnd(page);
-  await expect(page.getByTestId("accuracy-row")).toHaveCount(3);
-  await expect(accRow(page, "llm")).toHaveCount(0);
-  await expect(page.getByTestId("accuracy-absent")).toContainText("language model");
-  await expect(page.getByTestId("accuracy-absent")).toContainText("did not take part");
-});
-
-test("beside the table the page says how the projection compared with knowing nothing on the test year", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  await expect(page.getByTestId("reference-finding")).toContainText(state.final.reference_finding.sentence);
-});
-
-test("crafted states: the weak-projection findings and the same-direction large bias show in words", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  for (const finding of ["slightly_better", "no_better"]) {
-    const crafted = structuredClone(state) as RunState;
-    crafted.final.reference_finding = { ...crafted.final.reference_finding, finding, sentence: `CRAFTED ${finding} sentence.` };
-    crafted.final.bias_finding = { same_direction_large: true, direction: "low" };
-    crafted.final.bias_sentence = "CRAFTED every method leans low.";
-    await serveRun(page, sse("step", { step: 1, node: "final_test", summary: "x", changes: { final: crafted.final, chart_points: crafted.chart_points } })
-      + sse("done", { steps: 1 }));
-    await page.reload();
-    await openTab(page, "working");
-    await page.getByTestId("play").click();
-    await afterRunOpen(page, "final-test");
-    await expect(page.getByTestId("reference-finding")).toContainText(`CRAFTED ${finding}`);
-    await expect(page.getByTestId("bias-finding")).toContainText("CRAFTED every method leans low.");
-    await page.unroute("**/api/run*");
-  }
-});
-
-test("the state panel shows a count for the chart points, not the numbers", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const names = (await timelineItems(page).allTextContents()).map((t) => t.replace(/^\d+\.\s*/, ""));
-  await timelineItems(page).nth(names.indexOf("final_test")).click();
-  const row = page.locator('[data-key="chart_points"]');
-  await expect(row).toHaveAttribute("data-changed", "true");
-  const text = (await row.textContent()) ?? "";
-  expect(text).toMatch(/\d+ items/);
-  expect(text.length).toBeLessThan(400);
-});
-
-test("at phone width the table scrolls inside its own box and the page does not scroll sideways", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("near the final results the page says no method can be perfect, in plain words", async ({ page }) => {
   await open(page, 40);
   await playToEnd(page);
   await openTab(page, "final-test");
-  const sizes = await page.evaluate(() => {
-    const box = document.querySelector('[data-testid="accuracy-table"]')!.closest(".table-scroll") as HTMLElement;
-    return { scroll: box.scrollWidth, client: box.clientWidth, overflow: getComputedStyle(box).overflowX,
-             page: document.documentElement.scrollWidth, window: window.innerWidth };
-  });
-  expect(sizes.overflow).toBe("auto");
-  expect(sizes.scroll).toBeGreaterThan(sizes.client);
-  expect(sizes.page).toBeLessThanOrEqual(sizes.window);
-});
-
-
-// ---------------- US3: the predicted-versus-actual chart ----------------
-
-const toggle = (page: Page, method: string) => page.locator(`[data-testid="chart-toggle"][data-method="${method}"]`);
-const marks = (page: Page, method: string) => page.locator(`[data-testid="chart-mark"][data-method="${method}"]`);
-const allMarks = (page: Page) => page.locator('[data-testid="chart-mark"]');
-
-test("the chart opens with the winning model and the TV projection, and its toggles are real buttons", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  const shown = ["broadcaster", state.final.winner];
-  await expect(page.getByTestId("chart-toggle")).toHaveCount(4);
-  for (const m of state.final.methods) {
-    await expect(toggle(page, m)).toHaveAttribute("aria-pressed", String(shown.includes(m)));
-    expect(await toggle(page, m).evaluate((e) => e.tagName)).toBe("BUTTON");
-  }
-});
-
-test("each shown method draws one mark per test innings, and switching it off removes exactly its marks", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const state = await runState(page);
-  const n = state.final.accuracy.broadcaster.n;
-  expect(state.chart_points.actual).toHaveLength(n);
-  await expect(marks(page, "broadcaster")).toHaveCount(n);
-  await expect(marks(page, state.final.winner)).toHaveCount(n);
-  await expect(marks(page, "know_nothing")).toHaveCount(0);
-  await toggle(page, "know_nothing").click();
-  await expect(marks(page, "know_nothing")).toHaveCount(n);
-  await expect(allMarks(page)).toHaveCount(3 * n);
-  await toggle(page, "broadcaster").click();
-  await expect(marks(page, "broadcaster")).toHaveCount(0);
-  await expect(allMarks(page)).toHaveCount(2 * n);
-});
-
-test("with no method chosen the chart shows only the diagonal and a prompt", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const state = await runState(page);
-  for (const m of ["broadcaster", state.final.winner]) await toggle(page, m).click();
-  await expect(allMarks(page)).toHaveCount(0);
-  await expect(page.getByTestId("chart-prompt")).toBeVisible();
-  await expect(page.getByTestId("chart-prompt")).toContainText("Choose a method");
-  await expect(page.getByTestId("chart-diagonal")).toBeVisible();
-  await toggle(page, "broadcaster").click();
-  await expect(page.getByTestId("chart-prompt")).toBeHidden();
-});
-
-test("the choice survives the replay moving on and back", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  await toggle(page, "know_nothing").click();
-  await page.keyboard.press("ArrowLeft");
-  await page.keyboard.press("ArrowRight");
-  await expect(toggle(page, "know_nothing")).toHaveAttribute("aria-pressed", "true");
-});
-
-test("the plot is square, with the same range on both axes and the diagonal corner to corner", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const area = await page.getByTestId("chart-plot-area").boundingBox();
-  expect(Math.abs(area!.width - area!.height)).toBeLessThan(1.5);
-  const diagonal = await page.getByTestId("chart-diagonal").evaluate((l) => {
-    const n = (a: string) => Number(l.getAttribute(a));
-    return { x1: n("x1"), y1: n("y1"), x2: n("x2"), y2: n("y2") };
-  });
-  const frame = await page.getByTestId("chart-plot-area").evaluate((r) => {
-    const n = (a: string) => Number(r.getAttribute(a));
-    return { x: n("x"), y: n("y"), w: n("width"), h: n("height") };
-  });
-  expect(diagonal.x1).toBeCloseTo(frame.x, 0);
-  expect(diagonal.y1).toBeCloseTo(frame.y + frame.h, 0);
-  expect(diagonal.x2).toBeCloseTo(frame.x + frame.w, 0);
-  expect(diagonal.y2).toBeCloseTo(frame.y, 0);
-  const ticks = await page.locator('[data-testid="chart-tick"]').evaluateAll((els) => els.map((e) => ({ axis: e.getAttribute("data-axis"), value: e.getAttribute("data-value") })));
-  const x = ticks.filter((t) => t.axis === "x").map((t) => t.value);
-  const y = ticks.filter((t) => t.axis === "y").map((t) => t.value);
-  expect(x.length).toBeGreaterThanOrEqual(3);
-  expect(x).toEqual(y);                                                  // the same ticks, so the same range, on both axes
-});
-
-test("the key tells methods apart by shape, and no two methods share a marker", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const markers = await page.getByTestId("chart-toggle").evaluateAll((els) => els.map((e) => e.querySelector("[data-marker]")!.getAttribute("data-marker")));
-  expect(new Set(markers).size).toBe(4);
-  expect(markers.sort()).toEqual(["circle", "diamond", "square", "triangle"]);
-  const style = await marks(page, "broadcaster").first().evaluate((e) => {
-    const cs = getComputedStyle(e);
-    return { stroke: cs.stroke, fillOpacity: parseFloat(cs.fillOpacity), strokeWidth: parseFloat(cs.strokeWidth) };
-  });
-  expect(style.stroke).not.toMatch(/none|transparent/);
-  expect(style.fillOpacity).toBeLessThan(0.5);                           // open shapes: dense areas show, nothing hides another
-  expect(style.strokeWidth).toBeGreaterThan(0);
-});
-
-test("two methods with identical predictions both draw all their marks, and the page says they are identical", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  const crafted = structuredClone(state) as RunState;
-  crafted.chart_points.predicted.forward = [...crafted.chart_points.predicted.llm];
-  crafted.final.identical = [["llm", "forward"]];
-  await serveRun(page, sse("step", { step: 1, node: "final_test", summary: "x", changes: { final: crafted.final, chart_points: crafted.chart_points } })
-    + sse("done", { steps: 1 }));
-  await page.reload();
-  await page.getByTestId("play").click();
-    await afterRunOpen(page, "final-test");
-  await toggle(page, "llm").click().catch(() => undefined);
-  const n = crafted.final.accuracy.broadcaster.n;
-  for (const m of ["llm", "forward"]) {
-    if ((await toggle(page, m).getAttribute("aria-pressed")) !== "true") await toggle(page, m).click();
-  }
-  await expect(marks(page, "llm")).toHaveCount(n);
-  await expect(marks(page, "forward")).toHaveCount(n);
-  await expect(page.getByTestId("chart-identical")).toContainText("identical");
-  await expect(page.getByTestId("chart-identical")).toContainText("language model");
-  await expect(page.getByTestId("chart-identical")).toContainText("forward selection");
-});
-
-test("without the language model its toggle is not offered", async ({ page }) => {
-  await open(page, 40);
-  await modelOption(page, "Unreliable");
-  await playToEnd(page);
-  await expect(page.getByTestId("chart-toggle")).toHaveCount(3);
-  await expect(toggle(page, "llm")).toHaveCount(0);
-  await expect(toggle(page, "forward")).toHaveAttribute("aria-pressed", "true");
-});
-
-test("a caption says what the chart shows in words, and the table above it holds every figure", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await expect(page.getByTestId("chart-caption")).toContainText("below the line");
-  await expect(page.getByTestId("chart-caption")).toContainText("too low");
-  const order = await page.evaluate(() => {
-    const t = document.querySelector('[data-testid="accuracy-table"]')!;
-    const c = document.querySelector('[data-testid="accuracy-chart"]')!;
-    return !!(t.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING);
-  });
-  expect(order).toBe(true);                                              // the table comes first
-  await expect(page.getByTestId("chart-plot")).toHaveAttribute("role", "img");
-  expect(await page.getByTestId("chart-plot").getAttribute("aria-label")).toContain("table above");
-});
-
-for (const scheme of ["light", "dark"] as const) {
-  test(`the marks can be seen in the ${scheme} theme`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: scheme });
-    await open(page, 40);
-    await playToEnd(page);
-    const seen = await marks(page, "broadcaster").first().evaluate((e) => {
-      const cs = getComputedStyle(e);
-      const card = getComputedStyle(e.closest("section.card") as HTMLElement).backgroundColor;
-      return { stroke: cs.stroke, card };
-    });
-    expect(seen.stroke).not.toBe(seen.card);
-    expect(seen.stroke).toMatch(/^rgb/);
-  });
-}
-
-test("at phone width the chart fits its container and the page does not scroll sideways", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const sizes = await page.evaluate(() => {
-    const svg = document.querySelector('[data-testid="chart-plot"]')!.getBoundingClientRect();
-    const box = document.querySelector('[data-testid="accuracy-chart"]')!.getBoundingClientRect();
-    return { svg: svg.width, box: box.width, page: document.documentElement.scrollWidth, window: window.innerWidth };
-  });
-  expect(sizes.svg).toBeLessThanOrEqual(sizes.box + 0.5);
-  expect(sizes.page).toBeLessThanOrEqual(sizes.window);
-  expect(sizes.svg).toBeGreaterThan(250);                                // still big enough to read
-});
-
-test("nothing on the chart is animated", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  await toggle(page, "know_nothing").click();
-  const running = await page.getByTestId("accuracy-chart").evaluate((e) => (e as HTMLElement).getAnimations({ subtree: true }).length);
-  expect(running).toBe(0);
-});
-
-
-// ---------------- US4: the verdict, and setting expectations ----------------
-
-test("near the final results the page says no method can be perfect, in plain words and without any figure", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const note = page.getByTestId("expectations-note");
+  const note = page.getByTestId("close-note");
   await expect(note).toBeVisible();
   const text = (await note.textContent()) ?? "";
-  expect(text).toContain("perfectly");
-  expect(text).toContain("halfway mark");
-  expect(text).toMatch(/last 10 overs/);
-  expect(text).toMatch(/collapse/);
-  expect(text).toMatch(/clearly better than the references, not perfect/);
-  expect(text).not.toMatch(/\d+\.\d|%/);                                     // it is wording, not a figure
+  expect(text).toContain("No method can be perfect from the halfway mark");
+  expect(text).toMatch(/collapses/);
   const after = await page.evaluate(() => {
-    const t = document.querySelector('[data-testid="accuracy-table"]')!;
-    const n = document.querySelector('[data-testid="expectations-note"]')!;
-    return !!(t.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const bars = document.querySelector('[data-testid="close"]')!;
+    const n = document.querySelector('[data-testid="close-note"]')!;
+    return !!(bars.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
   });
-  expect(after).toBe(true);                                                   // beside the results, after the table
-});
-
-test("the comparison with the know-nothing guess, the projection and the hit rate stays in the table, not the section", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  await openTab(page, "final-test");
-  const state = await runState(page);
-  const f = state.final as Final & { versus_know_nothing: { improvement_runs: number; improvement_percent: number } };
-  const table = page.getByTestId("accuracy-table");
-  await expect(table).toContainText("know-nothing");
-  await expect(page.getByTestId("verdict")).toContainText(f.verdict_sentence);
-  await expect(table).toContainText(/within 10 runs/i);
-  await expect(page.getByTestId("explanation")).not.toContainText("know-nothing");          // FR-007: not repeated in the section
-  await expect(page.getByTestId("explanation")).not.toContainText("within 10 runs");
-});
-
-test("the verdict reads in the goal's words, with the runs and the percentage, and says whether the goal was reached", async ({ page }) => {
-  await open(page, 40);
-  await playToEnd(page);
-  const state = await runState(page);
-  const v = page.getByTestId("verdict");
-  await expect(v).toContainText(state.final.verdict_sentence);
-  await expect(v).toContainText(/\(\d+\.\d%\)/);
-  await expect(v).toContainText(/(reaches|is short of) the goal of at least 3 runs/);
-  const sentence = (await v.textContent()) ?? "";
-  // checkable by hand from the table: the percentage is the runs gap over the TV projection's displayed average miss
-  const tvMiss = Number(((await accCell(page, "broadcaster", "average_miss").textContent()) ?? "").trim());
-  const runs = Number(/by (\d+\.\d) runs/.exec(sentence)![1]);
-  const percent = Number(/\((\d+\.\d)%\)/.exec(sentence)![1]);
-  expect(percent).toBeCloseTo(Math.round((runs / tvMiss) * 1000) / 10, 1);
+  expect(after).toBe(true);                                                   // the closing line of section 2, after its bars
 });
 
 
@@ -422,10 +71,9 @@ test("the goal's margin in the hero's panel is the server's, and the verdict nam
   await expect(page.getByTestId("tv-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);
   await playToEnd(page);
   await expect(page.getByTestId("tv-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);   // still the same after a run
-  await expect(page.getByTestId("verdict")).toContainText(`at least ${ref.goal.margin_runs} runs`);
   await openTab(page, "final-test");
-  await expect(page.getByTestId("verdict-badge")).toBeVisible();
-  await expect(page.getByTestId("explanation")).toContainText(`${ref.goal.margin_runs}`);          // the facts' margin, not typed on the page
+  await expect(page.getByTestId("verdict")).toContainText(`at least ${ref.goal.margin_runs} runs`);
+  await expect(page.getByTestId("verdict-shape")).toBeVisible();
 });
 
 test("the page itself holds no hand-written goal", async ({ page }) => {

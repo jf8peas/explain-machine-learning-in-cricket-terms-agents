@@ -28,6 +28,13 @@ def bias_words(bias: float) -> str:
     return f"guesses {_runs(bias)} {_plural(bias)} too {'high' if bias > 0 else 'low'}"
 
 
+def bias_phrase(bias: float) -> str:
+    """"guesses 6.2 runs too low on average", or "guesses about right on average" when it leans neither way."""
+    if _runs(bias) == "0.0":
+        return "guesses about right on average"
+    return f"guesses {_runs(bias)} {_plural(bias)} too {'high' if bias > 0 else 'low'} on average"
+
+
 def bias_short(bias: float) -> str:
     """The bias for a tight table cell: "12.1 too low", or "0.0" when it leans neither way."""
     if _runs(bias) == "0.0":

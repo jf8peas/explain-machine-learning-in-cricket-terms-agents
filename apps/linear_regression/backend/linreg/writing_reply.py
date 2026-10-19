@@ -4,11 +4,14 @@ The model is asked for titles and sentences that name facts in braces, for examp
 runs", and never write a number. This module decides what, if anything, of its reply may be shown:
 
 - The whole reply is rejected (`UnusableReply`) if it is not JSON in the agreed shape, if any title or sentence contains
-  a digit or any other numeric character outside a placeholder, if a placeholder names a fact that does not exist, if a
-  brace is left over, or if a title or sentence is over its length limit or a block has too many sentences.
+  a digit or any other numeric character outside a placeholder, if it writes a direction word itself outside a
+  placeholder ("too low", "add", "take off", "over", "underestimate" and close variants: the direction reaches the page
+  only through a fact such as {tv_bias_direction}, so it always matches the figures), if a placeholder names a fact that
+  does not exist, if a brace is left over, or if a title or sentence is over its length limit or a block has too many
+  sentences.
 - A well-formed reply that leaves out a block's title or sentences is accepted: that block keeps its template wording.
-- A block id that is not one of the fixed blocks is ignored (it can never put a block on the page), and an order or lead
-  fact that is not from the fixed lists falls back to the default.
+- A block id that is not one of the blocks offered (the code-only verdict and rule of thumb are never offered) is ignored,
+  so it can never put words on the page.
 
 Nothing here fills a placeholder or decides what is shown: `cricket_blocks.fill` does that, so the number rule is checked
 once for the template wording and the model's wording alike.
@@ -16,20 +19,25 @@ once for the template wording and the model's wording alike.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from .cricket_blocks import (BLOCK_IDS, MAX_SENTENCE, MAX_TITLE, MOVABLE, PLACEHOLDER, max_sentences)
-from .cricket_facts import CLOSING_LEADS, Fact
+from .cricket_blocks import BLOCK_IDS, CODE_ONLY, MAX_SENTENCE, MAX_TITLE, PLACEHOLDER, max_sentences
+from .cricket_facts import Fact
 from .llm_reply import UnusableReply, _candidates
+
+# Words that say which way a figure leans or what to do with it. The model may not write them: it names a fact
+# ({tv_bias_direction}, {rule_verb}) and code fills in the word that matches the figures.
+DIRECTION_WORDS = re.compile(
+    r"\b(?:too[\s-]+(?:low|high)|under|over|add(?:s|ed|ing)?|(?:take|takes|took|taking)[\s-]+off|"
+    r"(?:under|over)(?:estimat|shoot|predict|state|stat)\w*|(?:lower|higher)\s+than)\b", re.IGNORECASE)
 
 
 @dataclass
 class Wording:
     """What of the reply may be used: per block an optional title and optional sentences (placeholders still in them)."""
     blocks: dict[str, dict[str, Any]] = field(default_factory=dict)
-    order: list[str] | None = None
-    closing_lead: str | None = None
 
 
 def _safe(name: str) -> str:
@@ -46,6 +54,8 @@ def _check_text(text: str, facts: Mapping[str, Fact], what: str) -> None:
         raise UnusableReply(f"the {what} has a brace that is not a fact placeholder")
     if any(ch.isnumeric() or ch.isdigit() for ch in bare):
         raise UnusableReply(f"the {what} contains a number written by the model")
+    if DIRECTION_WORDS.search(bare):
+        raise UnusableReply(f"the {what} writes a direction word itself instead of naming a fact")
 
 
 def _load(text: str) -> dict:
@@ -67,8 +77,8 @@ def parse_writing_reply(text: str, facts: Mapping[str, Fact], available: list[st
         raise UnusableReply("the reply had no blocks object")
     wording = Wording()
     for bid, entry in raw_blocks.items():
-        if bid not in BLOCK_IDS or bid not in available or not isinstance(entry, dict):
-            continue                                              # never a block of its own: it cannot reach the page
+        if bid not in BLOCK_IDS or bid in CODE_ONLY or bid not in available or not isinstance(entry, dict):
+            continue                                              # not offered to the model: it cannot reach the page
         out: dict[str, Any] = {}
         title = entry.get("title")
         if isinstance(title, str) and title.strip():
@@ -89,11 +99,4 @@ def parse_writing_reply(text: str, facts: Mapping[str, Fact], available: list[st
                 out["sentences"] = good
         if out:
             wording.blocks[bid] = out
-    present_movable = [b for b in MOVABLE if b in available]
-    order = data.get("order")
-    if isinstance(order, list) and sorted(map(str, order)) == sorted(present_movable) and len(set(order)) == len(order):
-        wording.order = [str(o) for o in order]
-    lead = data.get("closing_lead")
-    if isinstance(lead, str) and lead in CLOSING_LEADS and lead in facts:
-        wording.closing_lead = lead
     return wording

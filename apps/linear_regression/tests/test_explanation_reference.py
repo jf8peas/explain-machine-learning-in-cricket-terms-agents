@@ -32,25 +32,6 @@ def test_a_winner_that_does_not_beat_the_know_nothing_guess_is_told_so_in_the_fa
     assert facts["beat_know_nothing"]["value"] is False and facts["beat_know_nothing_by"]["display"] == "3.5"
 
 
-def test_the_verdict_block_is_stated_honestly_in_the_three_cases():
-    def verdict(**kw):
-        return next(b for b in blocks_for(state_for(**kw))[1] if b["id"] == "verdict")
-    reached = verdict(forward_mae=17.0, tv=21.0)
-    assert "Goal reached" in reached["title"] and "4.0" in reached["title"] and reached["visual"]["badge"] == "Goal reached"
-    short = verdict(forward_mae=17.0, tv=19.0)
-    assert "goal missed" in short["title"] and "2.0" in short["title"] and short["visual"]["badge"] == "Goal missed"
-    assert "1.0 runs short of the 3-run goal" in " ".join(short["sentences"])
-    worse = verdict(llm_mae=20.0, forward_mae=19.0, tv=18.0)
-    assert "Did not beat" in worse["title"] and worse["visual"]["badge"] == "Goal missed"
-    assert "1.0 runs more" in " ".join(worse["sentences"])
-
-
-def test_the_comparison_figures_are_not_repeated_as_sentences():
-    _, blocks = blocks_for(state_for(llm_mae=19.3, forward_mae=18.9, tv=20.9))
-    text = " ".join(s for b in blocks for s in b["sentences"]).lower()
-    assert "know-nothing" not in text and "within 10 runs" not in text            # they stay in the accuracy table and chart
-
-
 def test_the_sections_text_in_a_real_run_is_only_facts(run_graph, write_csv):
     state = merged_state(run_graph({"data_path": write_csv(make_table())}, llm=FakeLlm({"fake/steady": list(SCRIPT)})))
     check_section_numbers(state["explanation"])

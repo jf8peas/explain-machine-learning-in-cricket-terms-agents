@@ -435,12 +435,12 @@ def final_test(state: RunState) -> dict[str, Any]:
     # How every method did, against actual totals, from the displayed figures (one scoring each, in scoring.py). The
     # know-nothing guess is the mean of the test-population innings before the test year.
     earlier = rolling.training_rows(rolling.final, "all", "population")["final_total"]
-    extra, points = scoring.final_scoring(earlier, test, {k: v["fitted"] for k, v in scores.items()}, winner)
+    extra = scoring.final_scoring(earlier, test, {k: v["fitted"] for k, v in scores.items()}, winner)
     final.update(extra)
     verdict = extra["verdict"]
     final.update({"beat_tv": verdict["beat"], "cleared_margin": verdict["reached"], "improvement": verdict["improvement_runs"]})
     return {
-        "chart_points": points, "validation_winner": decision,
+        "validation_winner": decision,
         "final": final, "features": list(won["features"]), "coefficients": coefficients,
         "intercept": _r(fitted["intercept"], 3), "feature_iqr": {f: _r(v, 2) for f, v in fitted["feature_iqr"].items()},
         "summary": ("Final test, once each on the test year: "
@@ -460,7 +460,7 @@ def explain_in_cricket_terms(state: RunState) -> dict[str, Any]:
     facts = cricket_facts.build_facts(state, labels, margin)
     blocks = cricket_blocks.build_blocks(facts, labels, list(state["features"]))
     return {"explanation": {"facts": facts, "blocks": blocks, "order": cricket_blocks.default_order(blocks),
-                            "source": "template", "model": None, "fallback_reason": None, "closing_lead": None},
+                            "source": "template", "model": None, "fallback_reason": None},
             "summary": "Worked out the facts and built the blocks that explain the result in cricket terms."}
 
 
@@ -491,11 +491,10 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
             return _keep_templates(state, "There was no time or call budget left to ask the language model, so the "
                                           "wording is from templates.")
         facts, blocks = expl["facts"], expl["blocks"]
-        movable = [b["id"] for b in blocks if b["id"] in cricket_blocks.MOVABLE]
+        offered = [b for b in blocks if b["id"] not in cricket_blocks.CODE_ONLY]     # the verdict and rule of thumb stay code
         request = build_writing_request(
-            model=model_id, facts=facts, blocks=blocks, purpose=cricket_blocks.BLOCK_PURPOSE,
-            max_title=cricket_blocks.MAX_TITLE, max_sentence=cricket_blocks.MAX_SENTENCE, movable=movable,
-            leads=[lead for lead in cricket_facts.CLOSING_LEADS if lead in facts], max_tokens=budget.max_tokens,
+            model=model_id, facts=facts, blocks=offered, purpose=cricket_blocks.BLOCK_PURPOSE,
+            max_title=cricket_blocks.MAX_TITLE, max_sentence=cricket_blocks.MAX_SENTENCE, max_tokens=budget.max_tokens,
             timeout=timeout)
         started = time.monotonic()
         try:
@@ -510,7 +509,7 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
             return _keep_templates(state, "The language model could not be reached for the final wording, so the wording "
                                           "is from templates.")
         try:
-            wording = parse_writing_reply(text, facts, [b["id"] for b in blocks])
+            wording = parse_writing_reply(text, facts, [b["id"] for b in offered])
             written = []
             for b in blocks:
                 w = wording.blocks.get(b["id"], {})
@@ -523,19 +522,15 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
             log.warning("language model writing reply unusable: model=%s reason=%s", model_id, detail)
             return _keep_templates(state, f"The language model's wording could not be used ({detail}), so the wording is "
                                           f"from templates.")
-        by_id = {b["id"]: b for b in written}
-        order = ["verdict", *(wording.order or [i for i in expl["order"] if i in cricket_blocks.MOVABLE]), "closing"]
-        order = [i for i in order if i in by_id]
         covered = sum(1 for b in written if b["from_model"])
         if not covered:
             log.warning("language model writing reply had no usable wording: model=%s", model_id)
             return _keep_templates(state, "The language model's reply had no wording for any block, so the wording is "
                                           "from templates.")
-        return {"explanation": {**expl, "blocks": written, "order": order, "source": "language model",
-                                "model": state.get("model_name") or model_id, "fallback_reason": None,
-                                "closing_lead": wording.closing_lead},
-                "summary": f"The language model wrote the words for {covered} of {len(written)} blocks; code filled in "
-                           f"every number."}
+        return {"explanation": {**expl, "blocks": written, "source": "language model",
+                                "model": state.get("model_name") or model_id, "fallback_reason": None},
+                "summary": f"The language model wrote the words for {covered} of {len(offered)} takeaways; code filled in "
+                           f"every number and every direction."}
     except Exception:   # nothing here may fail the run: the template wording is already in the state
         log.exception("writing the closing words failed")
         return _keep_templates(state, "The final wording could not be written, so the wording is from templates.")

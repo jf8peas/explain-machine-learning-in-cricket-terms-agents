@@ -19,6 +19,18 @@ def test_bias_in_words_says_which_way_and_how_far():
     assert t.bias_words(1.0) == "guesses 1.0 run too high"                  # singular for exactly one
 
 
+@pytest.mark.parametrize("bias, text", [
+    (-12.1, "guesses 12.1 runs too low on average"),
+    (6.24, "guesses 6.2 runs too high on average"),
+    (-1.0, "guesses 1.0 run too low on average"),
+    (0.0, "guesses about right on average"),
+    (0.04, "guesses about right on average"),
+    (-0.04, "guesses about right on average"),
+])
+def test_bias_phrase_is_the_closeness_wording(bias, text):
+    assert t.bias_phrase(bias) == text
+
+
 def test_a_bias_that_rounds_to_zero_is_said_to_lean_neither_way():
     for zero in (0.0, 0.04, -0.04):
         assert "neither" in t.bias_words(zero) and "0.0" in t.bias_words(zero)

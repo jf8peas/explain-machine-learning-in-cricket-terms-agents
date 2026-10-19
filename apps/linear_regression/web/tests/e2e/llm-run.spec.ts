@@ -96,16 +96,15 @@ test("the rival is one grid-search step with its rows in the ranking", async ({ 
   await expect(forward.first()).toContainText("Rival");
 });
 
-test("the final results compare the three test-year errors and name the winner", async ({ page }) => {
+test("the final results compare the test-year errors and mark the model chosen before the test", async ({ page }) => {
   await open(page);
   await playToEnd(page);
+  await openTab(page, "final-test");
   const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
-  await expect(page.getByTestId("final-llm")).toContainText(final.test_mae.llm.toFixed(1));
-  await expect(page.getByTestId("final-forward")).toContainText(final.test_mae.forward.toFixed(1));
-  await expect(page.getByTestId("final-tv")).toContainText(final.test_mae.tv.toFixed(1));
-  await expect(page.getByTestId("winner")).toContainText(/was chosen/);                 // on the check years, before the test year
-  await expect(page.getByTestId("winner")).toContainText(final.winner === "llm" ? "language model" : "forward selection", { ignoreCase: true });
-  await expect(page.getByTestId("winner")).toContainText("before the test year was touched");
+  for (const [method, miss] of [["llm", final.test_mae.llm], ["forward", final.test_mae.forward], ["broadcaster", final.test_mae.tv]] as const) {
+    await expect(page.locator(`[data-testid="race-row"][data-method="${method}"]`).getByTestId("race-value")).toHaveText(miss.toFixed(1));
+  }
+  await expect(page.locator(`[data-testid="race-row"][data-method="${final.winner}"]`).getByTestId("race-pick")).toHaveText("our pick, chosen before the test");
   await expect(page.getByTestId("model-used")).toContainText("Fast");
 });
 
@@ -244,9 +243,11 @@ test("an unreliable model: a clear failure, forward selection still completes, a
   await expect(rows).toHaveCount(await page.getByTestId("grid-cell").filter({ hasNotText: "–" }).count());
   expect(await rows.evaluateAll((r) => r.every((x) => (x as HTMLElement).dataset.proposer === "forward_selection"))).toBe(true);
   await timelineItems(page).last().click();
-  await expect(page.getByTestId("winner")).toContainText("did not take part");
-  await expect(page.getByTestId("final-llm")).toContainText("did not take part");
-  await expect(page.getByTestId("explanation")).toContainText("did not take part");
+  await openTab(page, "final-test");
+  await expect(page.getByTestId("race-row")).toHaveCount(3);                       // no row for the model that did not take part
+  await expect(page.getByTestId("verdict")).toContainText("rival's model");
+  await expect(page.getByTestId("writer-label")).toHaveText("Template wording · every number from code");
+  await openTab(page, "found");
   await expect(page.getByTestId("model-used")).toContainText("Unreliable");
 });
 
@@ -370,5 +371,7 @@ test("without a language model the grid still runs and the results say the model
   await playToEnd(page);
   await expect(page.getByTestId("grid-cell")).toHaveCount(24);
   await expect(page.getByTestId("llm-notice")).toContainText("did not take part");
-  await expect(page.getByTestId("winner")).toContainText("did not take part");
+  await openTab(page, "final-test");
+  await expect(page.getByTestId("race-row")).toHaveCount(3);
+  await expect(page.getByTestId("verdict")).toContainText("rival's model");
 });

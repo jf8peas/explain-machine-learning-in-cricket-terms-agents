@@ -7,7 +7,7 @@ import { loadCatalogue } from "./catalogue";
 import { setupHero } from "./hero";
 import { setupModels } from "./models";
 import { renderFound } from "./found";
-import { renderFinal } from "./results";
+import { renderFinal } from "./final";
 import { initial, step, type Action, type ResultTab } from "./readiness";
 import { renderSummary } from "./summary";
 import { setupTryIt } from "./tryit";

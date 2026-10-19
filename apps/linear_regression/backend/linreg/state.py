@@ -67,7 +67,6 @@ class RunState(TypedDict, total=False):
     forward_best: Attempt | None        # the rival's best setup: the winning cell of the grid search
     grid: dict[str, Any]                # the grid search's cells, best cell and build-up (see selection.grid_search)
     features: list[str]                 # the model in focus; at the end, the winner's
-    chart_points: dict[str, Any]        # test-year actual and predicted totals for the chart (one decimal, for transport)
     coefficients: dict[str, float]
     intercept: float
     feature_iqr: dict[str, float]

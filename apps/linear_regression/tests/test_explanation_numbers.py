@@ -12,11 +12,23 @@ NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
 def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10", "wickets_in_hand"), coefs=None,
-              took_part=True, failure=None, model="Fast", know_nothing=34.0, within_10=33.0, iqr=20.0):
-    """A run state with just what the facts read, for scripted cases."""
+              took_part=True, failure=None, model="Fast", know_nothing=34.0, within_10=33.0, iqr=20.0,
+              tv_bias=-12.0, tv_within_10=25.0, other_within_10=20.0, winner=None):
+    """A run state with just what the facts read, for scripted cases. `winner` forces the chosen method."""
     both = llm_mae is not None
-    winner = "forward" if (not both or forward_mae < llm_mae) else "llm"          # a tie goes to the language model
+    winner = winner or ("forward" if (not both or forward_mae < llm_mae) else "llm")     # a tie goes to the language model
     won = llm_mae if winner == "llm" else forward_mae
+    other = "forward" if winner == "llm" else "llm"
+    accuracy = {"know_nothing": {"n": 515, "average_miss": know_nothing, "within_10": 20.0, "within_20": 40.0,
+                                 "miss_percent": 18.0, "bias": 0.0},
+                "broadcaster": {"n": 515, "average_miss": tv, "within_10": tv_within_10, "within_20": 50.0,
+                                "miss_percent": 14.0, "bias": tv_bias},
+                winner: {"n": 515, "average_miss": won, "within_10": within_10, "within_20": 60.0,
+                         "miss_percent": 11.0, "bias": -1.0}}
+    if both:
+        accuracy[other] = {"n": 515, "average_miss": llm_mae if other == "llm" else forward_mae,
+                           "within_10": other_within_10, "within_20": 55.0, "miss_percent": 12.0, "bias": -1.5}
+    methods = [m for m in ("know_nothing", "broadcaster", "llm", "forward") if m in accuracy]
     coefs = coefs or {"runs_at_10": 1.2, "wickets_in_hand": 6.5}
     improvement = round(tv - won, 1)
     return {
@@ -32,8 +44,7 @@ def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10
                   "validation_mae": {"llm": llm_mae, "forward": forward_mae}, "winner_chosen_on": "validation",
                   "margin": abs(llm_mae - forward_mae) if both else None, "winner_mae": won, "winner_r2": 0.7,
                   "llm_took_part": took_part, "tolerances": [10, 20],
-                  "accuracy": {winner: {"n": 515, "average_miss": won, "within_10": within_10, "within_20": 60.0,
-                                        "miss_percent": 11.0, "bias": -1.0}},
+                  "accuracy": accuracy, "methods": methods,
                   "versus_know_nothing": {"reference_miss": know_nothing, "winner_miss": won,
                                           "improvement_runs": round(know_nothing - won, 1),
                                           "improvement_percent": 40.0, "beat": know_nothing > won},
@@ -90,16 +101,15 @@ def test_a_run_where_the_model_fails_still_explains(run_graph, write_csv):
     state = merged_state(run_graph({"data_path": write_csv(make_table())}, llm=llm))
     expl = state["explanation"]
     assert state["llm_status"] == "failed" and expl["source"] == "template" and expl["fallback_reason"]
-    assert [b["id"] for b in expl["blocks"]][0] == "verdict" and expl["blocks"][-1]["id"] == "closing"
+    assert [b["id"] for b in expl["blocks"]][0] == "verdict" and expl["blocks"][-1]["id"] == "rule_of_thumb"
     check_section_numbers(expl)
 
 
-def test_the_winner_is_named_in_the_how_chosen_block():
+def test_the_chosen_model_is_named_in_the_verdict():
     _, blocks = blocks_for(state_for(llm_mae=18.0, forward_mae=17.0))
-    chosen = next(b for b in blocks if b["id"] == "how_chosen")
-    assert "forward selection" in " ".join(chosen["sentences"])
+    assert "rival's model" in " ".join(next(b for b in blocks if b["id"] == "verdict")["sentences"])
     _, blocks = blocks_for(state_for(llm_mae=16.0, forward_mae=17.5))
-    assert "the language model" in " ".join(next(b for b in blocks if b["id"] == "how_chosen")["sentences"])
+    assert "AI agent's model" in " ".join(next(b for b in blocks if b["id"] == "verdict")["sentences"])
 
 
 def test_the_most_important_feature_is_ranked_by_coefficient_times_spread():
@@ -111,14 +121,13 @@ def test_the_most_important_feature_is_ranked_by_coefficient_times_spread():
 
 def test_the_winning_features_are_in_the_chart_with_their_plain_names():
     _, blocks = blocks_for(state_for())
-    rows = next(b for b in blocks if b["id"] == "drivers")["visual"]["rows"]
+    rows = next(b for b in blocks if b["id"] == "takeaway_drivers")["visual"]["rows"]
     assert [r["feature"] for r in rows] == ["wickets_in_hand", "runs_at_10"]           # 6.5 x 20 beats 1.2 x 20
     assert rows[0]["label"] == features.label("wickets_in_hand")
 
 
-def test_the_stage_sentences_in_the_real_run_name_the_check_years_in_facts(run_graph, write_csv):
+def test_the_test_year_in_the_real_run_is_the_splits(run_graph, write_csv):
     state = merged_state(run_graph({"data_path": write_csv(make_table())}))
     facts = state["explanation"]["facts"]
-    years = [c["year"] for c in state["split"]["checks"]]
-    assert [facts[f"check_year_{i}"]["value"] for i in (1, 2, 3)] == years
     assert facts["test_year"]["value"] == state["split"]["test_year"]
+    assert facts["test_innings"]["value"] == state["final"]["accuracy"][state["final"]["winner"]]["n"]

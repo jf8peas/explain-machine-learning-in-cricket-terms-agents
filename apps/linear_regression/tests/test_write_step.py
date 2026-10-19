@@ -1,4 +1,5 @@
-"""The closing language-model step (feature 012): what it asks, what is shown, and that nothing it does can fail the run."""
+"""The closing language-model step (features 012 and 015): what it asks, what is shown, and that nothing it does can fail
+the run. The model writes only the three takeaways; the verdict and the rule of thumb are code only."""
 import time
 
 import pytest
@@ -27,7 +28,7 @@ def run(run_graph, path, writer=None, **config):
 
 
 def block(title="A title", *sentences):
-    return {"title": title, "sentences": list(sentences) or ["The winner missed by {winner_test_miss} runs."]}
+    return {"title": title, "sentences": list(sentences) or ["The TV missed by {tv_test_miss} runs."]}
 
 
 def test_a_valid_reply_is_shown_with_every_placeholder_filled_by_a_fact(run_graph, path):
@@ -35,31 +36,41 @@ def test_a_valid_reply_is_shown_with_every_placeholder_filled_by_a_fact(run_grap
     assert nodes_of(events)[-2:] == ["explain_in_cricket_terms", "write_in_cricket_terms"]
     expl = state["explanation"]
     assert expl["source"] == "language model" and expl["model"] == "Fast" and expl["fallback_reason"] is None
-    assert len(llm.writing_requests) == 1 and expl["order"][0] == "verdict" and expl["order"][-1] == "closing"
-    assert expl["order"][1:-1] == list(reversed([i for i in ("drivers", "wicket", "how_chosen") if i in expl["order"]]))
+    assert len(llm.writing_requests) == 1
+    assert expl["order"] == ["verdict", "takeaway_run_rate", "takeaway_drivers", "takeaway_tv", "rule_of_thumb"]
     text = explanation_text(expl)
     assert "{" not in text and "}" not in text
     check_section_numbers(expl)
-    verdict = next(b for b in expl["blocks"] if b["id"] == "verdict")
-    assert f'{state["final"]["winner_mae"]:.1f}' in verdict["sentences"][0]
+    by = {b["id"]: b for b in expl["blocks"]}
+    assert by["verdict"]["from_model"] == [] and by["rule_of_thumb"]["from_model"] == []     # code only: never the model's words
+    assert all(by[i]["from_model"] for i in ("takeaway_run_rate", "takeaway_drivers", "takeaway_tv"))
+    templates = {b["id"]: b for b in cricket_blocks.build_blocks(expl["facts"], features.labels(), list(state["features"]))}
+    for code_only in cricket_blocks.CODE_ONLY:
+        assert by[code_only]["title"] == templates[code_only]["title"] and by[code_only]["sentences"] == templates[code_only]["sentences"]
+    assert f'{abs(state["final"]["improvement"]):.1f}' in by["verdict"]["sentences"][0]
 
 
 def test_the_model_is_given_the_facts_the_blocks_and_the_rules_and_never_the_final_numbers_as_free_text(run_graph, path):
     _, llm, state = run(run_graph, path)
     req = llm.writing_requests[0]
     assert WRITING_MARKER in req.system and "Never write a number" in req.system and "{wicket_cost}" in req.system
+    assert "{tv_bias_direction}" in req.system and "take off" in req.system         # direction words come from placeholders
     for fid in state["explanation"]["facts"]:
         assert f"- {{{fid}}}:" in req.user
-    for bid in ("verdict", "drivers", "how_chosen", "closing"):
+    for bid in ("takeaway_run_rate", "takeaway_drivers", "takeaway_tv"):
         assert f"- {bid}:" in req.user
+    for bid in ("verdict", "rule_of_thumb", "drivers", "wicket", "how_chosen", "closing"):
+        assert f"- {bid}:" not in req.user                                               # code only, or no longer blocks
     assert req.json_schema is not None and req.model == MODEL
 
 
 @pytest.mark.parametrize("bad", [
-    writing_reply({"verdict": block("Fine", "The winner missed by 18 runs.")}),            # a digit
-    writing_reply({"verdict": block("Fine", "It cost {made_up} runs.")}),                   # an unknown placeholder
-    writing_reply({"verdict": block("x" * 80)}),                                            # a title over its limit
-    writing_reply({"verdict": block("Fine", "y" * 300)}),                                   # a sentence over its limit
+    writing_reply({"takeaway_tv": block("Fine", "The TV missed by 18 runs.")}),            # a digit
+    writing_reply({"takeaway_tv": block("Fine", "The TV guesses too low.")}),                # a direction word
+    writing_reply({"takeaway_run_rate": block("Add a few runs")}),                          # a direction word in a title
+    writing_reply({"takeaway_tv": block("Fine", "It cost {made_up} runs.")}),               # an unknown placeholder
+    writing_reply({"takeaway_tv": block("x" * 80)}),                                        # a title over its limit
+    writing_reply({"takeaway_tv": block("Fine", "y" * 300)}),                               # a sentence over its limit
     "this is not json",
     "",
 ])
@@ -75,12 +86,14 @@ def test_a_rejected_reply_is_never_shown_and_the_template_wording_stays(run_grap
 
 
 @pytest.mark.parametrize("bad,words", [
-    (writing_reply({"verdict": block("Fine", "The winner missed by 18 runs.")}), ["sentence in verdict", "number written by the model"]),
-    (writing_reply({"verdict": block("The 10th over")}), ["title of verdict", "number written by the model"]),
-    (writing_reply({"verdict": block("Fine", "It cost {made_up} runs.")}), ["does not exist", "made_up"]),
-    (writing_reply({"verdict": block("x" * 80)}), ["title of verdict", "over 50 characters"]),
-    (writing_reply({"verdict": block("Fine", "y" * 300)}), ["sentence in verdict", "over 130 characters"]),
-    (writing_reply({"verdict": block("Fine", "One.", "Two.", "Three.")}), ["verdict", "more than 2 sentences"]),
+    (writing_reply({"takeaway_tv": block("Fine", "The TV missed by 18 runs.")}), ["sentence in takeaway_tv", "number written by the model"]),
+    (writing_reply({"takeaway_tv": block("The 10th over")}), ["title of takeaway_tv", "number written by the model"]),
+    (writing_reply({"takeaway_tv": block("Fine", "It guesses too high.")}), ["sentence in takeaway_tv", "direction word"]),
+    (writing_reply({"takeaway_run_rate": block("Take off a few")}), ["title of takeaway_run_rate", "direction word"]),
+    (writing_reply({"takeaway_tv": block("Fine", "It cost {made_up} runs.")}), ["does not exist", "made_up"]),
+    (writing_reply({"takeaway_tv": block("x" * 80)}), ["title of takeaway_tv", "over 50 characters"]),
+    (writing_reply({"takeaway_tv": block("Fine", "y" * 300)}), ["sentence in takeaway_tv", "over 130 characters"]),
+    (writing_reply({"takeaway_tv": block("Fine", "One.", "Two.", "Three.")}), ["takeaway_tv", "more than 2 sentences"]),
     ("this is not json", ["not valid JSON"]),
     ("{}", ["no blocks"]),
 ])
@@ -96,31 +109,44 @@ def test_the_cause_of_a_rejection_is_in_the_line_the_page_shows_and_in_the_log(r
 
 
 def test_the_reason_never_carries_the_models_own_wording(run_graph, path):
-    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("Fine", "It cost {<script>alert_x</script>} runs.")}))
+    _, _, state = run(run_graph, path, writer=writing_reply({"takeaway_tv": block("Fine", "It cost {<script>alert_x</script>} runs.")}))
     line = state["explanation"]["fallback_reason"]
     assert "<" not in line and "alert" not in line          # the model's own text is never put in the line
-    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("Fine", "It cost {" + "z" * 200 + "} runs.")}))
+    _, _, state = run(run_graph, path, writer=writing_reply({"takeaway_tv": block("Fine", "It cost {" + "z" * 200 + "} runs.")}))
     assert "z" * 41 not in state["explanation"]["fallback_reason"]          # a long made-up name is cut down
 
 
 def test_a_reply_that_leaves_out_a_block_keeps_that_blocks_template_and_the_models_wording_elsewhere(run_graph, path):
-    events, _, state = run(run_graph, path, writer=writing_reply({"verdict": block("The model's verdict title")}))
+    events, _, state = run(run_graph, path, writer=writing_reply({"takeaway_tv": block("The model's third takeaway")}))
     expl = state["explanation"]
     by = {b["id"]: b for b in expl["blocks"]}
     templates = {b["id"]: b for b in cricket_blocks.build_blocks(expl["facts"], features.labels(), list(state["features"]))}
-    assert expl["source"] == "language model" and by["verdict"]["title"] == "The model's verdict title"
-    assert by["drivers"]["title"] == templates["drivers"]["title"] and by["closing"]["sentences"] == templates["closing"]["sentences"]
+    assert expl["source"] == "language model" and by["takeaway_tv"]["title"] == "The model's third takeaway"
+    assert by["takeaway_drivers"]["title"] == templates["takeaway_drivers"]["title"]
+    assert by["takeaway_run_rate"]["sentences"] == templates["takeaway_run_rate"]["sentences"]
+
+
+def test_the_verdict_and_rule_of_thumb_are_never_the_models_even_when_it_writes_them(run_graph, path):
+    reply_ = writing_reply({"verdict": block("The model's verdict"), "rule_of_thumb": block("The model's rule"),
+                            "takeaway_tv": block("Fine")})
+    _, _, state = run(run_graph, path, writer=reply_)
+    by = {b["id"]: b for b in state["explanation"]["blocks"]}
+    assert by["verdict"]["title"] != "The model's verdict" and by["rule_of_thumb"]["title"] != "The model's rule"
+    assert by["verdict"]["from_model"] == [] and by["rule_of_thumb"]["from_model"] == []
+    assert by["takeaway_tv"]["title"] == "Fine"
 
 
 def test_a_reply_that_tries_to_add_a_block_cannot_put_one_on_the_page(run_graph, path):
-    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block(), "bonus": block("An extra block")}))
+    _, _, state = run(run_graph, path, writer=writing_reply({"takeaway_tv": block(), "bonus": block("An extra block")}))
     assert "bonus" not in [b["id"] for b in state["explanation"]["blocks"]]
     assert "bonus" not in state["explanation"]["order"]
 
 
-def test_an_order_outside_the_fixed_list_is_ignored(run_graph, path):
-    _, _, state = run(run_graph, path, writer=writing_reply({"verdict": block()}, order=["closing", "bonus", "drivers"]))
-    assert state["explanation"]["order"] == ["verdict", "drivers", "how_chosen", "closing"]   # this run has no wicket feature
+def test_the_order_is_always_the_fixed_one(run_graph, path):
+    reply_ = '{"blocks": {"takeaway_tv": {"title": "Fine"}}, "order": ["rule_of_thumb", "bonus"], "closing_lead": "biggest_factor"}'
+    _, _, state = run(run_graph, path, writer=reply_)
+    assert state["explanation"]["order"] == ["verdict", "takeaway_run_rate", "takeaway_drivers", "takeaway_tv", "rule_of_thumb"]
+    assert "closing_lead" not in state["explanation"]
 
 
 @pytest.mark.parametrize("error", [LlmTimeout("The language model did not reply in time."), LlmUnavailable("It is down."),

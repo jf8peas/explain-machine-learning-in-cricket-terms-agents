@@ -1,57 +1,16 @@
-"""The section is short (feature 012): at most half the words of the old list, and the writing call has its own budget."""
-import json
-from pathlib import Path
-
+"""The section stays short (features 012 and 015), and the writing call has its own budget."""
 import pytest
 
 from linreg.run_budget import MIN_CALL_SECONDS, RunBudget
 from tests.conftest import make_table, merged_state
 from tests.test_explanation_numbers import blocks_for, facts_for, state_for
 
-OLD = json.loads((Path(__file__).parent / "fixtures" / "old_explanation_sentences.json").read_text(encoding="utf-8"))
 
-
-def words(text: str) -> int:
-    return len(text.split())
-
-
-def visible_words(blocks) -> int:
-    """What a sighted visitor reads: titles, sentences, the badge, each bar's name and value, the large figure, and the
-    year strip's labels. The visually hidden text equivalents are not counted."""
-    total = 0
-    for b in blocks:
-        total += words(b["title"]) + sum(words(s) for s in b["sentences"])
-        v = b["visual"]
-        if "badge" in v:
-            total += words(v["badge"])
-        for row in v.get("rows", []):
-            total += words(row["label"]) + 1
-        if "figure" in v:
-            total += 2
-        for seg in v.get("segments", []):
-            total += words(seg["label"]) + (3 if seg["from"] != seg["to"] else 1)
-    return total
-
-
-def test_the_section_is_at_most_half_the_words_of_the_old_list_for_the_same_run(run_graph, write_csv):
-    from linreg.llm_fake import default_fake
-    events = run_graph({}, llm=default_fake())                              # the real data, as the old list was measured on
-    state = merged_state(events)
-    old = sum(words(s) for s in OLD["sentences"])
-    assert old > 250                                                         # the old list really was long
-    new = visible_words(state["explanation"]["blocks"])
-    assert new <= old / 2, f"{new} words against {old}"
-    template = visible_words(__import__("linreg.cricket_blocks", fromlist=["x"]).build_blocks(
-        state["explanation"]["facts"], __import__("linreg.features", fromlist=["x"]).labels(), list(state["features"])))
-    assert template <= old / 2, f"template wording: {template} words against {old}"
-
-
-def test_with_many_features_the_section_still_fits_the_bound():
+def test_every_block_is_within_its_sentence_limit_for_a_run_with_many_features():
     many = ("runs_at_10", "wickets_in_hand", "sixes_at_10", "fours_at_10", "partnership_runs", "dot_balls_at_10",
             "extras_at_10", "powerplay_runs")
-    state = state_for(features_=many, coefs={f: 1.0 for f in many})
-    _, blocks = blocks_for(state)
-    assert visible_words(blocks) <= sum(words(s) for s in OLD["sentences"]) / 2
+    _, blocks = blocks_for(state_for(features_=many, coefs={f: 1.0 for f in many}))
+    assert len(blocks) == 5 and all(1 <= len(b["sentences"]) <= 2 for b in blocks)
 
 
 def test_the_writing_call_is_allowed_one_call_beyond_the_proposing_cap_and_counts():

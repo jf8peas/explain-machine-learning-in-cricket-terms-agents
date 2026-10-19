@@ -60,15 +60,9 @@ def bias_sentence(finding: Mapping[str, Any]) -> str | None:
     return accuracy_text.large_bias_sentence(finding["direction"]) if finding["same_direction_large"] else None
 
 
-def chart_points(actual, preds: Mapping[str, np.ndarray]) -> dict[str, Any]:
-    """One value per test innings for the chart, rounded to one decimal for transport only."""
-    return {"actual": [round(float(x), 1) for x in np.asarray(actual, dtype=float)],
-            "predicted": {m: [round(float(x), 1) for x in p] for m, p in preds.items()}}
-
-
 def final_scoring(know_nothing_totals, test, fitted_models: Mapping[str, dict],
-                  winner: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Everything `final_test` adds: (the additions to `final`, the chart points)."""
+                  winner: str) -> dict[str, Any]:
+    """Everything `final_test` adds to `final`."""
     actual = test["final_total"]
     preds = predictions(know_nothing_totals, test, fitted_models)
     acc = score(actual, preds)
@@ -84,10 +78,11 @@ def final_scoring(know_nothing_totals, test, fitted_models: Mapping[str, dict],
         "bias_finding": bias,
         "bias_sentence": bias_sentence(bias),
         "bias_words": {m: accuracy_text.bias_words(f["bias"]) for m, f in acc.items()},
+        "bias_phrases": {m: accuracy_text.bias_phrase(f["bias"]) for m, f in acc.items()},
         "reference_finding": finding,
         "verdict": the_verdict,
         "verdict_sentence": verdict_sentence(the_verdict),
         "versus_know_nothing": compare(acc["know_nothing"]["average_miss"], acc[winner]["average_miss"]),
         "tolerances": list(TOLERANCES),
     }
-    return additions, chart_points(actual, preds)
+    return additions

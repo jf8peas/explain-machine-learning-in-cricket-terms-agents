@@ -4,17 +4,18 @@ import { open, openTab, playToEnd } from "./helpers";
 test("the run ends with a cricket explanation and a clear comparison", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  await expect(page.getByTestId("explanation").locator("li")).not.toHaveCount(0);
-  await expect(page.getByTestId("explanation")).toContainText("halfway mark");
+  await openTab(page, "final-test");
+  await expect(page.getByTestId("takeaway")).toHaveCount(3);
+  await expect(page.getByTestId("rule-of-thumb")).toBeVisible();
   await expect(page.getByTestId("verdict")).toContainText(/the TV projection/);
 
   // the numbers shown match the final state panel
   const final = JSON.parse((await page.locator('[data-key="final"] pre').textContent())!);
-  const compare = await page.getByTestId("comparison").textContent();
-  expect(compare).toContain(final.test_mae.forward.toFixed(1));
-  expect(compare).toContain(final.test_mae.llm.toFixed(1));
-  expect(compare).toContain(final.test_mae.tv.toFixed(1));
-  await expect(page.getByTestId("explanation")).toContainText(`${final.winner_mae.toFixed(1)} runs`);
+  const race = await page.getByTestId("race").textContent();
+  expect(race).toContain(final.test_mae.forward.toFixed(1));
+  expect(race).toContain(final.test_mae.llm.toFixed(1));
+  expect(race).toContain(final.test_mae.tv.toFixed(1));
+  await expect(page.getByTestId("verdict")).toContainText(`${Math.abs(final.improvement).toFixed(1)} runs`);
 });
 
 test("the Cricsheet attribution is visible in the results area", async ({ page }) => {
@@ -25,12 +26,12 @@ test("the Cricsheet attribution is visible in the results area", async ({ page }
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
 });
 
-test("the winning setup is stated in cricket language in the best-candidate-model line, not repeated in the section", async ({ page }) => {
+test("the choice made on the check years is stated in the verdict only when another method had the shortest bar", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   await openTab(page, "final-test");
-  const line = page.getByText(/best candidate model:/).first();
-  await expect(line).toBeVisible();
-  await expect(page.getByTestId("explanation").getByText("The winning setup")).toHaveCount(0);
-  await expect(page.getByTestId("explanation")).toContainText("check years");
+  const expl = JSON.parse((await page.locator('[data-key="explanation"] pre').textContent())!);
+  const differs = expl.facts.race_leader_differs.value === true;
+  await expect(page.getByTestId("verdict-leader")).toHaveCount(differs ? 1 : 0);
+  if (differs) await expect(page.getByTestId("verdict-leader")).toContainText("before the test");
 });

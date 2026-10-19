@@ -126,28 +126,25 @@ def test_the_reference_finding_uses_the_test_year_figures_and_has_a_sentence(run
     assert rf["sentence"].strip() and "TV projection" in rf["sentence"]
 
 
-def test_the_chart_points_hold_every_test_innings_once_per_method_rounded_to_one_decimal(run_graph, path):
+def test_the_final_test_no_longer_emits_chart_points(run_graph, path):
     state = run(run_graph, path)
-    t = rolling_of(path).test_rows()
-    pts = state["chart_points"]
-    assert pts["actual"] == [round(float(x), 1) for x in t["final_total"]]
-    assert list(pts["predicted"]) == IDS
-    for values in pts["predicted"].values():
-        assert len(values) == len(t) and all(round(v, 1) == v for v in values)
-    assert set(pts) == {"actual", "predicted"}
+    assert "chart_points" not in state
 
 
-def test_the_figures_use_unrounded_predictions_not_the_rounded_chart_points(run_graph, path):
+def test_the_stored_figures_are_the_exact_ones_from_the_unrounded_predictions(run_graph, path):
     state = run(run_graph, path)
-    pts = state["chart_points"]
-    from_points = by_numpy(pts["actual"], pts["predicted"]["forward"])
     stored = state["final"]["accuracy"]["forward"]
     rolling = rolling_of(path)
     test = rolling.test_rows()
     fitted = fit_of(rolling, state["forward_best"])
     exact = by_numpy(test["final_total"], regression.predict(test, fitted["coefficients"], fitted["intercept"]))
-    assert stored == exact                        # the stored figures are the exact ones
-    assert abs(from_points["average_miss"] - exact["average_miss"]) <= 0.1
+    assert stored == exact
+
+
+def test_every_method_has_a_bias_phrase_in_the_final_state(run_graph, path):
+    f = run(run_graph, path)["final"]
+    assert set(f["bias_phrases"]) == set(f["methods"])
+    assert all(p.startswith("guesses ") and p.endswith(" on average") for p in f["bias_phrases"].values())
 
 
 def test_without_the_language_model_there_are_three_methods_and_it_is_absent_everywhere(run_graph, path):
@@ -155,7 +152,7 @@ def test_without_the_language_model_there_are_three_methods_and_it_is_absent_eve
     f = state["final"]
     assert f["llm_took_part"] is False
     assert f["methods"] == ["know_nothing", "broadcaster", "forward"]
-    assert "llm" not in f["accuracy"] and "llm" not in state["chart_points"]["predicted"]
+    assert "llm" not in f["accuracy"] and "llm" not in f["bias_phrases"]
     assert [d["id"] for d in f["method_defs"]] == f["methods"]
 
 

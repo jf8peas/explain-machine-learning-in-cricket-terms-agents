@@ -14,10 +14,28 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from . import accuracy_text
+from .accuracy import is_large_bias
+from .hero_text import barely_helps
+
 Fact = dict[str, Any]
 
-# Which facts the closing sentence may lead with (the language model may choose one; code supplies the others).
-CLOSING_LEADS = ("goal_reached", "biggest_factor", "wicket_cost", "beat_know_nothing_by")
+# How the page names a method in a sentence ("The <label> beat the TV projection..."), by method id.
+METHOD_LABELS = {"llm": "AI agent's model", "forward": "rival's model", "broadcaster": "TV projection",
+                 "know_nothing": "know-nothing guess"}
+
+# The share of innings called within 10 runs, in words that finish "...of the real total ___.": (lower bound, phrase).
+WITHIN_10_WORDS = ((85.0, "nearly always"), (72.0, "about three quarters of the time"),
+                   (62.0, "about two thirds of the time"), (52.0, "a little more than half the time"),
+                   (48.0, "only about half the time"), (38.0, "only a little less than half the time"),
+                   (28.0, "only about a third of the time"), (15.0, "only about a quarter of the time"),
+                   (float("-inf"), "only rarely"))
+
+
+def within_10_words(share: float) -> str:
+    """The displayed (one decimal) within-10 share in words, from the fixed table."""
+    shown = round(float(share), 1)
+    return next(words for floor, words in WITHIN_10_WORDS if shown >= floor)
 
 WICKET_COST_FEATURE = "wickets_at_10"
 WICKET_HAND_FEATURE = "wickets_in_hand"
@@ -86,13 +104,16 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
                                       "the winner's average miss on the test year")
     facts["tv_test_miss"] = _fact(_runs(final["test_mae"]["tv"]), "runs", _one(_runs(final["test_mae"]["tv"])),
                                   "the TV projection's average miss on the test year")
-    won_on = final["validation_mae"][final["winner"]]
-    facts["winner_validation_error"] = _fact(_runs(won_on), "runs", _one(_runs(won_on)),
-                                             "the winner's average miss over the three check years")
-    acc = (final.get("accuracy") or {}).get(final["winner"])
+    accs: Mapping[str, Mapping[str, float]] = final.get("accuracy") or {}
+    acc = accs.get(final["winner"])
     if acc:
         facts["share_within_10"] = _fact(acc["within_10"], "percent", _one(acc["within_10"]),
-                                         f"the share of test innings the winner predicted within {tolerances[0]} runs")
+                                         f"the share of test innings the chosen model predicted within {tolerances[0]} runs")
+        facts["share_within_10_words"] = _fact(within_10_words(acc["within_10"]), "text", within_10_words(acc["within_10"]),
+                                               "the chosen model's within-the-tolerance share in words, ending 'of the time'")
+        facts["test_innings"] = _fact(acc["n"], "count", str(acc["n"]), "how many innings the test year has")
+    facts.update(_race_facts(final, accs))
+    facts.update(_reference_facts(accs))
     facts["within_runs_threshold"] = _fact(tolerances[0], "runs", _shown(tolerances[0]),
                                            "the number of runs the 'within' share is measured at")
 
@@ -127,14 +148,67 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
                                                   "whether a wicket in hand added runs ('worth') or, oddly, did not "
                                                   "('less')")
 
-    for i, c in enumerate(checks, 1):
-        facts[f"check_year_{i}"] = _fact(c["year"], "year", str(c["year"]), f"check year number {i}")
     facts["test_year"] = _fact(split["test_year"], "year", str(split["test_year"]), "the test year, used once at the end")
-    facts["training_from"] = _fact(split["first_year"], "year", str(split["first_year"]),
-                                   "the first year the models could learn from")
-    facts["training_to"] = _fact(checks[0]["year"] - 1, "year", str(checks[0]["year"] - 1),
-                                 "the last year before the first check year")
     return facts
+
+
+def _race_facts(final: Mapping[str, Any], accs: Mapping[str, Mapping[str, float]]) -> dict[str, Fact]:
+    """Who was chosen before the test and who had the shortest bar (the lowest average miss), by name."""
+    chosen = final["winner"]
+    out: dict[str, Fact] = {"chosen_label": _fact(chosen, "text", METHOD_LABELS[chosen],
+                                                  "the method chosen on the check years, before the test year")}
+    methods = [m for m in final.get("methods", []) if m in accs]
+    if not methods or chosen not in accs:
+        return out
+    best = min(accs[m]["average_miss"] for m in methods)
+    leader = chosen if accs[chosen]["average_miss"] == best else next(m for m in methods if accs[m]["average_miss"] == best)
+    out["race_leader"] = _fact(leader, "text", METHOD_LABELS[leader],
+                               "the method with the shortest bar: the lowest test-year average miss")
+    out["race_leader_label"] = _fact(METHOD_LABELS[leader], "text", METHOD_LABELS[leader],
+                                     "the name of the method with the shortest bar")
+    differs = leader != chosen
+    out["race_leader_differs"] = _fact(differs, "yes/no", "yes" if differs else "no",
+                                       "whether a method other than the chosen one had the shortest bar")
+    share = accs[leader]["within_10"]
+    out["leader_within_10"] = _fact(share, "percent", _one(share),
+                                    "the share of test innings the method with the shortest bar predicted within the tolerance")
+    out["leader_within_10_words"] = _fact(within_10_words(share), "text", within_10_words(share),
+                                          "that share in words, ending 'of the time'")
+    return out
+
+
+def _reference_facts(accs: Mapping[str, Mapping[str, float]]) -> dict[str, Fact]:
+    """The TV projection against the know-nothing guess, and which way the TV leans. Empty when they are missing."""
+    tv, know = accs.get("broadcaster"), accs.get("know_nothing")
+    if not tv or not know:
+        return {}
+    out: dict[str, Fact] = {}
+    gap = round(know["average_miss"] - tv["average_miss"], 1)
+    state = "barely" if barely_helps(know["average_miss"], tv["average_miss"]) else "clearly" if gap > 0 else "none"
+    out["know_nothing_miss"] = _fact(_runs(know["average_miss"]), "runs", _one(_runs(know["average_miss"])),
+                                          "the know-nothing guess's average miss on the test year")
+    out["tv_gap"] = _fact(abs(gap), "runs", _one(abs(gap)),
+                                            "how many runs apart the TV projection's and the know-nothing guess's "
+                                            "average misses are (absolute)")
+    out["run_rate_state"] = _fact(state, "text", state,
+                                  "whether the run rate alone clearly helps, barely helps or does not help")
+    bias = tv["bias"]
+    leaning = accuracy_text.bias_short(bias) != "0.0"
+    direction = ("high" if bias > 0 else "low") if leaning else "none"
+    out["tv_bias_runs"] = _fact(abs(round(bias, 1)), "runs", f"{abs(bias):.1f}",
+                                "how many runs too low or too high the TV projection is on average (absolute)")
+    out["tv_bias_direction"] = _fact(direction, "text",
+                                     {"high": "too high", "low": "too low", "none": "about right"}[direction],
+                                     "which way the TV projection leans on average: too low, too high or about right")
+    large = is_large_bias(tv)
+    out["tv_bias_large"] = _fact(large, "yes/no", "yes" if large else "no",
+                                 "whether the TV projection's lean is large next to its average miss")
+    verb = ("add" if direction == "low" else "take off") if large and leaning else "none"
+    out["rule_verb"] = _fact(verb, "text", verb if verb != "none" else "",
+                             "what the rule of thumb does to the TV projection: add or take off")
+    out["rule_runs"] = _fact(abs(round(bias, 1)), "runs", f"{abs(bias):.1f}",
+                             "the runs the rule of thumb adds to or takes off the TV projection")
+    return out
 
 
 def display(facts: Mapping[str, Fact], fact_id: str) -> str:
