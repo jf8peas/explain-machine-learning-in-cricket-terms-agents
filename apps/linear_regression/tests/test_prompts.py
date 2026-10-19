@@ -119,3 +119,30 @@ def test_a_request_carries_the_model_the_caps_and_the_schema():
     plain = build_request(model="vendor/m", rounds_remaining=5, explore=EXPLORE, attempts=[], rejections=[],
                           max_tokens=800, timeout=20.0, structured=False)
     assert plain.json_schema is None
+
+
+def reason_example(text: str) -> str:
+    """The example reason in the reply-shape line: the text after '"reason": "' up to the closing quote."""
+    return re.search(r'"reason": "([^"]*)"', text).group(1)
+
+
+def test_the_reason_is_asked_for_in_plain_cricket_words_with_no_figures_and_no_column_names():
+    text = build_system(rounds_remaining=4)
+    assert "plain cricket words" in text and "no figures" in text and "no column names" in text
+    assert "feature ids or menu ids" in text and "in the reason" in text
+    assert "which may mention any part of the candidate model" not in text      # the old, looser instruction is gone
+
+
+def test_the_example_reason_has_no_digit_no_feature_id_and_no_menu_id():
+    from linreg import setup_settings as cfg
+    example = reason_example(build_system(rounds_remaining=4))
+    assert not re.search(r"\d", example)
+    ids = [*features.labels(), *(o.id for o in (*cfg.WINDOWS, *cfg.WEIGHTINGS, *cfg.TRAINING_INNINGS))]
+    for fid in ids:
+        assert fid not in example, fid
+
+
+def test_the_reason_instruction_leaves_the_reply_shape_and_the_catalogue_unchanged():
+    text = build_system(rounds_remaining=4)
+    assert '"finished": false' in text and '"features": ["id", "id"]' in text
+    assert reply_schema()["required"][-2:] == ["reason", "finished"]

@@ -41,7 +41,7 @@ test("every result of the old page is in exactly one tab after a run", async ({ 
   await open(page);
   await playToEnd(page);
   const where: Record<string, string> = {
-    ranking: "found", "found-section-1": "found", "winner-panel": "found", model: "found", "model-used": "found", race: "final-test", close: "final-test",
+    ranking: "found", "found-section-1": "found", "choice-panel": "found", model: "found", "model-used": "found", race: "final-test", close: "final-test",
     explanation: "final-test", verdict: "final-test", "close-note": "final-test", "rule-of-thumb": "final-test", tryit: "try-your-own", "tryit-fields": "try-your-own", intro: "working",
     "model-picker": "working", catalogue: "working",
   };

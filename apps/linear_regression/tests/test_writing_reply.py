@@ -136,3 +136,10 @@ def test_an_order_or_closing_lead_in_the_reply_is_ignored():
 def test_markup_in_the_wording_is_kept_as_text_not_removed_or_run():
     w = parse(writing_reply({"takeaway_tv": block("Fine", "<b>bold</b> & \"quotes\" <script>x</script>")}))
     assert "<script>" in w.blocks["takeaway_tv"]["sentences"][0]               # the page sets it as text
+
+
+def test_a_direction_through_the_know_nothing_placeholder_is_accepted_but_written_directly_is_not():
+    ok = parse(writing_reply({"takeaway_run_rate": block("Scores climb", "The guess runs {know_nothing_bias_runs} {know_nothing_bias_direction}.")}))
+    assert ok.blocks["takeaway_run_rate"]["sentences"] == ["The guess runs {know_nothing_bias_runs} {know_nothing_bias_direction}."]
+    with pytest.raises(UnusableReply, match="direction word"):
+        parse(writing_reply({"takeaway_run_rate": block("Scores climb", "The guess runs too low.")}))

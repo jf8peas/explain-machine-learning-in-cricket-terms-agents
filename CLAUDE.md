@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/015-final-test-tab/plan.md](specs/015-final-test-tab/plan.md)
+Current feature plan: [specs/016-validation-vs-test/plan.md](specs/016-validation-vs-test/plan.md)
 <!-- SPECKIT END -->

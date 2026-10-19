@@ -1,9 +1,11 @@
-// Section 3 of What the agent found: the race chart and the winner panel (app-specific). The chart is a hand-built SVG, no
-// library, nothing animates. Every value comes from the run (see view.ts); the marks are told apart by shape and by word
-// as well as by colour. The winner panel shows the decision recorded before the final test.
+// Section 3 of What the agent found: the race chart on the check seasons and the choice panel (app-specific). The chart is a
+// hand-built SVG, no library, nothing animates. Every value comes from the run (see view.ts); the marks are told apart by
+// shape and by word as well as by colour. The choice panel describes the decision recorded on validation, before the final
+// test; it never calls either exam's result "the winner".
 import { h } from "../dom";
+import { renderSegs } from "../exam";
 import { endLabels, PLOT, xPlace, yPlace, yRange } from "./race-layout";
-import { fromTenths, type FoundView, type RoundView } from "./view";
+import { choiceHeading, choiceText, fromTenths, type FoundView, type RoundView } from "./view";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 type Attrs = Record<string, string | number>;
@@ -62,7 +64,7 @@ export function renderRaceChart(view: FoundView): HTMLElement | null {
     ticks.append(svg("text", { x: PLOT.left - 8, y: y(t) + 4 }, String(t)));
   }
   root.append(grid, ticks,
-    svg("text", { x: 14, y: (PLOT.top + PLOT.bottom) / 2, class: "race-axis", transform: `rotate(-90 14 ${(PLOT.top + PLOT.bottom) / 2})`, "text-anchor": "middle" }, "average miss (runs)"));
+    svg("text", { x: 14, y: (PLOT.top + PLOT.bottom) / 2, class: "race-axis", transform: `rotate(-90 14 ${(PLOT.top + PLOT.bottom) / 2})`, "text-anchor": "middle" }, "average miss on check seasons"));
   if (n > 0) {
     const xs = svg("g", { class: "race-ticks", "text-anchor": "middle" });
     for (let i = 1; i <= n; i++) xs.append(svg("text", { x: xPlace(i, n), y: PLOT.height - 28 }, String(i)));
@@ -119,54 +121,31 @@ export function renderRaceChart(view: FoundView): HTMLElement | null {
     root.append(svg("text", { x: PLOT.labelX, y: placed[w.id], class: `race-end race-end-${w.id}` }, texts[w.id]));
   }
 
-  const caption = view.rounds.length
+  const caption = (view.rounds.length
     ? "Filled dots: a new best. Open dot: no better. ✕: code rejected the proposal. The solid line is the AI's best so far."
-    : "The AI made no proposals. The dotted line is the rival's best; the dashed line is the TV projection.";
+    : "The AI made no proposals. The dotted line is the rival's best; the dashed line is the TV projection.")
+    + " All scores are on the check seasons.";
   return h("figure", { class: "race-card" },
     h("div", { class: "race-scroll" }, root),
     h("figcaption", {}, caption),
     h("p", { class: "visually-hidden", "data-testid": "race-text" }, raceText(view)));
 }
 
-const runsWord = (t: number) => `${fromTenths(t)} runs`;
-
-/** The panel naming the candidate model that goes forward to the final test, or saying the search is still going. */
-export function renderWinnerPanel(view: FoundView): HTMLElement {
-  const w = view.winner;
-  const panel = h("div", { class: `winner-panel winner-${w.state}`, "data-testid": "winner-panel", "data-state": w.state });
-  const small = h("p", { class: "winner-kicker" }, "Goes forward to the final test");
-  if (w.state === "pending") {
-    panel.append(small, h("p", { class: "winner-big" }, "Still searching"),
-      h("p", {}, "The search is still going. The candidate model that goes forward is chosen once the rival has finished its grid search, before the final test season is touched."));
-    return panel;
+/** The panel saying which candidate model goes forward, chosen on validation, or that the search is still going. */
+export function renderChoicePanel(view: FoundView): HTMLElement {
+  const v = view.choice;
+  const panel = h("div", { class: `choice-panel choice-${v.state}${v.chosen ? ` choice-${v.chosen}` : ""}`, "data-testid": "choice-panel", "data-state": v.state });
+  const body = h("p", { "data-testid": "choice-text" }, ...renderSegs(choiceText(v)));
+  panel.append(h("p", { class: "choice-kicker" }, v.state === "pending" ? "Choosing on validation" : "Chosen on validation"),
+    h("p", { class: "choice-big", "data-testid": "choice-heading" }, choiceHeading(v)), body);
+  if (v.state !== "pending") {
+    panel.append(h("p", { class: "small" }, "Chosen before the final test season was touched. Both candidate models still sit the final test."),
+      h("p", { "data-testid": "to-final" }, h("a", { href: "#final-test" }, "See the final test for the verdict →")));
   }
-  const checks = "on average across the check seasons";
-  const body = h("p", {});
-  if (w.state === "tie") {
-    panel.append(small, h("p", { class: "winner-big" }, "The AI agent's candidate model"));
-    body.append("Both candidate models missed by ", h("strong", {}, runsWord(w.winnerMiss as number)), ` ${checks}. It was a tie, so the AI agent's candidate model goes forward.`);
-  } else {
-    const other = w.state === "ai" ? "the rival" : "the AI agent";
-    panel.append(small, h("p", { class: "winner-big" }, w.state === "ai" ? "The AI agent's candidate model" : "The rival's candidate model"));
-    if (w.winnerMiss === null) {
-      body.append(`The AI agent made no candidate model that could be scored, so the rival's goes forward.`);
-    } else {
-      body.append("It missed by ", h("strong", {}, runsWord(w.winnerMiss)), ` ${checks}`);
-      if (w.otherMiss === null) body.append(".");
-      else {
-        body.append(", against ", h("strong", {}, fromTenths(w.otherMiss)), ` for ${other}: `);
-        body.append(w.belowDisplay ? "the gap is smaller than the display shows."
-          : `${fromTenths(w.gap as number)} runs better.`);
-      }
-    }
-  }
-  panel.append(body,
-    h("p", { class: "small" }, "Chosen before the final test season was touched. Both candidate models still sit the final test."),
-    h("p", { "data-testid": "to-final" }, h("a", { href: "#final-test" }, "See the final test →")));
   return panel;
 }
 
 export function renderRace(view: FoundView): Node[] {
   const chart = renderRaceChart(view);
-  return [h("div", { class: "race-layout" }, ...(chart ? [chart] : []), renderWinnerPanel(view))];
+  return [h("div", { class: "race-layout" }, ...(chart ? [chart] : []), renderChoicePanel(view))];
 }

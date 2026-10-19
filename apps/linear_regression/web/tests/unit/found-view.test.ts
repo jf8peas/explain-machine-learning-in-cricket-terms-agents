@@ -52,23 +52,26 @@ describe("best so far and the rival line", () => {
   });
 });
 
-describe("the winner", () => {
+describe("the choice", () => {
   it("is pending until the decision is in the state", () => {
-    expect(buildView(beforeGrid()).winner.state).toBe("pending");
+    expect(buildView(beforeGrid()).choice.state).toBe("pending");
   });
-  it("names the AI with the gap worked out from the displayed values", () => {
-    const w = buildView(afterGrid("llm", 19.74)).winner;     // AI 19.6 shown, rival 19.7 shown
-    expect(w).toMatchObject({ state: "ai", winnerMiss: 196, otherMiss: 197, gap: 1, belowDisplay: false });
+  it("names the AI and works the gap out from the displayed values; a gap under the threshold is a whisker", () => {
+    const c = buildView(afterGrid("llm", 19.74)).choice;     // AI 19.6 shown, rival 19.7 shown
+    expect(c).toMatchObject({ state: "whisker", chosen: "ai", chosenMiss: 196, otherMiss: 197, gap: 1, tooClose: true });
   });
-  it("names the rival when it is recorded as the winner", () => {
-    expect(buildView(afterGrid("forward", 19.2)).winner).toMatchObject({ state: "rival", winnerMiss: 192, otherMiss: 196, gap: 4 });
+  it("names the rival when it is recorded as chosen", () => {
+    expect(buildView(afterGrid("forward", 19.2)).choice).toMatchObject({ chosen: "rival", chosenMiss: 192, otherMiss: 196, gap: 4, state: "whisker" });
   });
-  it("calls it a tie only when the displayed misses are equal and the AI is the recorded winner", () => {
-    expect(buildView(afterGrid("llm", 19.56)).winner.state).toBe("tie");
+  it("is a clear choice once the gap reaches the threshold", () => {
+    expect(buildView(afterGrid("llm", 20.7)).choice).toMatchObject({ state: "clear", chosen: "ai", gap: 11, tooClose: false });
+    expect(buildView(afterGrid("forward", 19.1)).choice).toMatchObject({ state: "clear", chosen: "rival", gap: 5, tooClose: false });
   });
-  it("does not override a recorded rival win when the displayed values are equal", () => {
-    const w = buildView(afterGrid("forward", 19.56)).winner;
-    expect(w).toMatchObject({ state: "rival", gap: 0, belowDisplay: true });
+  it("treats equal displayed misses as a whisker with the AI chosen", () => {
+    expect(buildView(afterGrid("llm", 19.56)).choice).toMatchObject({ state: "whisker", chosen: "ai", gap: 0 });
+  });
+  it("does not override a recorded rival choice when the displayed values are equal", () => {
+    expect(buildView(afterGrid("forward", 19.56)).choice).toMatchObject({ state: "whisker", chosen: "rival", gap: 0 });
   });
 });
 
@@ -76,7 +79,7 @@ describe("the fallback and runs with no fitted AI attempt", () => {
   it("is the fallback when the model was not used and made no attempts", () => {
     const v = buildView(noLlm());
     expect(v.fallback).toBe(true);
-    expect(v.winner.state).toBe("rival");
+    expect(v.choice.state).toBe("noAi");
     expect(v.bestSoFar).toEqual([]);
     expect(v.ranking.every((r) => r.foundBy === "rival")).toBe(true);
   });
@@ -90,7 +93,7 @@ describe("the fallback and runs with no fitted AI attempt", () => {
     expect(v.fallback).toBe(false);
     expect(v.bestSoFar).toEqual([]);
     expect(v.aiBest).toBeNull();
-    expect(v.winner.state).toBe("rival");
+    expect(v.choice.state).toBe("noAi");
     expect(v.rounds.map((r) => r.kind)).toEqual(["rejected", "finished"]);
   });
 });
@@ -153,7 +156,7 @@ describe("the tab fills in step by step", () => {
     expect(a.rounds).toHaveLength(1);
     expect(a.rival).toBeNull();
     expect(a.groups).toEqual([]);
-    expect(a.winner.state).toBe("pending");
+    expect(a.choice.state).toBe("pending");
     const b = buildView(full);
     expect(b.rounds).toHaveLength(5);
     expect(b.rival).not.toBeNull();

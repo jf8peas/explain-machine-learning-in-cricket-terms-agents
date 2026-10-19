@@ -26,12 +26,11 @@ test("the Cricsheet attribution is visible in the results area", async ({ page }
   await expect(page.getByTestId("results-card").getByTestId("attribution")).toContainText("Cricsheet");
 });
 
-test("the choice made on the check years is stated in the verdict only when another method had the shortest bar", async ({ page }) => {
+test("the verdict is one sentence and never says another method had the shortest bar", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   await openTab(page, "final-test");
-  const expl = JSON.parse((await page.locator('[data-key="explanation"] pre').textContent())!);
-  const differs = expl.facts.race_leader_differs.value === true;
-  await expect(page.getByTestId("verdict-leader")).toHaveCount(differs ? 1 : 0);
-  if (differs) await expect(page.getByTestId("verdict-leader")).toContainText("before the test");
+  await expect(page.getByTestId("verdict-leader")).toHaveCount(0);
+  await expect(page.getByTestId("verdict")).not.toContainText("shortest bar");
+  await expect(page.getByTestId("pick-card")).toContainText("Chosen on the check seasons, before");
 });

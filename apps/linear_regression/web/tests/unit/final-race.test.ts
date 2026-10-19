@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { barPercent, scaleMax, ticks } from "../../src/page/final/race";
+import { barPercent, raceLead, scaleMax, ticks } from "../../src/page/final/race";
 import { headerLead, rows } from "../../src/page/final/view";
 import { finalState, ordinary, type Fig } from "./final-fixtures";
 
@@ -34,10 +34,13 @@ describe("the scale", () => {
 });
 
 describe("the rows", () => {
-  it("sort by average miss, best first, with place labels 1st to 4th", () => {
+  it("sort by average miss, shortest first, and carry no place labels", () => {
     const r = rows(finalState(ordinary));
     expect(r.map((x) => x.id)).toEqual(["forward", "llm", "broadcaster", "know_nothing"]);
-    expect(r.map((x) => x.placeLabel)).toEqual(["1st", "2nd", "3rd", "4th"]);
+    for (const x of r) {
+      expect(x).not.toHaveProperty("place");
+      expect(x).not.toHaveProperty("placeLabel");
+    }
   });
 
   it("re-sort when the figures change", () => {
@@ -60,13 +63,16 @@ describe("the rows", () => {
     const r = rows(finalState(without, "forward"));
     expect(r.map((x) => x.id)).toEqual(["forward", "broadcaster", "know_nothing"]);
     expect(headerLead(2026, 214, r.length)).toContain("three predictions");
+    expect(raceLead(2026, r.length).join("")).toContain("All three predictions on 2026.");
   });
 
   it("name the header's year and innings from the state", () => {
     expect(headerLead(2026, 214, 4)).toBe(
-      "2026: a season nothing learned from or was chosen on. For each of its 214 innings, four predictions of the final total, " +
-      "made at the halfway mark and then compared with what really happened.");
-    expect(headerLead(2024, 99, 4)).toContain("2024:");
-    expect(headerLead(2024, 99, 4)).toContain("99 innings");
+      "For each of the 214 innings of 2026, four predictions of the final total, made at the halfway mark and then compared " +
+      "with what really happened.");
+    expect(headerLead(2024, 99, 4)).toContain("innings of 2024");
+    expect(headerLead(2024, 99, 4)).toContain("each of the 99 innings");
+    expect(raceLead(2026, 4).join("")).toContain("All four predictions on 2026.");
+    expect(raceLead(undefined, 4).join("")).toBe("All four predictions. Shorter bar = more accurate.");     // no year: no made-up year
   });
 });

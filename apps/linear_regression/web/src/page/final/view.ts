@@ -1,5 +1,8 @@
-// The final test tab's pure view of the run state (app-specific): the methods as rows, best average miss first, with the
-// page copy the design README gives each method. Nothing here draws; the section modules do.
+// The final test tab's pure view of the run state (app-specific): the methods as rows, shortest average miss first, with the
+// page copy the design README gives each method, and the two exams' scores for the "why the scores differ" section.
+// Nothing here draws; the section modules do.
+import { examYears, tenths, type ExamYears } from "../exam";
+import type { Attempt } from "../leaderboard";
 import type { CricketExplanation, Fact, FinalState } from "./types";
 
 /** Page copy per method id (names and one-line descriptions come from the design README, not from the run). */
@@ -11,20 +14,17 @@ export const COPY: Record<string, { name: string; description: string }> = {
 };
 
 /** The note on the chosen model's row. */
-export const PICK_NOTE = "our pick, chosen before the test";
+export const PICK_NOTE = "our pick";
 
 /** The colour token of each method; always paired with the name, a hatch or a shape, never the only cue. */
 export const TOKEN: Record<string, string> = {
   llm: "var(--m-llm)", forward: "var(--m-forward)", broadcaster: "var(--tv)", know_nothing: "var(--m-know-nothing)",
 };
 
-const PLACES = ["1st", "2nd", "3rd", "4th"];
 const COUNT_WORDS = ["no", "one", "two", "three", "four"];
 
 export interface Row {
   id: string;
-  place: number;
-  placeLabel: string;
   name: string;
   description: string;
   miss: number;
@@ -39,21 +39,19 @@ export interface Row {
 export function rows(final: FinalState): Row[] {
   const list = final.methods.filter((id) => final.accuracy[id]).map((id, i) => ({ id, i, a: final.accuracy[id] }));
   list.sort((x, y) => x.a.average_miss - y.a.average_miss || x.i - y.i);
-  return list.map(({ id, a }, k) => ({
-    id, place: k + 1, placeLabel: PLACES[k] ?? `${k + 1}th`,
-    name: COPY[id]?.name ?? id, description: COPY[id]?.description ?? "",
+  return list.map(({ id, a }) => ({
+    id, name: COPY[id]?.name ?? id, description: COPY[id]?.description ?? "",
     miss: a.average_miss, within10: a.within_10, within20: a.within_20, bias: a.bias,
     phrase: final.bias_phrases?.[id] ?? "", isChosen: id === final.winner,
   }));
 }
 
-/** The header lead: the test year, the innings count and how many predictions were made (all from the state). */
+/** The header lead: the innings count, the test year and how many predictions were made (all from the state). */
 export function headerLead(testYear: number | undefined, innings: number | undefined, methods: number): string {
-  const year = testYear === undefined ? "The test season" : String(testYear);
-  const each = innings === undefined ? "its innings" : `each of its ${innings} innings`;
+  const year = testYear === undefined ? "the test year" : String(testYear);
+  const each = innings === undefined ? "each innings" : `each of the ${innings} innings`;
   const words = COUNT_WORDS[methods] ?? String(methods);
-  return `${year}: a season nothing learned from or was chosen on. For ${each}, ${words} predictions of the final total, ` +
-    "made at the halfway mark and then compared with what really happened.";
+  return `For ${each} of ${year}, ${words} predictions of the final total, made at the halfway mark and then compared with what really happened.`;
 }
 
 export function fact(e: CricketExplanation | undefined, id: string): Fact | undefined {
@@ -66,4 +64,50 @@ export function factText(e: CricketExplanation | undefined, id: string): string 
 
 export function factFlag(e: CricketExplanation | undefined, id: string): boolean {
   return fact(e, id)?.value === true;
+}
+
+// ---------------- the two exams ----------------
+
+/** Two models' scores on one exam, in tenths of a run as displayed. `ai` is null without the AI's model. */
+export interface ExamScores { rival: number | null; ai: number | null }
+
+export interface ExamView {
+  validation: ExamScores;          // from final.validation_mae
+  test: ExamScores;                // from final.accuracy
+  aiTook: boolean;                 // the AI's model took part and has a score on both exams
+  chosen: "ai" | "rival";          // final.winner: the choice made on validation, before the test
+  years: ExamYears;
+  innings: number;
+  candidateModels: number;         // the AI's fitted attempts plus the grid's allowed cells
+  tv: number | null;               // the TV projection's and the know-nothing guess's test misses (tenths)
+  knowNothing: number | null;
+}
+
+const tenthsOrNull = (x: number | null | undefined): number | null => (x === null || x === undefined ? null : tenths(x));
+
+/** How many candidate models were scored on the check seasons: the AI's fitted attempts plus the grid's allowed combinations. */
+export function countCandidateModels(attempts: Attempt[] | undefined, grid: { cells?: { allowed?: boolean }[] } | undefined): number {
+  const ai = (attempts ?? []).filter((a) => a.proposer === "llm").length;
+  const cells = (grid?.cells ?? []).filter((c) => c.allowed).length;
+  return ai + cells;
+}
+
+/** The two exams' scores for the run, or undefined until the final test is on display. */
+export function examView(state: Record<string, unknown>): ExamView | undefined {
+  const final = state.final as FinalState | undefined;
+  const years = examYears(state.split as Parameters<typeof examYears>[0]);
+  if (!final || !final.accuracy || !years) return undefined;
+  const acc = final.accuracy;
+  const val = final.validation_mae ?? { llm: null, forward: null };
+  const aiScores = final.llm_took_part && acc.llm !== undefined && val.llm !== null && val.llm !== undefined;
+  const first = Object.values(acc)[0];
+  return {
+    validation: { rival: tenthsOrNull(val.forward), ai: aiScores ? tenthsOrNull(val.llm) : null },
+    test: { rival: tenthsOrNull(acc.forward?.average_miss), ai: aiScores ? tenthsOrNull(acc.llm?.average_miss) : null },
+    aiTook: aiScores,
+    chosen: final.winner === "llm" ? "ai" : "rival",
+    years, innings: first ? first.n : 0,
+    candidateModels: countCandidateModels(state.attempts as Attempt[] | undefined, state.grid as { cells?: { allowed?: boolean }[] } | undefined),
+    tv: tenthsOrNull(acc.broadcaster?.average_miss), knowNothing: tenthsOrNull(acc.know_nothing?.average_miss),
+  };
 }

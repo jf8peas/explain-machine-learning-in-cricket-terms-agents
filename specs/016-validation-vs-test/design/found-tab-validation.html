@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What the agent found: visual reference</title>
+<!-- Visual reference only: not shipped. Figures follow one real run; [n] and unshown values are placeholders.
+     README.md governs layout, copy and data. -->
+<style>
+body{margin:0;background:#ffffff}
+a{color:#1d6fe0}a:hover{color:#1554ad}
+</style>
+</head>
+<body>
+<div style="box-sizing: border-box; width: 100%; background: #ffffff; color: #1b2230; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 28px 24px 56px">
+<div style="max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px">
+
+<header style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 34px; line-height: 1.15; font-weight: 750">What the agent found</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.5; color: #3d475a">Two methods competed to pick the best clues for the prediction. One thinks like an analyst, the other searches like a machine. This is how each one searched, and which setup goes forward to the final test.</p>
+<div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 14px 18px; border-radius: 12px; border: 2px solid #a35d00; background: #fdf6e7">
+<span style="flex: none; padding: 4px 10px; border-radius: 999px; background: #a35d00; color: #ffffff; font-size: 12px; font-weight: 800; letter-spacing: .08em">VALIDATION</span>
+<p style="margin: 0; flex: 1 1 520px; font-size: 15px; line-height: 1.45">Every score on this tab comes from the <strong>check seasons, 2023 to 2025</strong> (cross-validation). They are used to <strong>choose</strong> a setup, not to judge it. The honest verdict comes from the final test.</p>
+</div>
+</header>
+
+<section aria-labelledby="contest" style="display: flex; flex-direction: column; gap: 16px">
+<h3 id="contest" style="margin: 0; font-size: 22px">1. The contest: two ways to choose the clues</h3>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 2px solid #1d6fe0; border-radius: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<span style="font-size: 20px; font-weight: 750; color: #1d6fe0">The AI agent</span>
+<span style="font-size: 13px; color: #5b6678">a language model · up to 6 tries</span>
+</div>
+<p style="margin: 0; font-size: 16px; line-height: 1.5"><strong>Thinks like an analyst.</strong> It reads the results so far, uses what it knows about cricket, and proposes the next setup to try, saying why.</p>
+<p style="margin: 0; font-size: 14px; color: #5b6678">Code checks every proposal and does all the fitting and scoring. The AI never supplies a number.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border: 2px solid #1f7a46; border-radius: 14px">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<span style="font-size: 20px; font-weight: 750; color: #1f7a46">The rival: forward selection</span>
+<span style="font-size: 13px; color: #5b6678">plain code · 24 setups</span>
+</div>
+<p style="margin: 0; font-size: 16px; line-height: 1.5"><strong>Searches like a machine.</strong> For every combination of settings it starts with no clues, adds whichever single clue cuts the miss most, and repeats until nothing helps.</p>
+<p style="margin: 0; font-size: 14px; color: #5b6678">No judgement, no cricket knowledge: just trying things in order.</p>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; padding: 16px 20px; border-radius: 12px; background: #f6f7f9">
+<p style="margin: 0; flex: 1 1 380px; font-size: 15px; line-height: 1.5"><strong>Why have a rival?</strong> It's the yardstick. If the AI can't beat a simple mechanical search, its reasoning isn't adding anything.</p>
+<p style="margin: 0; flex: 1 1 380px; font-size: 15px; line-height: 1.5"><strong>What's a setup?</strong> The clues (features), how many past seasons to learn from, whether recent seasons count more, and which innings to learn from.</p>
+</div>
+</section>
+
+<section aria-labelledby="scoring" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="scoring" style="margin: 0; font-size: 22px">2. How every setup is scored: three check seasons <span style="font-weight: 400; color: #5b6678">(cross-validation)</span></h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; max-width: 72ch; color: #3d475a">Each setup learns from earlier seasons, then predicts a check season it hasn't seen, three times over. Its score is its <strong>average miss</strong> across the three, in runs. Lower is better. These scores are used again and again to compare setups, which is exactly why they can't also be the final verdict.</p>
+<div role="img" aria-label="Seasons from 2005 to 2022 are for learning. 2023, 2024 and 2025 are the three check seasons, used for validation. 2026 is the final test, locked until the end." style="display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1fr; gap: 6px; font-size: 14px">
+<div style="padding: 12px 14px; border-radius: 8px; background: #e7ecf3"><strong>2005–2022</strong><br><span style="color: #3d475a">learn from</span></div>
+<div style="padding: 12px 10px; border-radius: 8px; background: #f8e6c2; border: 2px solid #a35d00; text-align: center"><strong>2023</strong><br><span style="color: #3d475a">check</span></div>
+<div style="padding: 12px 10px; border-radius: 8px; background: #f8e6c2; border: 2px solid #a35d00; text-align: center"><strong>2024</strong><br><span style="color: #3d475a">check</span></div>
+<div style="padding: 12px 10px; border-radius: 8px; background: #f8e6c2; border: 2px solid #a35d00; text-align: center"><strong>2025</strong><br><span style="color: #3d475a">check</span></div>
+<div style="padding: 12px 10px; border-radius: 8px; background: #1b2230; color: #ffffff; text-align: center"><strong>2026</strong><br><span>final test, locked</span></div>
+</div>
+<div style="display: grid; grid-template-columns: 6fr 3fr 1fr; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em">
+<span></span>
+<span style="text-align: center; color: #a35d00">VALIDATION: USED TO CHOOSE</span>
+<span style="text-align: center; color: #1b2230">TEST</span>
+</div>
+</section>
+
+<section aria-labelledby="race" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="race" style="margin: 0; font-size: 22px">3. The race on the check seasons</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center">
+<figure style="flex: 3 1 560px; min-width: 0; margin: 0; padding: 16px 16px 8px; border: 1px solid #d5d9e0; border-radius: 14px">
+<svg viewBox="0 0 700 300" role="img" aria-label="Average miss on the check seasons by AI round. Round 1: 18.2 runs. Round 2: 17.8, a new best. Round 3: 17.8, no better. Round 4: 17.5, a new best. Round 5: 17.4, a new best. Round 6: 18.0, no better. The rival's best was 17.0 and the TV projection's was 21.6." style="display: block; width: 100%; height: auto">
+<g stroke="#e3e7ed" stroke-width="1">
+<line x1="60" y1="250" x2="600" y2="250"></line><line x1="60" y1="210" x2="600" y2="210"></line><line x1="60" y1="170" x2="600" y2="170"></line><line x1="60" y1="130" x2="600" y2="130"></line><line x1="60" y1="90" x2="600" y2="90"></line><line x1="60" y1="50" x2="600" y2="50"></line><line x1="60" y1="10" x2="600" y2="10"></line>
+</g>
+<g fill="#5b6678" font-size="12" text-anchor="end"><text x="52" y="254">16</text><text x="52" y="214">17</text><text x="52" y="174">18</text><text x="52" y="134">19</text><text x="52" y="94">20</text><text x="52" y="54">21</text><text x="52" y="14">22</text></g>
+<text x="16" y="135" font-size="12" fill="#5b6678" transform="rotate(-90 16 135)" text-anchor="middle">average miss on check seasons</text>
+<g fill="#5b6678" font-size="12" text-anchor="middle"><text x="105" y="275">1</text><text x="195" y="275">2</text><text x="285" y="275">3</text><text x="375" y="275">4</text><text x="465" y="275">5</text><text x="555" y="275">6</text></g>
+<text x="330" y="294" font-size="12" fill="#5b6678" text-anchor="middle">AI agent's round</text>
+<line x1="60" y1="26" x2="600" y2="26" stroke="#b35c00" stroke-width="2" stroke-dasharray="8 6"></line>
+<text x="608" y="30" font-size="13" font-weight="600" fill="#b35c00">TV 21.6</text>
+<line x1="60" y1="210" x2="600" y2="210" stroke="#1f7a46" stroke-width="2.5" stroke-dasharray="3 5" stroke-linecap="round"></line>
+<text x="608" y="226" font-size="13" font-weight="700" fill="#1f7a46">Rival 17.0</text>
+<polyline points="105,162 195,162 195,178 375,178 375,190 465,190 465,194 600,194" fill="none" stroke="#1d6fe0" stroke-width="3"></polyline>
+<text x="608" y="198" font-size="13" font-weight="700" fill="#1d6fe0">AI 17.4</text>
+<g fill="#1d6fe0"><circle cx="105" cy="162" r="7"></circle><circle cx="195" cy="178" r="7"></circle><circle cx="375" cy="190" r="7"></circle><circle cx="465" cy="194" r="7"></circle></g>
+<circle cx="285" cy="178" r="6" fill="#ffffff" stroke="#1d6fe0" stroke-width="2.5"></circle>
+<circle cx="555" cy="170" r="6" fill="#ffffff" stroke="#1d6fe0" stroke-width="2.5"></circle>
+</svg>
+<figcaption style="font-size: 13px; line-height: 1.5; color: #5b6678; padding: 4px 4px 0">Filled dots: a new best. Open dots: no better. The solid line is the AI's best so far. All scores are on the check seasons.</figcaption>
+</figure>
+<div style="flex: 2 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 14px; background: #e8f3ec; border-left: 6px solid #1f7a46">
+<p style="margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #3d475a">Chosen on validation</p>
+<p style="margin: 0; font-size: 26px; line-height: 1.2; font-weight: 750">The rival's setup, by a whisker</p>
+<p style="margin: 0; font-size: 16px; line-height: 1.5">It missed by <strong>17.0 runs</strong> on the check seasons, against <strong>17.4</strong> for the AI. A gap of 0.4 runs is <strong>too close to call</strong>: the two are about equally good.</p>
+<p style="margin: 0; font-size: 14px; color: #3d475a">A choice still has to be made, so the lower score goes forward. How good it really is gets settled by the final test, on a season nothing has seen.</p>
+<a href="#final-test" style="font-size: 15px; font-weight: 600">See the final test →</a>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="rounds" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="rounds" style="margin: 0; font-size: 22px">4. The AI's rounds: what it tried, why, and how it went</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; max-width: 72ch; color: #3d475a">Each round, the AI proposes a setup and explains its thinking in its own words. Code then checks it, fits it and scores it on the check seasons.</p>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 1px solid #d5d9e0; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #5b6678">Round 1</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>Runs at halfway, wickets lost, runs × wickets in hand</strong> · all seasons · equal weighting · full-member and league innings</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“Start with the strongest signals: how many runs, how many wickets gone, and how much batting is left to come.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right"><strong style="font-size: 20px; font-variant-numeric: tabular-nums">18.2</strong><br><span style="color: #5b6678">first score</span></span>
+</li>
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 1px solid #d5d9e0; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #5b6678">Round 2</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>+ sixes hit</strong> · last 10 seasons · recent a little more</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“Six-hitting shows intent, and scoring has risen, so lean on recent seasons.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right; color: #1d6fe0"><strong style="font-size: 20px; font-variant-numeric: tabular-nums">17.8</strong><br>new best ▼0.4</span>
+</li>
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 1px solid #d5d9e0; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #5b6678">Round 3</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>+ dot balls faced</strong> · last 10 seasons · recent a little more</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“Lots of dot balls may mean a side has been held back and has power to unleash.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right; color: #5b6678"><strong style="font-size: 20px; font-variant-numeric: tabular-nums; color: #1b2230">17.8</strong><br>no better</span>
+</li>
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 1px solid #d5d9e0; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #5b6678">Round 4</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>Round 2's clues</strong> · last 5 seasons · recent a little more</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“Scoring has picked up sharply lately, so learn from the most recent seasons only.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right; color: #1d6fe0"><strong style="font-size: 20px; font-variant-numeric: tabular-nums">17.5</strong><br>new best ▼0.3</span>
+</li>
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 2px solid #1d6fe0; border-radius: 12px; background: #eef4fd">
+<span style="font-size: 13px; font-weight: 700; color: #1d6fe0">Round 5</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>Same clues</strong> · last 5 seasons · recent much more</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“Weighting recent seasons helped, so push it further.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right; color: #1d6fe0"><strong style="font-size: 20px; font-variant-numeric: tabular-nums">17.4</strong><br>AI's best ▼0.1</span>
+</li>
+<li style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 150px; gap: 16px; align-items: start; padding: 16px; border: 1px solid #d5d9e0; border-radius: 12px">
+<span style="font-size: 13px; font-weight: 700; color: #5b6678">Round 6</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<p style="margin: 0; font-size: 15px"><strong>+ powerplay runs</strong> · last 5 seasons · recent much more</p>
+<blockquote style="margin: 0; padding-left: 12px; border-left: 3px solid #1d6fe0; font-size: 15px; font-style: italic; color: #3d475a">“A fast start might carry on into the death overs.”</blockquote>
+</div>
+<span style="font-size: 15px; text-align: right; color: #5b6678"><strong style="font-size: 20px; font-variant-numeric: tabular-nums; color: #1b2230">18.0</strong><br>no better</span>
+</li>
+</ol>
+<p style="margin: 0; font-size: 13px; color: #5b6678">The AI's words are shown exactly as it wrote them. Scores are average misses across the three check seasons, worked out by code.</p>
+</section>
+
+<section aria-labelledby="grid" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="grid" style="margin: 0; font-size: 22px">5. The rival's grid search: trying every combination</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; max-width: 72ch; color: #3d475a">The rival can't reason, so it tries everything. Each cell is one combination of settings, chosen before learning starts. Settings like these are called <strong>hyperparameters</strong>, and trying every combination is called a <strong>grid search</strong>. Every cell is scored on the check seasons.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 28px">
+<div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p style="margin: 0; font-size: 14px; font-weight: 700">Learning from full-member and league innings</p>
+<div style="display: grid; grid-template-columns: 120px repeat(3, minmax(0, 1fr)); gap: 4px; font-size: 14px; text-align: center; font-variant-numeric: tabular-nums">
+<span></span><span style="color: #5b6678">equal</span><span style="color: #5b6678">recent a little more</span><span style="color: #5b6678">recent much more</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">all seasons</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.3</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.0</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.7</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 10</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.8</span><span style="padding: 10px; border-radius: 6px; background: #d7eadf">17.4</span><span style="padding: 10px; border-radius: 6px; background: #d7eadf">17.3</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 5</span><span style="padding: 10px; border-radius: 6px; background: #d7eadf">17.3</span><span style="padding: 8px; border-radius: 6px; background: #c6e2d1; outline: 3px solid #1f7a46; outline-offset: -3px; font-weight: 800">17.0 ★</span><span style="padding: 10px; border-radius: 6px; background: #d7eadf">17.2</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 3</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.6</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.5</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.7</span>
+</div>
+</div>
+<div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p style="margin: 0; font-size: 14px; font-weight: 700">Learning from all innings</p>
+<div style="display: grid; grid-template-columns: 120px repeat(3, minmax(0, 1fr)); gap: 4px; font-size: 14px; text-align: center; font-variant-numeric: tabular-nums">
+<span></span><span style="color: #5b6678">equal</span><span style="color: #5b6678">recent a little more</span><span style="color: #5b6678">recent much more</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">all seasons</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.9</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.6</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.4</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 10</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.2</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.9</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.8</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 5</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.7</span><span style="padding: 10px; border-radius: 6px; background: #d7eadf">17.4</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.6</span>
+<span style="text-align: left; color: #5b6678; padding: 10px 0">last 3</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.1</span><span style="padding: 10px; border-radius: 6px; background: #e4efe8">17.9</span><span style="padding: 10px; border-radius: 6px; background: #f1f3f6">18.2</span>
+</div>
+</div>
+</div>
+<p style="margin: 0; font-size: 15px; line-height: 1.5"><strong style="color: #1f7a46">★ The rival's best: 17.0 runs on the check seasons.</strong> Last 5 seasons, recent seasons counting a little more, full-member and league innings. Darker cells missed by less.</p>
+</section>
+
+<section aria-labelledby="ranked" style="display: flex; flex-direction: column; gap: 14px">
+<h3 id="ranked" style="margin: 0; font-size: 22px">6. Every setup tried, ranked</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; max-width: 72ch; color: #3d475a">The AI's tries and the rival's best from each cell of its grid, in one list, ordered by average miss on the check seasons.</p>
+<div style="overflow-x: auto">
+<table style="border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums">
+<thead><tr style="color: #5b6678; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #d5d9e0">#</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #d5d9e0">Setup</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #d5d9e0">Found by</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #d5d9e0; text-align: right">Average miss on check seasons (runs)</th></tr></thead>
+<tbody>
+<tr><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">1</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">Rival's best cell · last 5 · recent a little more · full-member and league</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; color: #1f7a46; font-weight: 600">Rival</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; text-align: right; font-weight: 700">17.0</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">2</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">Last 5 · recent much more · full-member and league</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; color: #1f7a46; font-weight: 600">Rival</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; text-align: right">17.2</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">3</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed">Round 5: same clues · last 5 · recent much more</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; color: #1d6fe0; font-weight: 600">AI agent</td><td style="padding: 8px; border-bottom: 1px solid #e3e7ed; text-align: right">17.4</td></tr>
+<tr><td style="padding: 8px; color: #5b6678" colspan="4">… 27 more. The TV projection missed by 21.6 on the same seasons.</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</div>
+</div>
+</body>
+</html>

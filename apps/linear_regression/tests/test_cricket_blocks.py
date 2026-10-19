@@ -49,7 +49,7 @@ def test_fill_replaces_every_placeholder_with_the_facts_display():
 def test_fill_raises_on_an_unknown_fact_and_never_leaves_a_placeholder():
     with pytest.raises(UnknownFact):
         fill("About {nonsense} runs", facts_for(state_for()))
-    assert "{" not in fill("{winner_name} {test_year}", facts_for(state_for()))
+    assert "{" not in fill("{chosen_label} {test_year}", facts_for(state_for()))
 
 
 def test_the_blocks_are_the_verdict_three_takeaways_and_the_rule_of_thumb_in_a_fixed_order():
@@ -100,22 +100,11 @@ def test_the_verdict_names_the_ai_agents_model_when_it_was_chosen():
     assert "The AI agent's model beat the TV projection" in text(b)
 
 
-@pytest.mark.parametrize("kw, leader_text", [
-    (RIVAL_SHORTER, "The rival's model had the shortest bar"),
-    (TV_SHORTEST, "The TV projection had the shortest bar"),
-    (MISSED_WORSE, "The TV projection had the shortest bar"),
-])
-def test_the_extra_sentence_appears_only_when_another_method_has_the_shorter_bar(kw, leader_text):
+@pytest.mark.parametrize("kw", [REACHED, MISSED_BEAT, MISSED_WORSE, RIVAL_SHORTER, TV_SHORTEST, TIE_FOR_SHORTEST, NO_AI])
+def test_the_verdict_is_one_sentence_whoever_had_the_shortest_bar(kw):
     b = block(blocks_for(state_for(**kw))[1], "verdict")
-    assert b["visual"]["race_leader_differs"] is True and len(b["sentences"]) == 2
-    assert leader_text in b["sentences"][1] and "before the test" in b["sentences"][1]
-
-
-@pytest.mark.parametrize("kw", [REACHED, MISSED_BEAT, TIE_FOR_SHORTEST, NO_AI])
-def test_no_extra_sentence_when_the_chosen_model_has_or_shares_the_shortest_bar(kw):
-    b = block(blocks_for(state_for(**kw))[1], "verdict")
-    assert b["visual"]["race_leader_differs"] is False and len(b["sentences"]) == 1
-    assert "shortest bar" not in text(b)
+    assert len(b["sentences"]) == 1 and "shortest bar" not in text(b)
+    assert "race_leader_differs" not in b["visual"]
 
 
 # ---- takeaway 1: the run rate alone ----------------------------------------------------------------------------
@@ -134,6 +123,46 @@ def test_the_barely_helps_threshold_is_the_heros():
     # exactly 10% of the know-nothing miss is "barely" (the hero says the same); just past it is "clearly"
     assert facts_for(state_for(tv=18.0, know_nothing=20.0))["run_rate_state"]["value"] == "barely"
     assert facts_for(state_for(tv=17.9, know_nothing=20.0))["run_rate_state"]["value"] == "clearly"
+
+
+# a know-nothing guess that is far off (bias at least half its miss) and guesses too low: totals have risen
+RISING = dict(know_nothing=34.0, know_nothing_bias=-20.0)
+RISING_BARELY = dict(tv=21.0, know_nothing=22.0, know_nothing_bias=-15.0)    # far off and too low, but the TV only barely helps
+FAR_OFF_HIGH = dict(know_nothing=34.0, know_nothing_bias=20.0)
+NOT_FAR_OFF = dict(know_nothing=34.0, know_nothing_bias=-10.0)
+
+
+@pytest.mark.parametrize("kw", [RISING, dict(know_nothing=40.0, know_nothing_bias=-25.0, tv=18.0)])
+def test_takeaway_one_says_scores_keep_climbing_when_the_know_nothing_guess_is_far_off_and_too_low(kw):
+    b = block(blocks_for(state_for(**kw))[1], "takeaway_run_rate")
+    assert b["title"] == "Scores keep climbing"
+    facts = facts_for(state_for(**kw))
+    assert facts["know_nothing_rising"]["value"] is True and facts["know_nothing_bias_direction"]["display"] == "too low"
+    assert f"{facts['know_nothing_bias_runs']['display']} too low" in b["sentences"][0]
+    assert f"The TV misses by {facts['tv_test_miss']['display']} runs, against {facts['know_nothing_miss']['display']}" in b["sentences"][1]
+
+
+@pytest.mark.parametrize("kw, title", [
+    (RISING_BARELY, "The run rate alone barely helps"),             # far off and too low, but only "clearly" gets the climbing wording
+    (FAR_OFF_HIGH, "The run rate alone is a real help"),            # far off but too high: totals have not risen
+    (NOT_FAR_OFF, "The run rate alone is a real help"),             # too low but not far off
+    (dict(tv=21.0, know_nothing=20.0, know_nothing_bias=-15.0), "The run rate alone does not help"),   # the TV is no better: feature 015's wording
+    (dict(know_nothing=34.0, know_nothing_bias=0.0), "The run rate alone is a real help"),
+])
+def test_takeaway_one_keeps_feature_015_wording_when_totals_have_not_visibly_risen(kw, title):
+    b = block(blocks_for(state_for(**kw))[1], "takeaway_run_rate")
+    assert b["title"] == title
+    assert "keep" not in text(b).lower() or "keep climbing" not in text(b).lower()
+    assert facts_for(state_for(**kw))["know_nothing_rising"]["value"] is (kw.get("know_nothing_bias", 0) < 0 and abs(kw.get("know_nothing_bias", 0)) >= 0.5 * kw["know_nothing"])
+
+
+def test_the_rising_variant_takes_its_direction_word_only_through_a_placeholder_and_fits_the_limits():
+    raw = cricket_blocks._takeaway_run_rate(facts_for(state_for(**RISING)))
+    assert "{know_nothing_bias_direction}" in raw["sentences"][0]
+    assert "too low" not in raw["sentences"][0] and len(raw["title"]) <= MAX_TITLE
+    assert all(len(sentence) <= MAX_SENTENCE for sentence in raw["sentences"])
+    facts, blocks = blocks_for(state_for(**RISING))
+    check_section_numbers({"facts": facts, "blocks": blocks})
 
 
 # ---- takeaway 2: what drives the total ---------------------------------------------------------------------------
@@ -238,7 +267,7 @@ def test_the_rule_of_thumb_and_the_verdict_never_contain_a_placeholder():
 
 # ---- all blocks -----------------------------------------------------------------------------------------------------------
 
-ALL_CASES = [{}, WICKET_COST, WICKET_GAIN, WICKET_HAND_LESS, NO_WICKET, CLEARLY, BARELY, NO_BETTER, TV_LOW, TV_HIGH, TV_SMALL, TV_ZERO,
+ALL_CASES = [RISING, RISING_BARELY, FAR_OFF_HIGH, NOT_FAR_OFF, {}, WICKET_COST, WICKET_GAIN, WICKET_HAND_LESS, NO_WICKET, CLEARLY, BARELY, NO_BETTER, TV_LOW, TV_HIGH, TV_SMALL, TV_ZERO,
              REACHED, MISSED_BEAT, MISSED_WORSE, RIVAL_SHORTER, TV_SHORTEST, NO_AI,
              {"features_": ("runs_at_10",), "coefs": {"runs_at_10": 1.2}}]
 
@@ -285,3 +314,9 @@ def test_a_direction_word_in_the_section_is_only_ever_one_the_templates_wrote_fo
             for word in DIRECTION_WORDS.findall(text(b)):
                 assert word.lower() in {"add", "take off", "over", "under", "too low", "too high"}
         assert facts["tv_bias_direction"]["display"] in {"too low", "too high", "about right"}
+
+
+@pytest.mark.parametrize("kw", ALL_CASES)
+def test_no_block_text_says_winner(kw):
+    _, blocks = blocks_for(state_for(**kw))
+    assert "winner" not in " ".join(text(b) for b in blocks).lower()

@@ -4,13 +4,14 @@ import pytest
 from linreg import cricket_facts
 from tests.test_explanation_numbers import facts_for, state_for
 
-REQUIRED = {"goal_reached", "beat_tv", "beat_tv_by", "goal_margin", "winner_name", "winner_test_miss", "tv_test_miss",
+REQUIRED = {"goal_reached", "beat_tv", "beat_tv_by", "goal_margin", "tv_test_miss",
             "share_within_10", "share_within_10_words", "within_runs_threshold", "biggest_factor", "biggest_factor_effect",
             "n_features", "test_year", "test_innings", "beat_know_nothing_by", "beat_know_nothing",
+            "know_nothing_rising", "know_nothing_bias_runs", "know_nothing_bias_direction",
             "know_nothing_miss", "tv_gap", "run_rate_state", "tv_bias_runs", "tv_bias_direction", "tv_bias_large", "rule_verb",
-            "rule_runs", "chosen_label", "race_leader", "race_leader_label", "race_leader_differs", "leader_within_10",
-            "leader_within_10_words"}
-GONE = {"winner_validation_error", "check_year_1", "check_year_2", "check_year_3", "training_from", "training_to"}
+            "rule_runs", "chosen_label"}
+GONE = {"winner_name", "winner_test_miss", "race_leader", "race_leader_label", "race_leader_differs", "leader_within_10",
+        "leader_within_10_words", "winner_validation_error", "check_year_1", "check_year_2", "check_year_3", "training_from", "training_to"}
 
 
 def test_every_fact_has_a_value_a_unit_a_display_and_a_meaning():
@@ -131,25 +132,27 @@ def test_the_share_words_use_the_displayed_one_decimal_share():
     assert facts["share_within_10_words"]["display"] == "only about a third of the time"
 
 
-@pytest.mark.parametrize("kw, chosen, leader, differs", [
-    (dict(forward_mae=17.0, llm_mae=18.0, tv=21.0), "rival's model", "rival's model", False),
-    (dict(winner="llm", llm_mae=18.0, forward_mae=16.0, tv=21.0), "AI agent's model", "rival's model", True),
-    (dict(winner="llm", llm_mae=18.0, forward_mae=19.0, tv=15.0), "AI agent's model", "TV projection", True),
-    (dict(winner="llm", llm_mae=17.0, forward_mae=17.0, tv=21.0), "AI agent's model", "AI agent's model", False),
-    (dict(llm_mae=None, forward_mae=17.0, tv=21.0, took_part=False), "rival's model", "rival's model", False),
-    (dict(winner="forward", llm_mae=30.0, forward_mae=31.0, tv=35.0, know_nothing=29.0), "rival's model",
-     "know-nothing guess", True),
+@pytest.mark.parametrize("kw, chosen", [
+    (dict(forward_mae=17.0, llm_mae=18.0, tv=21.0), "rival's model"),
+    (dict(winner="llm", llm_mae=18.0, forward_mae=16.0, tv=21.0), "AI agent's model"),
+    (dict(llm_mae=None, forward_mae=17.0, tv=21.0, took_part=False), "rival's model"),
 ])
-def test_the_race_leader_is_the_shortest_bar_and_the_chosen_model_wins_ties(kw, chosen, leader, differs):
-    facts = facts_for(state_for(**kw))
-    assert facts["chosen_label"]["display"] == chosen and facts["race_leader_label"]["display"] == leader
-    assert facts["race_leader_differs"]["value"] is differs
+def test_the_chosen_label_follows_the_method_chosen_before_the_test(kw, chosen):
+    assert facts_for(state_for(**kw))["chosen_label"]["display"] == chosen
 
 
-def test_the_leaders_within_ten_share_is_the_leaders_not_the_chosen_models():
-    facts = facts_for(state_for(winner="llm", llm_mae=18.0, forward_mae=16.0, tv=21.0, within_10=30.0, other_within_10=50.0))
-    assert facts["leader_within_10"]["display"] == "50.0" and facts["share_within_10"]["display"] == "30.0"
-    assert facts["leader_within_10_words"]["display"] == "only about half the time"
+@pytest.mark.parametrize("bias, direction, rising", [
+    (-20.0, "too low", True), (-17.0, "too low", True), (-16.9, "too low", False),   # 17.0 is half of a 34.0 miss
+    (20.0, "too high", False), (0.0, "about right", False), (-0.04, "about right", False),
+])
+def test_the_know_nothing_rising_fact_uses_the_large_bias_rule_and_too_low(bias, direction, rising):
+    facts = facts_for(state_for(know_nothing=34.0, know_nothing_bias=bias))
+    assert facts["know_nothing_bias_direction"]["display"] == direction and facts["know_nothing_rising"]["value"] is rising
+
+
+def test_no_fact_description_says_winner():
+    for fid, f in facts_for(state_for()).items():
+        assert "winner" not in f["meaning"].lower(), fid
 
 
 def test_every_new_fact_has_the_four_fields():

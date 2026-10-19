@@ -25,10 +25,8 @@ export interface ValidationWinner { winner: "llm" | "forward"; reason?: string }
 
 export const SHADE_STEPS = 5;
 
-/** Tenths of a run as shown: 12.34 and 12.3 are both 123. */
-export const tenths = (x: number): number => Math.round(x * 10);
-export const fromTenths = (t: number): string => (t / 10).toFixed(1);
-export const shown = (x: number): string => fromTenths(tenths(x));
+export { fromTenths, shown, tenths } from "../exam";
+import { fromTenths, shown, tenths, tooClose } from "../exam";
 
 export type RoundKind = "fitted" | "pending" | "rejected" | "finished" | "failed";   // pending: accepted by code, not scored yet
 export type ClueChange = "first" | "same" | "added" | "changed";
@@ -58,12 +56,14 @@ export interface RankingRow {
   training_innings?: string;
   miss: number;                   // tenths
 }
-export interface WinnerView {
-  state: "pending" | "ai" | "rival" | "tie";
-  winnerMiss: number | null;      // tenths
+/** The candidate model chosen on validation, before the final test. It describes the recorded decision; it never overrides it. */
+export interface ChoiceView {
+  state: "pending" | "clear" | "whisker" | "noAi";
+  chosen: "ai" | "rival" | null;  // whose candidate model goes forward
+  chosenMiss: number | null;      // tenths
   otherMiss: number | null;
   gap: number | null;             // tenths, never negative
-  belowDisplay: boolean;          // equal when shown, but the recorded winner is the rival
+  tooClose: boolean;              // the two displayed scores are under TOO_CLOSE_RUNS apart (state "whisker")
 }
 export interface GridCellView { text: string; allowed: boolean; note: string | null; best: boolean; step: number | null; window: string; weighting: string }
 export interface GridGroup { innings: string; windows: string[]; weightings: string[]; cells: GridCellView[] }
@@ -75,7 +75,7 @@ export interface FoundView {
   aiBest: number | null;
   rival: number | null;           // tenths, only once the grid search is on display
   tv: number | null;
-  winner: WinnerView;
+  choice: ChoiceView;
   fallback: boolean;              // the language model did not take part and made no attempts
   status: string | undefined;
   failure: string | null | undefined;
@@ -123,15 +123,58 @@ function roundViews(rounds: RoundNote[], llm: Attempt[]): RoundView[] {
   return views;
 }
 
-function winnerView(w: ValidationWinner | undefined, ai: number | null, rival: number | null): WinnerView {
-  if (!w) return { state: "pending", winnerMiss: null, otherMiss: null, gap: null, belowDisplay: false };
-  if (w.winner === "llm" && ai !== null) {
-    const gap = rival === null ? null : rival - ai;
-    return { state: gap === 0 ? "tie" : "ai", winnerMiss: ai, otherMiss: rival, gap: gap === null ? null : Math.max(0, gap), belowDisplay: false };
+/** The choice panel's state. A gap under TOO_CLOSE_RUNS (including a tie, and equal scores when the rival was recorded as chosen) is
+ *  a "whisker"; the lower score still goes forward, as recorded. With no scorable AI candidate model the rival goes forward alone. */
+export function choiceView(w: ValidationWinner | undefined, ai: number | null, rival: number | null): ChoiceView {
+  if (!w) return { state: "pending", chosen: null, chosenMiss: null, otherMiss: null, gap: null, tooClose: false };
+  if (ai === null) {
+    return { state: "noAi", chosen: "rival", chosenMiss: rival, otherMiss: null, gap: null, tooClose: false };
   }
-  // The rival wins when the record says so, and also when the AI has no fitted setup that could go forward.
-  const gap = ai === null || rival === null ? null : Math.max(0, ai - rival);
-  return { state: "rival", winnerMiss: rival, otherMiss: ai, gap, belowDisplay: w.winner === "forward" && gap === 0 };
+  const chosen = w.winner === "llm" ? "ai" : "rival";
+  const chosenMiss = chosen === "ai" ? ai : rival;
+  const otherMiss = chosen === "ai" ? rival : ai;
+  if (rival === null || chosenMiss === null) return { state: "clear", chosen, chosenMiss, otherMiss, gap: null, tooClose: false };
+  const gap = Math.abs(ai - rival);
+  const close = tooClose(ai / 10, rival / 10);
+  return { state: close ? "whisker" : "clear", chosen, chosenMiss, otherMiss, gap, tooClose: close };
+}
+
+export type { Seg } from "../exam";
+import type { Seg } from "../exam";
+const runsWord = (t: number) => `${fromTenths(t)} runs`;
+const SETTLED = "How good it really is gets settled by the final test, on a season nothing has seen.";
+
+/** The choice panel's heading. */
+export function choiceHeading(v: ChoiceView): string {
+  if (v.state === "pending") return "Still searching";
+  const name = v.chosen === "ai" ? "The AI agent's candidate model" : "The rival's candidate model";
+  return v.tooClose ? `${name}, by a whisker` : name;
+}
+
+/** The choice panel's text as segments, so the page can bold the scores and mark the "too close to call" phrase. */
+export function choiceText(v: ChoiceView): Seg[] {
+  if (v.state === "pending") {
+    return [{ text: "The search is still going. The candidate model that goes forward is chosen once the rival has finished its grid search, before the final test season is touched." }];
+  }
+  if (v.state === "noAi" || v.chosenMiss === null) {
+    return [{ text: `The AI agent made no candidate model that could be scored, so the rival's goes forward. ${SETTLED}` }];
+  }
+  const other = v.chosen === "ai" ? "the rival" : "the AI agent";
+  const out: Seg[] = [{ text: "It missed by " }, { text: runsWord(v.chosenMiss), kind: "strong" }, { text: " on the check seasons" }];
+  if (v.otherMiss === null || v.gap === null) {
+    out.push({ text: ". " });
+  } else {
+    out.push({ text: ", against " }, { text: fromTenths(v.otherMiss), kind: "strong" }, { text: ` for ${other}. ` });
+    if (v.tooClose) {
+      out.push({ text: `A gap of ${fromTenths(v.gap)} runs is ` }, { text: "too close to call", kind: "tooclose" },
+        { text: ": the two are about equally good. A choice still has to be made, so the lower score goes forward" },
+        { text: v.gap === 0 && v.chosen === "ai" ? " (equal scores go to the AI agent's candidate model). " : ". " });
+    } else {
+      out.push({ text: `${fromTenths(v.gap)} runs better. ` });
+    }
+  }
+  out.push({ text: SETTLED });
+  return out;
 }
 
 function gridGroups(grid: Grid | undefined): GridGroup[] {
@@ -185,7 +228,7 @@ export function buildView(state: Record<string, unknown>): FoundView {
     rounds: roundViews(rounds, ai), aiAttempts: ai,
     bestSoFar: ai.filter((a) => a.improved).map((a) => ({ round: a.round, miss: tenths(a.validation_mae) })),
     aiBest, rival, tv: baseline === undefined ? null : tenths(baseline),
-    winner: winnerView(state.validation_winner as ValidationWinner | undefined, aiBest, rival),
+    choice: choiceView(state.validation_winner as ValidationWinner | undefined, aiBest, rival),
     fallback: ai.length === 0 && (status === "not_used" || status === "failed"),
     status, failure: state.llm_failure as string | null | undefined, split: state.split as Split | undefined,
     grid, groups: gridGroups(grid), ranking: rankingRows(ai, grid),

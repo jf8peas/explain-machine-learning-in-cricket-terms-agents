@@ -23,8 +23,8 @@ export function renderRanking(view: FoundView): Node[] {
       h("td", { class: "rank-miss" }, fromTenths(r.miss))));
   }
   const table = h("table", { class: "attempts ranking", "data-testid": "ranking" },
-    h("thead", {}, h("tr", {}, ...["#", "Candidate model", "Found by", "Average miss (runs)"].map((t) => h("th", { scope: "col" }, t)))), body);
+    h("thead", {}, h("tr", {}, ...["#", "Candidate model", "Found by", "Average miss on check seasons (runs)"].map((t) => h("th", { scope: "col" }, t)))), body);
   out.push(h("div", { class: "table-scroll" }, table));
-  if (view.tv !== null) out.push(h("p", { class: "small", "data-testid": "ranking-tv" }, `The TV projection missed by ${fromTenths(view.tv)} on the same seasons.`));
+  if (view.tv !== null) out.push(h("p", { class: "small", "data-testid": "ranking-tv" }, `The TV projection missed by ${fromTenths(view.tv)} on the same check seasons.`));
   return out;
 }

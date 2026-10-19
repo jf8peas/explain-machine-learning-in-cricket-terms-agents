@@ -1,12 +1,10 @@
-// Section 1 of the final test tab (app-specific): who won the prediction race. The methods as HTML bars from zero on one
-// shared scale, sorted by average miss (best first), then one verdict line against the goal. Every number is the run's;
-// the verdict wording is the server's (a code-only block). Everything goes in as text, nothing animates, and the colour
-// of a method is always paired with its name, the TV bar's hatch or the know-nothing bar's grey.
+// The bars of The final test's section 1 (app-specific): all the predictions on the test year as HTML bars from zero on one
+// shared scale, sorted by average miss (shortest first), with no place labels; the chosen model carries an outlined "our pick"
+// tag. Every number is the run's. Everything goes in as text, nothing animates, and the colour of a method is always paired
+// with its name, the TV bar's hatch or the know-nothing bar's grey.
+import { renderSegs, type Seg } from "../exam";
 import { fmt, h } from "../dom";
 import { PICK_NOTE, TOKEN, type Row } from "./view";
-import type { Block, Verdict } from "./types";
-
-const SVG_NS = "http://www.w3.org/2000/svg";
 
 // ---------------- pure helpers (exported for tests) ----------------
 
@@ -28,30 +26,15 @@ export function barPercent(miss: number, max: number): number {
   return Math.max(0, Math.min(100, (miss / max) * 100));
 }
 
+const COUNT_WORDS = ["no", "one", "two", "three", "four"];
+
+/** The section's lead as plain text: "All four predictions on 2026. " and the bold "Shorter bar = more accurate." (three without the AI's model). */
+export function raceLead(testYear: number | undefined, count: number): [string, string] {
+  const words = COUNT_WORDS[count] ?? String(count);
+  return [testYear === undefined ? `All ${words} predictions. ` : `All ${words} predictions on ${testYear}. `, "Shorter bar = more accurate."];
+}
+
 // ---------------- rendering ----------------
-
-function verdictShape(shape: string): SVGElement {
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("viewBox", "0 0 20 20"); svg.setAttribute("width", "22"); svg.setAttribute("height", "22");
-  svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", "verdict-shape-svg");
-  const path = document.createElementNS(SVG_NS, "path");
-  path.setAttribute("d", shape === "tick" ? "M4.5 10.5 L8.5 14.5 L15.5 5.5" : shape === "dash" ? "M4 10 L16 10" : "M5 5 L15 15 M15 5 L5 15");
-  path.setAttribute("class", "verdict-mark");
-  svg.append(path);
-  return svg;
-}
-
-function verdictLine(block: Block): HTMLElement[] {
-  const v = block.visual as { variant?: Verdict; shape?: string; race_leader_differs?: boolean };
-  const reached = v.variant === "reached";
-  const line = h("p", { class: `verdict-line ${reached ? "win" : "lose"}`, "data-testid": "verdict", "data-variant": v.variant ?? "" });
-  const shape = h("span", { class: "verdict-shape", "data-testid": "verdict-shape", "data-shape": v.shape ?? "" });
-  shape.append(verdictShape(v.shape ?? "cross"));
-  line.append(shape, h("span", {}, h("strong", {}, `${block.title}. `), block.sentences[0] ?? ""));
-  const out: HTMLElement[] = [line];
-  if (v.race_leader_differs && block.sentences[1]) out.push(h("p", { class: "verdict-leader", "data-testid": "verdict-leader" }, block.sentences[1]));
-  return out;
-}
 
 function axis(max: number): HTMLElement {
   const area = h("span", { class: "race-area race-axis-area" });
@@ -61,7 +44,7 @@ function axis(max: number): HTMLElement {
     area.append(tick);
   }
   const caption = h("span", { class: "race-axis-caption" }, "runs off, on average");
-  return h("div", { class: "race-row race-axis", "data-testid": "race-axis" }, h("span", { class: "race-place" }), h("span", { class: "race-name" }), area, caption);
+  return h("div", { class: "race-row race-axis", "data-testid": "race-axis" }, h("span", { class: "race-name" }), area, caption);
 }
 
 function raceRow(r: Row, max: number): HTMLElement {
@@ -78,15 +61,14 @@ function raceRow(r: Row, max: number): HTMLElement {
   value.style.left = `${pct}%`;
   const area = h("span", { class: "race-area" }, bar, value);
   area.style.setProperty("--step", `${barPercent(10, max)}%`);
-  return h("div", { class: `race-row${r.place === 1 ? " race-first" : ""}`, "data-testid": "race-row", "data-method": r.id, "data-place": String(r.place) },
-    h("span", { class: "race-place", style: `color:${TOKEN[r.id] ?? "inherit"}` }, r.placeLabel), name, area);
+  return h("div", { class: "race-row", "data-testid": "race-row", "data-method": r.id }, name, area);
 }
 
-/** Section 1's content: the lead, the bars with their axis and, once the explanation exists, the verdict line. */
-export function renderRace(rows: Row[], verdict: Block | undefined): HTMLElement[] {
+/** The lead, the bars with their axis and, under them, the comparison sentence (absent without both models). */
+export function renderRace(rows: Row[], testYear: number | undefined, compare: Seg[]): HTMLElement[] {
   const max = scaleMax(rows.map((r) => r.miss));
-  const lead = h("p", { class: "final-lead" }, "The ", h("strong", {}, "average miss"),
-    ": how many runs each prediction was off the real final total, on average. ", h("strong", {}, "Shorter bar = more accurate."));
+  const [before, strong] = raceLead(testYear, rows.length);
+  const lead = h("p", { class: "final-lead" }, before, h("strong", {}, strong));
   const chart = h("div", { class: "race", "data-testid": "race" }, ...rows.map((r) => raceRow(r, max)), axis(max));
-  return [lead, chart, ...(verdict ? verdictLine(verdict) : [])];
+  return [lead, chart, ...(compare.length ? [h("p", { class: "compare-line", "data-testid": "compare-line" }, ...renderSegs(compare))] : [])];
 }

@@ -13,14 +13,14 @@ NUM = re.compile(r"\d+(?:\.\d+)?")
 
 def state_for(*, llm_mae=18.0, forward_mae=17.0, tv=21.0, features_=("runs_at_10", "wickets_in_hand"), coefs=None,
               took_part=True, failure=None, model="Fast", know_nothing=34.0, within_10=33.0, iqr=20.0,
-              tv_bias=-12.0, tv_within_10=25.0, other_within_10=20.0, winner=None):
+              tv_bias=-12.0, tv_within_10=25.0, other_within_10=20.0, winner=None, know_nothing_bias=0.0):
     """A run state with just what the facts read, for scripted cases. `winner` forces the chosen method."""
     both = llm_mae is not None
     winner = winner or ("forward" if (not both or forward_mae < llm_mae) else "llm")     # a tie goes to the language model
     won = llm_mae if winner == "llm" else forward_mae
     other = "forward" if winner == "llm" else "llm"
     accuracy = {"know_nothing": {"n": 515, "average_miss": know_nothing, "within_10": 20.0, "within_20": 40.0,
-                                 "miss_percent": 18.0, "bias": 0.0},
+                                 "miss_percent": 18.0, "bias": know_nothing_bias},
                 "broadcaster": {"n": 515, "average_miss": tv, "within_10": tv_within_10, "within_20": 50.0,
                                 "miss_percent": 14.0, "bias": tv_bias},
                 winner: {"n": 515, "average_miss": won, "within_10": within_10, "within_20": 60.0,

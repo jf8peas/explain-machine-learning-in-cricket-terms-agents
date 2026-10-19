@@ -66,14 +66,14 @@ describe("the layout without the AI model", () => {
 });
 
 describe("the closing line", () => {
-  it("names the winner's share in words and the within-10 threshold from the facts", () => {
+  it("names our pick's share in words and the within-10 threshold from the facts", () => {
     const t = closingText("only about a third of the time", "10");
-    expect(t).toContain("Even the winner was within 10 runs of the real total only about a third of the time.");
+    expect(t).toContain("Even our pick was within 10 runs of the real total only about a third of the time.");
     expect(t).toContain("No method can be perfect from the halfway mark");
   });
 
   it("drops the 'Even' when the share is high", () => {
-    expect(closingText("about two thirds of the time", "10")).toContain("The winner was within 10 runs of the real total about two thirds of the time.");
+    expect(closingText("about two thirds of the time", "10")).toContain("Our pick was within 10 runs of the real total about two thirds of the time.");
   });
 
   it("falls back to the note alone without the facts", () => {

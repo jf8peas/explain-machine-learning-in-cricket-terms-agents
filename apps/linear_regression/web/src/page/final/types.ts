@@ -18,6 +18,8 @@ export interface FinalState {
   methods: string[];
   accuracy: Record<string, Figures>;
   bias_phrases: Record<string, string>;
+  /** Each model's average miss on the check seasons, the same numbers as the best candidate models' (null without the AI's model). */
+  validation_mae?: { llm: number | null; forward: number | null };
 }
 
 export type Verdict = "reached" | "missed_beat" | "missed_worse";

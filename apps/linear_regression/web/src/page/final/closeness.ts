@@ -22,11 +22,11 @@ const BANDS: { band: Band; label: string }[] = [
   { band: "over20", label: "more than 20 runs off" },
 ];
 
-/** The closing line: the winner's within-10 share in words (the server's) and the "no method can be perfect" note. */
+/** The closing line: our pick's within-10 share in words (the server's) and the "no method can be perfect" note. */
 export function closingText(words: string | undefined, runs: string | undefined): string {
   const note = "No method can be perfect from the halfway mark: collapses, a batter getting going and the weather all happen after it.";
   if (!words || !runs) return note;
-  const who = words.startsWith("only") ? "Even the winner" : "The winner";
+  const who = words.startsWith("only") ? "Even our pick" : "Our pick";
   return `${who} was within ${runs} runs of the real total ${words}. ${note}`;
 }
 
@@ -55,12 +55,12 @@ function closeRow(r: Row, expl: CricketExplanation | undefined): HTMLElement {
 }
 
 /** Section 2's content: the lead, the key, a bar per method and, once the explanation exists, the closing line. */
-export function renderCloseness(rows: Row[], expl: CricketExplanation | undefined): HTMLElement[] {
+export function renderCloseness(rows: Row[], expl: CricketExplanation | undefined, testYear: number | undefined): HTMLElement[] {
   const lead = h("p", { class: "final-lead" },
-    "Every innings sorted by how far off the prediction was. More of the bar in the darkest shade means more innings called closely.");
-  const closing = expl && factText(expl, "leader_within_10_words")
+    `Every ${testYear === undefined ? "" : `${testYear} `}innings sorted by how far off the prediction was. More of the bar in the darkest shade means more innings called closely.`);
+  const closing = expl && factText(expl, "share_within_10_words")
     ? [h("p", { class: "close-note", "data-testid": "close-note" },
-        closingText(factText(expl, "leader_within_10_words"), factText(expl, "within_runs_threshold")))]
+        closingText(factText(expl, "share_within_10_words"), factText(expl, "within_runs_threshold")))]
     : [];
   return [lead, key(), h("div", { class: "close", "data-testid": "close" }, ...rows.map((r) => closeRow(r, expl))), ...closing];
 }

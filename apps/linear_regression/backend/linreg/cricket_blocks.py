@@ -67,17 +67,17 @@ def _verdict(facts: Mapping[str, Fact]) -> dict[str, Any]:
         sentences = (["The TV projection was {beat_tv_by} runs more accurate than the {chosen_label}."]
                      if facts["beat_tv_by"]["value"] else
                      ["The TV projection was exactly as accurate as the {chosen_label}."])
-    differs = bool(facts.get("race_leader_differs", {}).get("value"))
-    if differs:
-        sentences.append("The {race_leader_label} had the shortest bar in this test, but the {chosen_label} was chosen on "
-                         "the check seasons, before the test, as it must be.")
-    return {"title": title, "sentences": sentences,
-            "visual": {"variant": variant, "shape": shape, "race_leader_differs": differs}}
+    return {"title": title, "sentences": sentences, "visual": {"variant": variant, "shape": shape}}
 
 
 def _takeaway_run_rate(facts: Mapping[str, Fact]) -> dict[str, Any]:
     state = facts["run_rate_state"]["value"]
-    if state == "clearly":
+    if state == "clearly" and facts["know_nothing_rising"]["value"]:
+        title = "Scores keep climbing"
+        return {"title": title, "visual": {},
+                "sentences": ["Totals keep rising, so the average-total guess runs {know_nothing_bias_runs} {know_nothing_bias_direction}.",
+                              "The TV misses by {tv_test_miss} runs, against {know_nothing_miss} for that guess."]}
+    elif state == "clearly":
         title = "The run rate alone is a real help"
         sentence = ("The TV misses by {tv_test_miss} runs, {tv_gap} fewer than the know-nothing "
                     "guess ({know_nothing_miss}).")

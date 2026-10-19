@@ -104,7 +104,7 @@ test("the final results compare the test-year errors and mark the model chosen b
   for (const [method, miss] of [["llm", final.test_mae.llm], ["forward", final.test_mae.forward], ["broadcaster", final.test_mae.tv]] as const) {
     await expect(page.locator(`[data-testid="race-row"][data-method="${method}"]`).getByTestId("race-value")).toHaveText(miss.toFixed(1));
   }
-  await expect(page.locator(`[data-testid="race-row"][data-method="${final.winner}"]`).getByTestId("race-pick")).toHaveText("our pick, chosen before the test");
+  await expect(page.locator(`[data-testid="race-row"][data-method="${final.winner}"]`).getByTestId("race-pick")).toHaveText("our pick");
   await expect(page.getByTestId("model-used")).toContainText("Fast");
 });
 
@@ -321,7 +321,7 @@ test("every ranked candidate model shows its chips and average miss, with no per
   expect(misses).toEqual([...misses].sort((x, y) => x - y));                      // ranked by average miss
   expect([...misses].sort((x, y) => x - y)).toEqual([...aiAttempts, ...cells].map((a) => Number(a.validation_mae!.toFixed(1))).sort((x, y) => x - y));
   await expect(page.getByTestId("check-error")).toHaveCount(0);
-  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Candidate model", "Found by", "Average miss (runs)"]);
+  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Candidate model", "Found by", "Average miss on check seasons (runs)"]);
   await expect(page.getByTestId("ranking")).not.toContainText("Each check year");
 });
 
@@ -344,7 +344,7 @@ test("the rival's grid shows every combination in two grids with the best cell o
   const best = page.locator('[data-testid="grid-cell"][data-best="true"]');
   await expect(best).toHaveCount(1);
   await expect(best).toHaveText(`★ ${state.grid.best.validation_mae!.toFixed(1)}`);
-  await expect(page.getByTestId("grid-best")).toContainText(`The rival's best: ${state.grid.best.validation_mae!.toFixed(1)} runs.`);
+  await expect(page.getByTestId("grid-best")).toContainText(`The rival's best: ${state.grid.best.validation_mae!.toFixed(1)} runs on the check seasons.`);
   const style = await best.evaluate((el) => { const s = getComputedStyle(el); return { width: s.outlineWidth, style: s.outlineStyle, weight: s.fontWeight }; });
   expect(style.style).not.toBe("none");                                          // an outline, so it does not rely on colour
   expect(parseFloat(style.width)).toBeGreaterThanOrEqual(2);

@@ -99,7 +99,7 @@ test("the winner panel says still searching before the grid search and names the
   expect(grid).toBeGreaterThan(0);
   await items.nth(grid - 1).click();
   await openTab(page, "found");
-  const panel = page.getByTestId("winner-panel");
+  const panel = page.getByTestId("choice-panel");
   await expect(panel).toHaveAttribute("data-state", "pending");
   await expect(panel).toContainText("Still searching");
   await openTab(page, "working");
@@ -135,7 +135,7 @@ test("stepping back hides the data of later steps", async ({ page }) => {
   await expect(page.getByTestId("attempt-row")).toHaveCount(1);
   await expect(page.getByTestId("grid-table")).toHaveCount(0);
   await expect(page.getByTestId("race-line-rival")).toHaveCount(0);
-  await expect(page.getByTestId("winner-panel")).toHaveAttribute("data-state", "pending");
+  await expect(page.getByTestId("choice-panel")).toHaveAttribute("data-state", "pending");
 });
 
 test("the race chart marks every round and has a text equivalent", async ({ page }) => {
@@ -176,7 +176,7 @@ test("both themes render the tab, with method colours beside words", async ({ pa
     await expect(page.getByTestId("contest-ai")).toBeVisible();
     await expect(page.getByTestId("contest-ai")).toContainText("The AI agent");
     await expect(page.getByTestId("contest-rival")).toContainText("The rival");
-    await expect(page.getByTestId("winner-panel")).toBeVisible();
+    await expect(page.getByTestId("choice-panel")).toBeVisible();
     const found = await page.locator("tbody td.found-by").allTextContents();
     expect(found.every((t) => t === "AI agent" || t === "Rival")).toBe(true);
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -211,6 +211,103 @@ test("without a language model the AI card says so, the chart has no AI line and
   await expect(page.getByTestId("race-line-ai")).toHaveCount(0);
   await expect(page.getByTestId("race-line-rival")).toHaveCount(1);
   await expect(page.getByTestId("race-line-tv")).toHaveCount(1);
-  await expect(page.getByTestId("winner-panel")).toHaveAttribute("data-state", "rival");
-  await expect(page.getByTestId("winner-panel")).toContainText("The rival's candidate model");
+  await expect(page.getByTestId("choice-panel")).toHaveAttribute("data-state", "noAi");
+  await expect(page.getByTestId("too-close")).toHaveCount(0);
+  await expect(page.getByTestId("choice-panel")).toContainText("The rival's candidate model");
+});
+
+// ---------------- feature 016: validation versus test ----------------
+
+test("a VALIDATION banner under the lead says every score is from the check seasons and that the verdict comes from the final test", async ({ page }) => {
+  await open(page);
+  await watchState(page);
+  await playToEnd(page);
+  await openTab(page, "found");
+  const split = (await shownState(page)).split!;
+  const banner = page.getByTestId("found-panel").getByTestId("exam-banner");
+  await expect(banner).toHaveAttribute("data-exam", "validation");
+  await expect(banner.getByTestId("exam-pill")).toHaveText("VALIDATION");
+  await expect(banner).toContainText(`check seasons, ${split.checks[0].year}–${split.checks[split.checks.length - 1].year}`);
+  await expect(banner).toContainText("(cross-validation)");
+  await expect(banner).toContainText("choose a candidate model, not to judge it");
+  await expect(banner).toContainText("The honest verdict comes from the final test.");
+  const order = await page.getByTestId("results").evaluate((root) => [...root.children].slice(0, 2).map((c) => c.getAttribute("data-testid")));
+  expect(order).toEqual(["found-header", "exam-banner"]);
+});
+
+test("section 2 and 3 carry the validation labels and the choice panel says 'Chosen on validation'", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  await openTab(page, "found");
+  await expect(page.getByTestId("found-section-2").locator("h3")).toHaveText("2. How every candidate model is scored: three check seasons (cross-validation)");
+  await expect(page.getByTestId("found-section-2")).toContainText("These scores are used again and again to compare candidate models, which is exactly why they can't also be the final verdict.");
+  expect(await page.getByTestId("season-check").evaluateAll((els) => els.every((e) => e.classList.contains("exam-validation")))).toBe(true);
+  await expect(page.getByTestId("season-caption-validation")).toHaveText("VALIDATION: USED TO CHOOSE");
+  await expect(page.getByTestId("season-caption-test")).toHaveText("TEST");
+  await expect(page.getByTestId("found-section-3").locator("h3")).toHaveText("3. The race on the check seasons");
+  await expect(page.getByTestId("race-chart")).toContainText("average miss on check seasons");
+  await expect(page.getByTestId("found-section-3")).toContainText("All scores are on the check seasons.");
+  const panel = page.getByTestId("choice-panel");
+  await expect(panel).toContainText("Chosen on validation");
+  await expect(panel).toContainText("on the check seasons");
+  await expect(panel).toContainText("How good it really is gets settled by the final test, on a season nothing has seen.");
+  await expect(page.getByTestId("to-final").getByRole("link")).toHaveAttribute("href", "#final-test");
+  await expect(panel).not.toContainText(/winner/i);
+});
+
+test("the choice panel's scores come from the run and its state follows the gap on the check seasons", async ({ page }) => {
+  await open(page);
+  await watchState(page);
+  await playToEnd(page);
+  await openTab(page, "found");
+  const s = await shownState(page);
+  const ai = Math.min(...s.attempts!.filter((a) => a.proposer === "llm").map((a) => Math.round(a.validation_mae * 10)));
+  const rival = Math.round(s.grid!.best.validation_mae! * 10);
+  const state = Math.abs(ai - rival) < 5 ? "whisker" : "clear";
+  await expect(page.getByTestId("choice-panel")).toHaveAttribute("data-state", state);
+  await expect(page.getByTestId("choice-panel").getByTestId("too-close")).toHaveCount(state === "whisker" ? 1 : 0);
+  const chosen = s.validation_winner!.winner === "llm" ? ai : rival, other = s.validation_winner!.winner === "llm" ? rival : ai;
+  await expect(page.getByTestId("choice-text")).toContainText(`It missed by ${(chosen / 10).toFixed(1)} runs on the check seasons, against ${(other / 10).toFixed(1)}`);
+});
+
+test("the lead runs the full width of the container", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await open(page, 40);
+  await playToEnd(page);
+  await openTab(page, "found");
+  const widths = await page.evaluate(() => {
+    const lead = document.querySelector('[data-testid="found-header"]') as HTMLElement;
+    const box = document.querySelector('[data-testid="results"]') as HTMLElement;
+    return { lead: lead.getBoundingClientRect().width, box: box.getBoundingClientRect().width };
+  });
+  expect(Math.abs(widths.lead - widths.box)).toBeLessThanOrEqual(1);
+});
+
+test("at 360 px the banner wraps under its pill, the season caption stacks and the page does not scroll sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await open(page, 40);
+  await playToEnd(page);
+  await openTab(page, "found");
+  const sizes = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, window: window.innerWidth }));
+  expect(sizes.page).toBeLessThanOrEqual(sizes.window);
+  const banner = page.getByTestId("found-panel").getByTestId("exam-banner");
+  const pill = (await banner.getByTestId("exam-pill").boundingBox())!, text = (await banner.locator(".exam-banner-text").boundingBox())!;
+  expect(text.y).toBeGreaterThanOrEqual(pill.y + pill.height - 1);
+  const a = (await page.getByTestId("season-caption-validation").boundingBox())!, b = (await page.getByTestId("season-caption-test").boundingBox())!;
+  expect(b.y).toBeGreaterThan(a.y);
+});
+
+test("the tab never says winner, with the AI, and without it the panel names the rival and never says too close to call", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  await openTab(page, "found");
+  expect(await page.getByTestId("found-panel").evaluate((el) => (el as HTMLElement).innerText)).not.toMatch(/winner/i);
+  await page.goto("/?interval=40");
+  await picker(page).selectOption({ label: "Unreliable" });
+  await playToEnd(page);
+  await openTab(page, "found");
+  expect(await page.getByTestId("found-panel").evaluate((el) => (el as HTMLElement).innerText)).not.toMatch(/winner/i);
+  await expect(page.getByTestId("choice-panel")).toHaveAttribute("data-state", "noAi");
+  await expect(page.getByTestId("choice-heading")).toHaveText("The rival's candidate model");
+  await expect(page.getByTestId("too-close")).toHaveCount(0);
 });

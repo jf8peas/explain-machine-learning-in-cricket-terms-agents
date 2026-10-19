@@ -61,6 +61,9 @@ def build_system(rounds_remaining: int) -> str:
         "- Do not include a feature that can be built exactly from the others in the set (for example wickets lost "
         "together with wickets in hand): a straight-line fit cannot tell such features apart, and the proposal will "
         "be rejected.\n"
+        "- Write the reason in plain cricket words, as you would explain it to a fan: no figures, and no column names. Do not "
+        "write feature ids or menu ids (such as the ids listed in the catalogue and menus) in the reason; say what they "
+        "mean in cricket terms instead.\n"
         "- You cannot run any numbers. The analyst's code fits every proposal on earlier years and checks it on three "
         "later years, each time learning only from the years before the one being checked; lower average error across the "
         "three checks (average miss in runs) is better. Do not state or guess any numbers as results.\n\n"
@@ -68,7 +71,7 @@ def build_system(rounds_remaining: int) -> str:
         "results so far to decide what to try next. Reply with JSON only, in exactly this shape: "
         '{"features": ["id", "id"], "window": "' + setup_settings.WINDOWS[2].id + '", "weighting": "'
         + setup_settings.WEIGHTINGS[1].id + '", "training_innings": "' + setup_settings.TRAINING_INNINGS[0].id + '", '
-        '"reason": "one or two sentences in plain cricket language, which may mention any part of the candidate model", '
+        '"reason": "one or two sentences in plain cricket words, with no figures and no column names", '
         '"finished": false}. Set "finished" to true when more tries are unlikely to help; then give your best candidate model. '
         f"You have {rounds_remaining} round{'s' if rounds_remaining != 1 else ''} remaining "
         "(a rejected proposal uses a round)."

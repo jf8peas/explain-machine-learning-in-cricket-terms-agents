@@ -9,6 +9,8 @@
     :root {
       --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
       --accent: #1d6fe0; --tv: #a85600; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
+      /* the validation exam (feature 016): amber fill with white text, pale amber panels */
+      --val: #a35d00; --on-val: #ffffff; --val-bg: #fdf6e7; --val-text: #8a4d00;
       /* the chart's four method colours, taken from the colours above so they follow the theme */
       --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
     }
@@ -16,6 +18,7 @@
       :root {
         --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
         --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
+        --val: #e8a33d; --on-val: #1b1405; --val-bg: #2e2410; --val-text: #f0b45a;
       }
     }
     * { box-sizing: border-box; }
@@ -115,8 +118,17 @@
     /* setups: chips on the leaderboard and the rounds, and the rival's grid search */
     ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 4px 0 0; padding: 0; }
     li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
+    /* the two exams (feature 016): a pill and a full-width banner on each result tab. Words always accompany the colour. */
+    .exam-pill { display: inline-block; flex: none; padding: 3px 12px; border-radius: 999px; font-size: .8125rem; font-weight: 800; letter-spacing: .08em; line-height: 1.4; }
+    .exam-pill-validation { background: var(--val); color: var(--on-val); }
+    .exam-pill-test { background: var(--text); color: var(--bg); }
+    .exam-banner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; width: 100%; margin: 0 0 8px; padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
+    .exam-banner-text { flex: 1 1 18rem; min-width: 0; margin: 0; }
+    .exam-banner-validation { background: var(--val-bg); border: 1px solid var(--val); color: var(--text); }
+    .exam-banner-test { background: var(--text); color: var(--bg); border: 1px solid var(--text); }
+    .exam-banner-test .exam-pill-test { background: var(--bg); color: var(--text); }
     /* The final test (feature 015): three numbered sections, never collapsible, nothing animates */
-    .final-header-lead { margin: 0 0 8px; max-width: 62ch; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
+    .final-header-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
     .final-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
     .final-section > h3, .final-section-head > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
     .final-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
@@ -124,12 +136,10 @@
     .final-lead strong { color: var(--text); }
     /* 1. the prediction race: bars from zero on one scale */
     .race { display: flex; flex-direction: column; gap: 10px; }
-    .race-row { display: grid; grid-template-columns: 3.2rem minmax(10rem, 15rem) minmax(0, 1fr); gap: 4px 14px; align-items: center; }
-    .race-place { font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-    .race-first .race-place { font-size: 1.6rem; }
+    .race-row { display: grid; grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr); gap: 4px 14px; align-items: center; }
     .race-name { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
     .race-desc { font-size: .8125rem; color: var(--muted); }
-    .race-pick { font-size: .8125rem; font-weight: 700; color: var(--text); }
+    .race-pick { align-self: flex-start; margin-top: 2px; padding: 0 8px; border: 2px solid var(--text); border-radius: 999px; font-size: .75rem; font-weight: 700; letter-spacing: .04em; color: var(--text); }
     .race-area { position: relative; display: block; height: 28px; margin-right: 3.6rem;
       background: repeating-linear-gradient(to right, var(--border) 0, var(--border) 1px, transparent 1px, transparent var(--step, 25%)); }
     .race-bar { position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 0 4px 4px 0; background: var(--text); min-width: 2px; }
@@ -141,7 +151,7 @@
     .race-axis { margin-top: -4px; }
     .race-axis-area { height: 1.4rem; background: none; border-top: 1px solid var(--muted); }
     .race-tick { position: absolute; top: 3px; transform: translateX(-50%); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-    .race-axis-caption { grid-column: 3; font-size: .8125rem; color: var(--muted); }
+    .race-axis-caption { grid-column: 2; font-size: .8125rem; color: var(--muted); }
     .verdict-line { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 0; padding: 12px 16px; border-radius: 10px; border-left: 8px solid; line-height: 1.45; }
     .verdict-line.win { border-color: var(--win); background: var(--win-bg); }
     .verdict-line.lose { border-color: var(--lose); background: var(--lose-bg); }
@@ -152,7 +162,39 @@
     .verdict-line.win .verdict-shape { color: var(--win); }
     .verdict-line.lose .verdict-shape { color: var(--lose); }
     .verdict-leader { margin: 0; max-width: 72ch; color: var(--muted); }
-    /* 2. how close: one stacked bar per method, three steps of the text colour */
+    /* 1. how did our pick do: the pick card beside the goal verdict, and the sentence under the bars */
+    .pick-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
+    .pick-card { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border: 1px solid var(--border); border-left: 8px solid var(--text); border-radius: 12px; background: var(--surface); }
+    .pick-card p { margin: 0; }
+    .pick-title { font-weight: 800; font-size: 1.05rem; }
+    .pick-figure { line-height: 1.1; }
+    .pick-miss { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .pick-unit { color: var(--muted); }
+    .pick-note { font-size: .875rem; color: var(--muted); }
+    .pick-row .verdict-line { flex: 1 1 18rem; min-width: 0; margin: 0; align-items: center; }
+    .compare-line { margin: 0; max-width: 75ch; line-height: 1.5; }
+    /* 2. why the scores differ: the two exams side by side on one scale, then three reasons */
+    .exam-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .exam-card { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); }
+    .exam-card-validation { border-color: var(--val); background: var(--val-bg); color: var(--text); }
+    .exam-card-test { border-color: var(--text); background: var(--surface); }
+    .exam-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    .exam-caption { margin: 0 0 4px; font-size: .875rem; color: var(--muted); }
+    .exam-row { display: grid; grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr) 3rem; gap: 8px; align-items: center; }
+    .exam-name { font-size: .875rem; font-weight: 700; line-height: 1.25; }
+    .exam-track { position: relative; display: block; height: 22px; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 0 4px 4px 0; }
+    .exam-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; min-width: 2px; }
+    .exam-card-test .exam-bar { outline: 2px solid var(--text); outline-offset: -2px; }
+    .exam-value { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+    .exam-scale { position: relative; display: block; height: 1.2rem; border-top: 1px solid var(--muted); }
+    .exam-tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .exam-tick:last-child { transform: translateX(-100%); }
+    .exam-tick:first-child { transform: none; }
+    .reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .reason { min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    .reason h4 { margin: 0 0 6px; font-size: 1.05rem; }
+    .reason p { margin: 0; line-height: 1.5; }
+    /* 3. how close: one stacked bar per method, three steps of the text colour */
     .close { display: flex; flex-direction: column; gap: 14px; }
     .close-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .875rem; color: var(--muted); }
     .close-key-item { display: inline-flex; align-items: center; gap: 6px; }
@@ -168,7 +210,7 @@
     .close-seg { display: flex; align-items: center; justify-content: center; min-width: 0; border-right: 1px solid var(--bg); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
     .close-seg:last-child { border-right: 0; }
     .close-note { margin: 0; max-width: 75ch; font-size: .875rem; color: var(--muted); line-height: 1.5; }
-    /* 3. in cricket terms: three takeaways and a rule of thumb */
+    /* 4. in cricket terms: three takeaways and a rule of thumb */
     .writer-label { margin: 0; font-size: .8125rem; color: var(--muted); }
     .takeaways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .takeaway { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
@@ -180,18 +222,17 @@
     .rule-of-thumb p { margin: 0; line-height: 1.5; }
     .rule-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
     @media (max-width: 760px) {
-      .takeaways { grid-template-columns: minmax(0, 1fr); }
+      .takeaways, .exam-cards, .reasons { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 640px) {
       .final-section > h3, .final-section-head > h3 { font-size: 19px; }
-      .race-row { grid-template-columns: 2.6rem minmax(0, 1fr); }
-      .race-row .race-area { grid-column: 1 / -1; }
-      .race-axis .race-place, .race-axis .race-name { display: none; }
-      .race-axis .race-axis-area, .race-axis .race-axis-caption { grid-column: 1 / -1; }
+      .race-row { grid-template-columns: minmax(0, 1fr); }
+      .race-axis .race-name { display: none; }
+      .race-axis .race-axis-area, .race-axis .race-axis-caption { grid-column: 1; }
       .close-row { grid-template-columns: minmax(0, 1fr); }
     }
     /* What the agent found (feature 014): six numbered sections, never collapsible */
-    .found-lead { margin: 0 0 8px; max-width: 62ch; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
+    .found-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
     .found-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
     .found-section > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
     .found-section > p { margin: 0; }
@@ -217,6 +258,10 @@
     .season-check { text-align: center; border-color: var(--m-llm); }
     .season-test { text-align: center; background: var(--text); color: var(--bg); border-color: var(--text); }
     .season-test span { color: inherit; }
+    .season-check.exam-validation { border: 2px solid var(--val); background: var(--val-bg); color: var(--text); }
+    .season-caption { display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1.3fr; gap: 6px; margin-top: -2px; font-size: .75rem; font-weight: 800; letter-spacing: .06em; }
+    .season-caption-validation { grid-column: 2 / 5; text-align: center; color: var(--val-text); border-top: 3px solid var(--val); padding-top: 3px; }
+    .season-caption-test { grid-column: 5; text-align: center; color: var(--text); border-top: 3px solid var(--text); padding-top: 3px; }
     .race-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
     .race-card { flex: 3 1 480px; min-width: 0; margin: 0; padding: 12px 12px 6px; border: 1px solid var(--border); border-radius: 14px; }
     .race-scroll { overflow-x: auto; }
@@ -236,13 +281,14 @@
     .race-end-ai { fill: var(--m-llm); }
     .race-end-rival { fill: var(--m-forward); }
     .race-end-tv { fill: var(--tv); }
-    .winner-panel { flex: 2 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 14px; border-left: 8px solid var(--border); background: var(--surface); }
-    .winner-panel p { margin: 0; line-height: 1.5; }
-    .winner-ai, .winner-tie { border-left-color: var(--m-llm); background: color-mix(in srgb, var(--m-llm) 10%, var(--bg)); }
-    .winner-rival { border-left-color: var(--m-forward); background: color-mix(in srgb, var(--m-forward) 10%, var(--bg)); }
-    .winner-kicker { font-size: .8125rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-    .winner-big { font-size: 1.625rem; line-height: 1.2; font-weight: 750; }
-    .winner-panel .small { font-size: .875rem; color: var(--muted); }
+    .choice-panel { flex: 2 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 14px; border-left: 8px solid var(--border); background: var(--surface); }
+    .choice-panel p { margin: 0; line-height: 1.5; }
+    .choice-ai, .choice-tie { border-left-color: var(--m-llm); background: color-mix(in srgb, var(--m-llm) 10%, var(--bg)); }
+    .choice-rival { border-left-color: var(--m-forward); background: color-mix(in srgb, var(--m-forward) 10%, var(--bg)); }
+    .choice-kicker { font-size: .8125rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--val-text); }
+    .too-close { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+    .choice-big { font-size: 1.625rem; line-height: 1.2; font-weight: 750; }
+    .choice-panel .small { font-size: .875rem; color: var(--muted); }
     .round-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
     .round-card { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) 11rem; gap: 8px 16px; align-items: start; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; }
     .round-rejected { border-style: dashed; background: var(--surface); color: var(--muted); }
@@ -283,6 +329,8 @@
       .found-section > h3 { font-size: 19px; }
       .contest-cards { grid-template-columns: minmax(0, 1fr); }
       .seasons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .season-caption { grid-template-columns: minmax(0, 1fr); }
+      .season-caption-validation, .season-caption-test { grid-column: 1 / -1; }
       .season-learning { grid-column: 1 / -1; }
       .season-test { grid-column: 1 / -1; }
       .round-card { grid-template-columns: minmax(0, 1fr); }

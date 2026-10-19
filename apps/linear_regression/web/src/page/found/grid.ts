@@ -47,7 +47,7 @@ export function renderGrid(view: FoundView): Node[] {
   out.push(wrap);
   const best = grid.best;
   if (best && best.validation_mae !== null) {
-    out.push(h("p", { class: "grid-best-line", "data-testid": "grid-best" }, h("strong", {}, `★ The rival's best: ${shown(best.validation_mae)} runs.`),
+    out.push(h("p", { class: "grid-best-line", "data-testid": "grid-best" }, h("strong", {}, `★ The rival's best: ${shown(best.validation_mae)} runs on the check seasons.`),
       ` It learned from ${menuLabel("window", best.window)}, with ${menuLabel("weighting", best.weighting)}, using ${menuLabel("training_innings", best.training_innings)}, ` +
       `with ${best.features.map(labelFor).join(", ")} as clues. Darker cells missed by less.`));
   }
