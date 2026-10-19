@@ -26,13 +26,13 @@
 | Tab heading and lead | `found-header` (no eyebrow element) |
 | Sections 1 to 6 | `found-section-1` ... `found-section-6`, each an `h3` starting "1. " to "6. "; none uses `details` or a toggle |
 | AI card, rival card | `contest-ai`, `contest-rival` |
-| Why a rival, what's a setup | `contest-why`, `contest-setup` |
+| Why a rival, what's a candidate model | `contest-why`, `contest-setup` |
 | Season strip and its segments | `seasons`, `season-learning`, `season-check` (one each, with `data-year`), `season-test` |
 | Race chart, its text equivalent | `race-chart`, `race-text` |
 | Round marks | `race-mark` with `data-round` and `data-kind` (`best`, `fitted`, `rejected`, `finished`, `failed`) |
 | Lines | `race-line-ai`, `race-line-rival`, `race-line-tv` |
 | Winner panel | `winner-panel` with `data-state` (`pending`, `ai`, `rival`, `tie`); link `to-final` |
-| Round card, reason, setup chip | `round-item` (`data-outcome`), `model-reason`, `setup-chip` (unchanged meaning) |
+| Round card, reason, candidate model chip | `round-item` (`data-outcome`), `model-reason`, `setup-chip` (unchanged meaning) |
 | Rounds sentence when no AI | `rounds-none` |
 | Grid tables, cells | `grid-table` (`data-innings`), `grid-cell` (`data-best`) |
 | Best-cell sentence | `grid-best` |

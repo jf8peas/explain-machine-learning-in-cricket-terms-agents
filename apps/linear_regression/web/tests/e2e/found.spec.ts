@@ -38,9 +38,9 @@ test("the tab has a heading, a lead and six numbered sections, none collapsible"
   await expect(panel.locator("details, summary, [aria-expanded]")).toHaveCount(0);
   await expect(panel.locator(".eyebrow, .hero-eyebrow")).toHaveCount(0);
   await expect(page.getByTestId("contest-ai")).toContainText("up to 6 tries");
-  await expect(page.getByTestId("contest-rival")).toContainText("24 setups");
+  await expect(page.getByTestId("contest-rival")).toContainText("24 candidate models");
   await expect(page.getByTestId("contest-why")).toContainText("Why have a rival?");
-  await expect(page.getByTestId("contest-setup")).toContainText("What's a setup?");
+  await expect(page.getByTestId("contest-setup")).toContainText("What's a candidate model?");
   await expect(page.getByTestId("season-test")).toContainText("final test, locked");
   await expect(page.getByTestId("found-panel")).not.toContainText("Each check year");
 });
@@ -83,7 +83,7 @@ test("every number on the tab comes from the run's state or the catalogue", asyn
   for (const n of found) expect(allowed, `${n} on the tab is not one of the run's numbers`).toContain(n);
   for (const m of misses) expect(text).toContain(one(m));                                // every miss is shown
   expect(text).toContain(`up to ${catalogue.round_cap} tries`);
-  expect(text).toContain(`${catalogue.grid_combinations} setups`);
+  expect(text).toContain(`${catalogue.grid_combinations} candidate models`);
   expect(text).toContain(`${split.first_year}`);
   expect(text).toContain(`${split.test_year}`);
 });
@@ -110,7 +110,7 @@ test("the winner panel says still searching before the grid search and names the
   const ai = Math.min(...state.attempts!.filter((a) => a.proposer === "llm").map((a) => a.validation_mae));
   const rival = state.grid!.best.validation_mae!;
   const winnerIsAi = state.validation_winner!.winner === "llm";
-  await expect(panel).toContainText(winnerIsAi ? "The AI agent's setup" : "The rival's setup");
+  await expect(panel).toContainText(winnerIsAi ? "The AI agent's candidate model" : "The rival's candidate model");
   await expect(panel).toContainText(`${one(winnerIsAi ? ai : rival)} runs`);
   await expect(panel).toContainText("Chosen before the final test season was touched");
   await expect(page.getByTestId("to-final").getByRole("link")).toHaveAttribute("href", "#final-test");
@@ -212,5 +212,5 @@ test("without a language model the AI card says so, the chart has no AI line and
   await expect(page.getByTestId("race-line-rival")).toHaveCount(1);
   await expect(page.getByTestId("race-line-tv")).toHaveCount(1);
   await expect(page.getByTestId("winner-panel")).toHaveAttribute("data-state", "rival");
-  await expect(page.getByTestId("winner-panel")).toContainText("The rival's setup");
+  await expect(page.getByTestId("winner-panel")).toContainText("The rival's candidate model");
 });

@@ -16,7 +16,7 @@ Replace the What the agent found renderer (`renderFound` in `results.ts`, `leade
 **Target Platform**: evergreen browsers, light and dark themes, 360 px phones
 **Project Type**: web app inside the monorepo (`apps/linear_regression`)
 **Performance Goals**: re-render of the tab on each replay step stays imperceptible (a handful of rounds, at most 24 grid cells); `/api/catalogue` stays cached as today
-**Constraints**: no number or setup description typed into the page; copy without numbers is typed as written in the README; reasons rendered as text, never HTML; no animation; no sideways page scroll at 360 px; other tabs, the graph and the summary line unchanged
+**Constraints**: no number or candidate model description typed into the page; copy without numbers is typed as written in the README; reasons rendered as text, never HTML; no animation; no sideways page scroll at 360 px; other tabs, the graph and the summary line unchanged
 **Scale/Scope**: 2 backend files touched, 6 new page modules plus a composer, 1 removed grid model/view pair and leaderboard renderer, CSS for the new sections
 
 ## Constitution Check
@@ -61,7 +61,7 @@ web/src/page/
 ├── found/
 │   ├── index.ts            # NEW: renderFound(target, state, catalogue) composer: header, then the six sections in order
 │   ├── view.ts             # NEW: pure derived view of the state at the step shown (joined rounds, best-so-far, rival, ranking, winner)
-│   ├── contest.ts          # NEW: the two contest cards and the "why a rival" / "what's a setup" strip; the no-LLM card
+│   ├── contest.ts          # NEW: the two contest cards and the "why a rival" / "what's a candidate model" strip; the no-LLM card
 │   ├── seasons.ts          # NEW: the season strip from the split
 │   ├── race.ts             # NEW: the SVG race chart, its text equivalent, and the winner panel
 │   ├── race-layout.ts      # NEW: pure: y range and whole-run gridlines, x positions (label spreading reuses spreadLabels)
@@ -72,7 +72,7 @@ web/src/page/
 ├── results.ts              # CHANGED: renderFound moves to found/index.ts; renderFinal and the rest unchanged
 ├── grid.ts, grid-view.ts   # REMOVED (replaced by found/grid.ts)
 ├── catalogue.ts            # CHANGED: Catalogue type gains round_cap and grid_combinations; Menus options gain `short`; a menuShort labeller
-├── setup.ts                # CHANGED: MenuOption gains `short`; menuLabeller unchanged; a short-form labeller added
+├── candidate model.ts                # CHANGED: MenuOption gains `short`; menuLabeller unchanged; a short-form labeller added
 └── main.ts                 # CHANGED: passes the loaded catalogue to renderFound (the tab renders its text once the catalogue has loaded)
 web/index.html             # CHANGED: CSS for the found tab (sections, cards, strip, chart, grids, ranking); old leaderboard/rounds/grid-table CSS removed; not-ready sentence reworded to the tab's new name
 web/tests/
@@ -87,7 +87,7 @@ web/tests/
 - **Step-by-step fill**: `renderFound` receives the state at the step on display, as today. The rival line and the grid appear only when `grid`/`forward_best` exist in that state (they are set at the `grid_search` step); the winner panel appears only when `validation_winner` exists. Nothing is hidden by CSS; absent state renders the pre-state wording.
 - **Rounds join attempts**: a round with outcome `fit` takes its score and `improved` from the attempt with `proposer === "llm"` and the same `round`. The grid's best attempt has `proposer === "forward_selection"` and a `round` that is a step count, so it can never be confused with an AI round.
 - **Rounding**: all displayed misses use one decimal (`fmt`). The gap in the winner panel and the "▼ drop" in round cards are computed from the already-rounded displayed values, so a reader can subtract them.
-- **Winner**: `validation_winner.winner` is `"llm"` or `"forward"`; the panel shows both bests from `llm_best` and `forward_best`. The tie wording ("tie, the AI's setup goes forward") is used only when the displayed values are equal and the recorded winner is `llm`, matching `selection.validation_winner`; equal displayed values with the rival recorded as winner name the rival and say the gap is smaller than the display shows. The grid, rival line and rival rows arrive together at the `grid_search` step. With no LLM attempts the panel names the rival.
+- **Winner**: `validation_winner.winner` is `"llm"` or `"forward"`; the panel shows both bests from `llm_best` and `forward_best`. The tie wording ("tie, the AI's candidate model goes forward") is used only when the displayed values are equal and the recorded winner is `llm`, matching `selection.validation_winner`; equal displayed values with the rival recorded as winner name the rival and say the gap is smaller than the display shows. The grid, rival line and rival rows arrive together at the `grid_search` step. With no LLM attempts the panel names the rival.
 - **Ranking**: LLM attempts plus every allowed grid cell's best. The single `forward_selection` attempt is excluded because it equals the grid's best cell. Sort by `validation_mae` ascending; ties keep LLM attempts first, then grid order.
 - **Grid shading**: stepped tint of `--m-forward` by rank of the cell's value (a fixed number of steps); the value is always printed; cells not allowed print "–" with the cell's note as accessible description (`aria-describedby` to a visually hidden note); the best cell has an outline, bold text and a star.
 - **Chart**: label spacing reuses `spreadLabels` (already in `worm-layout.ts`, so no new shared helper is needed). The y range fits every plotted value, with gridlines at whole runs.

@@ -130,26 +130,26 @@ export function renderRaceChart(view: FoundView): HTMLElement | null {
 
 const runsWord = (t: number) => `${fromTenths(t)} runs`;
 
-/** The panel naming the setup that goes forward to the final test, or saying the search is still going. */
+/** The panel naming the candidate model that goes forward to the final test, or saying the search is still going. */
 export function renderWinnerPanel(view: FoundView): HTMLElement {
   const w = view.winner;
   const panel = h("div", { class: `winner-panel winner-${w.state}`, "data-testid": "winner-panel", "data-state": w.state });
   const small = h("p", { class: "winner-kicker" }, "Goes forward to the final test");
   if (w.state === "pending") {
     panel.append(small, h("p", { class: "winner-big" }, "Still searching"),
-      h("p", {}, "The search is still going. The setup that goes forward is chosen once the rival has finished its grid search, before the final test season is touched."));
+      h("p", {}, "The search is still going. The candidate model that goes forward is chosen once the rival has finished its grid search, before the final test season is touched."));
     return panel;
   }
   const checks = "on average across the check seasons";
   const body = h("p", {});
   if (w.state === "tie") {
-    panel.append(small, h("p", { class: "winner-big" }, "The AI agent's setup"));
-    body.append("Both setups missed by ", h("strong", {}, runsWord(w.winnerMiss as number)), ` ${checks}. It was a tie, so the AI agent's setup goes forward.`);
+    panel.append(small, h("p", { class: "winner-big" }, "The AI agent's candidate model"));
+    body.append("Both candidate models missed by ", h("strong", {}, runsWord(w.winnerMiss as number)), ` ${checks}. It was a tie, so the AI agent's candidate model goes forward.`);
   } else {
     const other = w.state === "ai" ? "the rival" : "the AI agent";
-    panel.append(small, h("p", { class: "winner-big" }, w.state === "ai" ? "The AI agent's setup" : "The rival's setup"));
+    panel.append(small, h("p", { class: "winner-big" }, w.state === "ai" ? "The AI agent's candidate model" : "The rival's candidate model"));
     if (w.winnerMiss === null) {
-      body.append(`The AI agent made no setup that could be scored, so the rival's goes forward.`);
+      body.append(`The AI agent made no candidate model that could be scored, so the rival's goes forward.`);
     } else {
       body.append("It missed by ", h("strong", {}, runsWord(w.winnerMiss)), ` ${checks}`);
       if (w.otherMiss === null) body.append(".");
@@ -161,7 +161,7 @@ export function renderWinnerPanel(view: FoundView): HTMLElement {
     }
   }
   panel.append(body,
-    h("p", { class: "small" }, "Chosen before the final test season was touched. Both setups still sit the final test."),
+    h("p", { class: "small" }, "Chosen before the final test season was touched. Both candidate models still sit the final test."),
     h("p", { "data-testid": "to-final" }, h("a", { href: "#final-test" }, "See the final test →")));
   return panel;
 }

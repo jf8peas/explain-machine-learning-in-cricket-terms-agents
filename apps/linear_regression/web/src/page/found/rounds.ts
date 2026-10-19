@@ -43,7 +43,7 @@ function result(r: RoundView): HTMLElement {
 
 export function renderRounds(view: FoundView): Node[] {
   const lead = h("p", { class: "found-lead-text" },
-    "Each round, the AI proposes a setup and explains its thinking in its own words. Code then checks it, fits it and scores it on the check seasons.");
+    "Each round, the AI proposes a candidate model and explains its thinking in its own words. Code then checks it, fits it and scores it on the check seasons.");
   if (view.fallback && !view.rounds.length) {
     return [h("p", { class: "found-lead-text", "data-testid": "rounds-none" }, "The AI made no proposals in this run, so there are no rounds to show.")];
   }

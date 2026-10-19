@@ -1,9 +1,9 @@
-// Section 2 of What the agent found: how every setup is scored (app-specific). The years come from the run's split.
+// Section 2 of What the agent found: how every candidate model is scored (app-specific). The years come from the run's split.
 import { h } from "../dom";
 import type { Split } from "./view";
 
 export function renderSeasons(split: Split | undefined): Node[] {
-  const lead = h("p", { class: "found-lead-text" }, "Each setup learns from earlier seasons, then predicts three past seasons it hasn't seen. Its score is its ",
+  const lead = h("p", { class: "found-lead-text" }, "Each candidate model learns from earlier seasons, then predicts three past seasons it hasn't seen. Its score is its ",
     h("strong", {}, "average miss"), " across the three, in runs. Lower is better. The final test season stays locked until the very end.");
   if (!split || !split.checks.length) return [lead];
   const first = split.checks[0].year;

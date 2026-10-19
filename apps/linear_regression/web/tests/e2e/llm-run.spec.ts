@@ -304,7 +304,7 @@ const menuLabel = async (page: import("./fixtures").Page) => {
   return (menu: string, id: string) => menus[menu].find((o) => o.id === id)!.label;
 };
 
-test("every ranked setup shows its chips and average miss, with no per-season column", async ({ page }) => {
+test("every ranked candidate model shows its chips and average miss, with no per-season column", async ({ page }) => {
   await open(page);
   await playToEnd(page);
   const state = await runState(page);
@@ -320,7 +320,7 @@ test("every ranked setup shows its chips and average miss, with no per-season co
   expect(misses).toEqual([...misses].sort((x, y) => x - y));                      // ranked by average miss
   expect([...misses].sort((x, y) => x - y)).toEqual([...aiAttempts, ...cells].map((a) => Number(a.validation_mae!.toFixed(1))).sort((x, y) => x - y));
   await expect(page.getByTestId("check-error")).toHaveCount(0);
-  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Setup", "Found by", "Average miss (runs)"]);
+  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Candidate model", "Found by", "Average miss (runs)"]);
   await expect(page.getByTestId("ranking")).not.toContainText("Each check year");
 });
 

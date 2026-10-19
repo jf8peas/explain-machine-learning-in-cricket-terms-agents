@@ -32,10 +32,10 @@ No open unknowns remained in the Technical Context; the decisions below record w
 
 ## Existing tests and test ids
 
-- **Decision**: Keep `attempt-row`, `round-item`, `model-reason`, `setup-chip` where the element means the same thing (ranking rows, round cards, the reason quotation, the setup chips in cards). Remove the `check-error` ids with the column. Rewrite the old `grid.test.ts` for the new module.
+- **Decision**: Keep `attempt-row`, `round-item`, `model-reason`, `setup-chip` where the element means the same thing (ranking rows, round cards, the reason quotation, the candidate model chips in cards). Remove the `check-error` ids with the column. Rewrite the old `grid.test.ts` for the new module.
 - **Rationale**: Minimises changes to unrelated specs; the user asked that only tests of the old blocks change.
 
 ## Tie handling and the winner
 
-- **Decision**: Present `validation_winner` as recorded; a tie is detected by equal displayed misses and worded with the existing rule (the AI's setup goes forward).
+- **Decision**: Present `validation_winner` as recorded; a tie is detected by equal displayed misses and worded with the existing rule (the AI's candidate model goes forward).
 - **Rationale**: `selection.validation_winner` sends ties to the language model; the page must not re-decide.

@@ -1,4 +1,4 @@
-// Section 6 of What the agent found: every setup tried, ranked by average miss (app-specific). The AI's tries and the rival's
+// Section 6 of What the agent found: every candidate model tried, ranked by average miss (app-specific). The AI's tries and the rival's
 // best from each allowed grid cell; the order and the tie rule are worked out in view.ts. No per-season column.
 import { labelFor, menuLabel } from "../catalogue";
 import { h } from "../dom";
@@ -23,7 +23,7 @@ export function renderRanking(view: FoundView): Node[] {
       h("td", { class: "rank-miss" }, fromTenths(r.miss))));
   }
   const table = h("table", { class: "attempts ranking", "data-testid": "ranking" },
-    h("thead", {}, h("tr", {}, ...["#", "Setup", "Found by", "Average miss (runs)"].map((t) => h("th", { scope: "col" }, t)))), body);
+    h("thead", {}, h("tr", {}, ...["#", "Candidate model", "Found by", "Average miss (runs)"].map((t) => h("th", { scope: "col" }, t)))), body);
   out.push(h("div", { class: "table-scroll" }, table));
   if (view.tv !== null) out.push(h("p", { class: "small", "data-testid": "ranking-tv" }, `The TV projection missed by ${fromTenths(view.tv)} on the same seasons.`));
   return out;

@@ -9,16 +9,16 @@
 
 This changes the "What the agent found" tab (features 004, 008, 011). Today it shows a leaderboard, the rival's grid search and the model's reasoning as separate blocks with headings that only name them. Visitors cannot tell that they are two contestants and a scoreboard, what "forward selection" is, why there is a rival, or what the "Each check year" column means.
 
-The approved design lives in `specs/014-found-tab/design/`. `README.md` is the specification for layout, copy, chart and grid behaviour and data; `found-tab.html` is a visual reference only (a picture of the design, not something the page ships; every figure, round, quoted reason and setup in it is a placeholder). **Where the two differ, the README wins.** This spec does not repeat the README's copy in full; it states what the feature must deliver and how it is checked.
+The approved design lives in `specs/014-found-tab/design/`. `README.md` is the specification for layout, copy, chart and grid behaviour and data; `found-tab.html` is a visual reference only (a picture of the design, not something the page ships; every figure, round, quoted reason and candidate model in it is a placeholder). **Where the two differ, the README wins.** This spec does not repeat the README's copy in full; it states what the feature must deliver and how it is checked.
 
 The tab becomes a header (no eyebrow) followed by six numbered sections with one heading style, none collapsible:
 
-1. The contest: the AI agent and the rival, defined, with why the rival exists and what a setup is.
-2. How every setup is scored: a strip of learning, check and test seasons.
-3. The race: a chart of the AI's rounds against the rival's best and the TV projection, plus a panel naming the setup that goes forward to the final test.
+1. The contest: the AI agent and the rival, defined, with why the rival exists and what a candidate model is.
+2. How every candidate model is scored: a strip of learning, check and test seasons.
+3. The race: a chart of the AI's rounds against the rival's best and the TV projection, plus a panel naming the candidate model that goes forward to the final test.
 4. The AI's rounds: one card per round merging proposal, reason (the AI's own words) and result.
 5. The rival's grid search: one small grid per training-innings choice, best cell starred, "hyperparameters" and "grid search" explained.
-6. Every setup tried, ranked.
+6. Every candidate model tried, ranked.
 
 **Removed**: the leaderboard's "Each check year (runs)" column (section 2 explains what the average miss is made of), and the "The model's reasoning" block (replaced by section 4, which still shows every reason exactly as written, as text).
 
@@ -28,7 +28,7 @@ The tab becomes a header (no eyebrow) followed by six numbered sections with one
 
 ### User Story 1 - Understand the contest after a run (Priority: P1)
 
-After a run, a visitor with no machine learning background opens the tab and reads down the six sections. They can say what each contestant is, why the rival exists, how a setup's score is worked out, and which setup goes forward to the final test and by how much.
+After a run, a visitor with no machine learning background opens the tab and reads down the six sections. They can say what each contestant is, why the rival exists, how a candidate model's score is worked out, and which candidate model goes forward to the final test and by how much.
 
 **Why this priority**: It is the purpose of the feature; the tab exists to make the contest legible.
 
@@ -37,11 +37,11 @@ After a run, a visitor with no machine learning background opens the tab and rea
 **Acceptance Scenarios**:
 
 1. **Given** a finished run, **When** the tab is opened, **Then** it shows the header (heading and lead, no eyebrow) and sections 1 to 6 in order, each with a numbered heading in the same style, and no section can be collapsed.
-2. **Given** section 1, **Then** two cards (the AI agent, the rival) each state what the contestant is and how it searches, the AI card shows the round cap, the rival card shows the number of grid combinations, and a strip below explains why there is a rival and what a setup is.
+2. **Given** section 1, **Then** two cards (the AI agent, the rival) each state what the contestant is and how it searches, the AI card shows the round cap, the rival card shows the number of grid combinations, and a strip below explains why there is a rival and what a candidate model is.
 3. **Given** section 2, **Then** a strip shows the learning seasons, one segment per check season and a distinct "final test, locked" segment, with years taken from the run's split, and text explains that the score is the average miss across the check seasons.
-4. **Given** section 3, **Then** the winner panel names whose setup goes forward, states each side's average miss and the gap, says the choice was made before the final test season was touched, and links to the final test tab.
-5. **Given** a tie between the AI and the rival, **Then** the panel says it was a tie and that the AI's setup goes forward.
-6. **Given** section 6, **Then** the table lists the AI's tries and the rival's best from each grid cell ordered by average miss, with columns #, Setup, Found by, Average miss and no per-season column, followed by the TV projection's average miss on the same seasons.
+4. **Given** section 3, **Then** the winner panel names whose candidate model goes forward, states each side's average miss and the gap, says the choice was made before the final test season was touched, and links to the final test tab.
+5. **Given** a tie between the AI and the rival, **Then** the panel says it was a tie and that the AI's candidate model goes forward.
+6. **Given** section 6, **Then** the table lists the AI's tries and the rival's best from each grid cell ordered by average miss, with columns #, Candidate model, Found by, Average miss and no per-season column, followed by the TV projection's average miss on the same seasons.
 
 ---
 
@@ -57,7 +57,7 @@ The visitor sees how the AI's rounds compared with the rival and the TV projecti
 
 1. **Given** the race chart, **Then** it plots one mark per AI round (filled dot for a new best, open dot for no better, a cross labelled "rejected", the word "done" or "failed" where relevant), a solid line for the AI's best so far, a dotted line at the rival's best and a dashed line at the TV's average miss, each labelled with its value, with end labels that never overlap.
 2. **Given** the race chart, **Then** it has a text equivalent giving every round's outcome and score, the rival's best and the TV's.
-3. **Given** section 4, **Then** each round has one card with the round number, the proposal (clues, what changed from the previous round, other setup parts in plain words), the AI's reason as a quotation, and the result (average miss with "new best" and drop, "no better", "first score", "Rejected" with code's reason, "stopped", or "failed" with the reason).
+3. **Given** section 4, **Then** each round has one card with the round number, the proposal (clues, what changed from the previous round, other candidate model parts in plain words), the AI's reason as a quotation, and the result (average miss with "new best" and drop, "no better", "first score", "Rejected" with code's reason, "stopped", or "failed" with the reason).
 4. **Given** the AI's reasons, **Then** they appear exactly as the AI wrote them, as text and never interpreted as markup.
 5. **Given** the round that produced the AI's best, **Then** its card is outlined in the AI colour; rejected rounds are visibly distinct (dashed and greyed).
 
@@ -113,7 +113,7 @@ As the replay advances, the tab fills in step by step as it does today. Before t
 - A run where every AI proposal was rejected, or the AI finished or failed in the first round (so there are no fitted AI attempts): the chart still plots, with no AI best line, section 4 still shows each round's card, and the winner panel names the rival.
 - Only one fitted round: it is labelled "first score" and has no drop.
 - Very close or tied values: the gap is stated correctly (including zero) and the tie rule applies. The recorded winner decision is never overridden: if the two bests display the same value but the recorded winner is the rival, the panel names the rival and says the gap is smaller than the display shows; the tie wording is used only when the displayed values are equal and the recorded winner is the AI.
-- Long reasons or setups wrap inside their cards; nothing causes sideways page scroll at 360 px.
+- Long reasons or candidate models wrap inside their cards; nothing causes sideways page scroll at 360 px.
 - All chart values equal, or a single round: the chart range still fits every plotted value.
 - Reasons containing markup characters are shown literally.
 - A grid with a single training-innings choice shows one grid, with no empty placeholders.
@@ -123,14 +123,14 @@ As the replay advances, the tab fills in step by step as it does today. Before t
 ### Functional Requirements
 
 - **FR-001**: The tab MUST show a heading and lead with no eyebrow, followed by six numbered sections with one shared heading style, none collapsible.
-- **FR-002**: Section 1 MUST define the AI agent and the rival, state the round cap and the number of grid combinations, and explain why there is a rival and what a setup is.
-- **FR-003**: Section 2 MUST show the learning, check and test seasons from the run's split and explain that a setup's score is its average miss across the check seasons, with the final test locked.
-- **FR-004**: Section 3 MUST show the race chart described in the design README and a winner panel naming the setup that goes forward, both best misses and the gap, with a link to the final test tab.
+- **FR-002**: Section 1 MUST define the AI agent and the rival, state the round cap and the number of grid combinations, and explain why there is a rival and what a candidate model is.
+- **FR-003**: Section 2 MUST show the learning, check and test seasons from the run's split and explain that a candidate model's score is its average miss across the check seasons, with the final test locked.
+- **FR-004**: Section 3 MUST show the race chart described in the design README and a winner panel naming the candidate model that goes forward, both best misses and the gap, with a link to the final test tab.
 - **FR-005**: The race chart MUST have a text equivalent covering every round's outcome and score, the rival's best and the TV's average miss.
 - **FR-006**: Section 4 MUST show one card per round combining proposal, the AI's reason verbatim as text, and result, with the best, rejected, finished and failed rounds distinguished as the README describes.
 - **FR-007**: Section 5 MUST show one grid per training-innings choice, print every cell's value, mark the best cell with outline, bold and star, and explain "hyperparameters" and "grid search".
 - **FR-008**: Section 6 MUST list all AI attempts and the rival's best per grid cell ordered by average miss, with the Found by column in words, and MUST NOT include a per-season column.
-- **FR-009**: Every number and setup description MUST come from the run's state and the server's settings: the round cap, grid combination count, split years, rounds, attempts, grid result, TV projection's average miss on the check seasons and the winner decision made before the final test. None may be typed into the page.
+- **FR-009**: Every number and candidate model description MUST come from the run's state and the server's settings: the round cap, grid combination count, split years, rounds, attempts, grid result, TV projection's average miss on the check seasons and the winner decision made before the final test. None may be typed into the page.
 - **FR-010**: The tab MUST fill in step by step as the replay advances; before the winner is decided the winner panel MUST say the search is still going.
 - **FR-011**: When the language model does not take part, the tab MUST follow the README's fallback (AI card says so, chart shows rival and TV only, section 4 is one sentence, winner panel names the rival).
 - **FR-012**: Method colours MUST always be paired with words or shapes.
@@ -141,15 +141,15 @@ As the replay advances, the tab fills in step by step as it does today. Before t
 
 - **Run**: the replayed experiment: its split of seasons, rounds, attempts, grid result, TV projection result and winner decision.
 - **Round**: one AI turn: proposal, reason (verbatim), outcome (fitted, rejected, finished or failed), code's message and, if fitted, average miss.
-- **Attempt / Setup**: a fitted combination of clues and settings with its average miss, who proposed it, and whether it set a new best.
-- **Grid result**: the rival's best average miss for each combination of training-innings choice, training window and recency weighting, with the best cell, its setup and clues.
+- **Attempt / Candidate model**: a fitted combination of clues and settings with its average miss, who proposed it, and whether it set a new best.
+- **Grid result**: the rival's best average miss for each combination of training-innings choice, training window and recency weighting, with the best cell, its candidate model and clues.
 - **Winner decision**: which side goes forward, both best misses, made before the final test.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: After a run, a visitor with no machine learning background can say what each contestant is, why the rival exists, how a setup's score is worked out, and which setup goes forward and by how much (judged by a person).
+- **SC-001**: After a run, a visitor with no machine learning background can say what each contestant is, why the rival exists, how a candidate model's score is worked out, and which candidate model goes forward and by how much (judged by a person).
 - **SC-002**: Every number on the tab matches the run's state, checked automatically across a run with the language model, a run without it, and a mid-replay state.
 - **SC-003**: No method is identified by colour alone: every coloured element has an adjacent word or shape, verified by automated and visual check.
 - **SC-004**: The tab is readable in light and dark mode and at 360 px wide with no sideways page scroll.

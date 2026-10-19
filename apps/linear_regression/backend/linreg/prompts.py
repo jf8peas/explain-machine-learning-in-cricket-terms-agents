@@ -1,6 +1,6 @@
 """The messages sent to the language model. App-specific.
 
-The model is told the task, the rules and the exact reply shape; it is shown the catalogue, the menus its setup is chosen
+The model is told the task, the rules and the exact reply shape; it is shown the catalogue, the menus its candidate model is chosen
 from, statistics from the years before the final-check year only (average totals by year, innings counts by competition and
 year), the attempts so far with each one's error in each of the three checks, and any rejected proposals with reasons.
 It is never shown the final-check year or anything computed from it, and it cannot run numbers: code fits and scores every
@@ -80,7 +80,7 @@ def _num(value: Any) -> str:
 
 
 def _setup_line(item: dict) -> str:
-    """One setup in words the model chose them in: the feature ids and the three menu ids."""
+    """One candidate model in words the model chose them in: the feature ids and the three menu ids."""
     return (f"{', '.join(item.get('features') or []) or '(no features)'} | window {item.get('window')} | "
             f"weighting {item.get('weighting')} | training_innings {item.get('training_innings')}")
 
