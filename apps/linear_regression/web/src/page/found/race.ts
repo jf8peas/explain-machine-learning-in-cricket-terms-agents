@@ -140,7 +140,7 @@ export function renderChoicePanel(view: FoundView): HTMLElement {
     h("p", { class: "choice-big", "data-testid": "choice-heading" }, choiceHeading(v)), body);
   if (v.state !== "pending") {
     panel.append(h("p", { class: "small" }, "Chosen before the final test season was touched. Both candidate models still sit the final test."),
-      h("p", { "data-testid": "to-final" }, h("a", { href: "#final-test" }, "See the final test for the verdict →")));
+      h("p", { "data-testid": "to-final" }, h("a", { href: "#final-test" }, "See the Hold-Out Test for the verdict →")));
   }
   return panel;
 }

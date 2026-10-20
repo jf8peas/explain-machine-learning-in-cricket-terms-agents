@@ -27,7 +27,7 @@
     h1 { font-size: 1.6rem; margin: 0 0 6px; }
     h2 { font-size: 1.15rem; margin: 28px 0 8px; }
     h3 { font-size: 1rem; margin: 16px 0 6px; }
-    /* the breadcrumb above the tab bar, and the Working tab's hero (feature 013) */
+    /* the breadcrumb above the tab bar, and The Run tab's hero (feature 013) */
     .breadcrumb { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; margin: 0 0 14px; font-size: .875rem; color: var(--muted); }
     .breadcrumb a { color: var(--accent); text-decoration: none; }
     .breadcrumb a:hover { text-decoration: underline; }
@@ -127,7 +127,7 @@
     .exam-banner-validation { background: var(--val-bg); border: 1px solid var(--val); color: var(--text); }
     .exam-banner-test { background: var(--text); color: var(--bg); border: 1px solid var(--text); }
     .exam-banner-test .exam-pill-test { background: var(--bg); color: var(--text); }
-    /* The final test (feature 015): three numbered sections, never collapsible, nothing animates */
+    /* Hold-Out Test (feature 015): three numbered sections, never collapsible, nothing animates */
     .final-header-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
     .final-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
     .final-section > h3, .final-section-head > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
@@ -231,7 +231,7 @@
       .race-axis .race-axis-area, .race-axis .race-axis-caption { grid-column: 1; }
       .close-row { grid-template-columns: minmax(0, 1fr); }
     }
-    /* What the agent found (feature 014): six numbered sections, never collapsible */
+    /* Model Selection (feature 014): six numbered sections, never collapsible */
     .found-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
     .found-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
     .found-section > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
@@ -363,8 +363,8 @@
       </p>
       <data-grid noun="innings"></data-grid>
     </div>
-    <div data-tab="working" data-label="Working" data-testid="working-panel">
-      <h2 class="visually-hidden" tabindex="-1">Working</h2>
+    <div data-tab="working" data-label="The Run" data-testid="working-panel">
+      <h2 class="visually-hidden" tabindex="-1">The Run</h2>
     <section class="hero" data-testid="hero" aria-labelledby="hero-title">
       <header class="hero-head">
         <p class="hero-eyebrow">An AI agent experiment · linear regression</p>
@@ -406,17 +406,17 @@
     <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
       <div class="run-summary" data-testid="run-summary" aria-live="polite"></div>
     </div>
-    <div data-tab="found" data-label="What the agent found" data-testid="found-panel">
-      <h2 tabindex="-1">What the agent found</h2>
-      <p class="muted not-ready" data-testid="not-ready">The contest between the AI agent and the rival, how each one searched, and which candidate model goes forward appear here once the agent starts working. <a href="#working">Go to Working and press Play</a>.</p>
+    <div data-tab="found" data-label="Model Selection" data-testid="found-panel">
+      <h2 tabindex="-1">Model Selection</h2>
+      <p class="muted not-ready" data-testid="not-ready">The contest between the AI agent and the rival, how each one searched, and which candidate model goes forward appear here once the agent starts working. <a href="#working">Go to The Run and press Play</a>.</p>
       <section class="card" data-testid="results-card" aria-live="polite">
         <div data-testid="results"></div>
         <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
       </section>
     </div>
-    <div data-tab="final-test" data-label="The final test" data-testid="final-panel">
-      <h2 tabindex="-1">The final test</h2>
-      <p class="muted not-ready" data-testid="not-ready">How every method does on the held-out year, and what it means in cricket terms, appear here when the agent reaches its final test. <a href="#working">Go to Working and press Play</a>.</p>
+    <div data-tab="final-test" data-label="Hold-Out Test" data-testid="final-panel">
+      <h2 tabindex="-1">Hold-Out Test</h2>
+      <p class="muted not-ready" data-testid="not-ready">How every method does on the held-out year, and what it means in cricket terms, appear here when the agent reaches its final test. <a href="#working">Go to The Run and press Play</a>.</p>
       <section class="card" data-testid="results-final-card" aria-live="polite">
         <div data-testid="results-final"></div>
         <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
@@ -425,7 +425,7 @@
     <div data-tab="try-your-own" data-label="Try your own innings" data-testid="tryit-panel">
       <h2 tabindex="-1">Try your own innings</h2>
       <section class="card" data-testid="tryit">
-        <p class="muted" data-testid="tryit-hint">Run the agent first on the <a href="#working">Working tab</a>, then use its model on an innings of your own.</p>
+        <p class="muted" data-testid="tryit-hint">Run the agent first on the <a href="#working">The Run tab</a>, then use its model on an innings of your own.</p>
         <form novalidate>
           <span class="tryit-fields" data-testid="tryit-fields"></span>
           <button type="submit" disabled>Predict</button>

@@ -30,7 +30,7 @@ test("the tab has a heading, a lead and six numbered sections, none collapsible"
   await playToEnd(page);
   await openTab(page, "found");
   const panel = page.getByTestId("found-panel");
-  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("What the agent found");
+  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Model Selection");
   await expect(page.getByTestId("found-header")).toContainText("Two methods competed");
   for (let n = 1; n <= 6; n++) {
     await expect(page.getByTestId(`found-section-${n}`).locator("h3")).toHaveText(new RegExp(`^${n}\\. `));

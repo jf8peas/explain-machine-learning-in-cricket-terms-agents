@@ -41,7 +41,7 @@ export function renderFinal(target: HTMLElement, state: Record<string, unknown>)
       ", a season that was never used for learning, tuning or choosing. These are the ", h("strong", {}, "honest"), " numbers.")]),
     section(1, "How did our pick do?", null, ...(chosen ? [renderPick(chosen, testYear, verdict)] : []),
       ...renderRace(list, testYear, exam ? compareSentence(exam) : [])),
-    ...(exam ? [section(2, "Why the scores differ from What the agent found", null, ...renderDiffer(exam))] : []),
+    ...(exam ? [section(2, "Why the scores differ from Model Selection", null, ...renderDiffer(exam))] : []),
     section(3, "How close did each one get?", null, ...renderCloseness(list, expl, testYear)),
     ...(expl ? [section(4, "In cricket terms: what this tells us", renderWriterLabel(expl), ...renderTakeaways(expl))] : []));
 }

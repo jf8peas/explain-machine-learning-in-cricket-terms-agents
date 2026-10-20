@@ -5,7 +5,7 @@ import { afterRunOpen, countRunRequests, open, openTab, playToEnd, serveRun, sse
 // its end, and the not-ready sentences and markers. Against the real app with the scripted fake model.
 
 const TABS = ["data", "working", "found", "final-test", "try-your-own"] as const;
-const LABELS = ["Data", "Working", "What the agent found", "The final test", "Try your own innings"];
+const LABELS = ["Data", "The Run", "Model Selection", "Hold-Out Test", "Try your own innings"];
 
 const selected = (page: Page, id: string) => expect(page.getByTestId(`tab-${id}`)).toHaveAttribute("aria-selected", "true");
 const heading = (page: Page, name: string) => page.getByRole("heading", { name, exact: true, level: 2 });
@@ -119,8 +119,8 @@ test("a full run moves to What the agent found at the end, with focus on its hea
   await open(page);
   await playAndWaitForSwitch(page);
   await expect(page.locator('[data-tab="found"]')).toBeVisible();
-  await expect(heading(page, "What the agent found")).toBeFocused();
-  await expect(page.getByTestId("tab-live")).toHaveText("Now showing: What the agent found");
+  await expect(heading(page, "Model Selection")).toBeFocused();
+  await expect(page.getByTestId("tab-live")).toHaveText("Now showing: Model Selection");
   await expect(page.getByTestId("ranking")).toBeVisible();
   await expect(page.getByTestId("to-final").getByRole("link")).toHaveAttribute("href", "#final-test");   // the way on to The final test
 });
@@ -139,7 +139,7 @@ test("the switch waits for playback to reach the end, however long the visitor p
   await selected(page, "working");                                               // one step before the end
   await page.getByTestId("step").click();
   await selected(page, "found");
-  await expect(heading(page, "What the agent found")).toBeFocused();
+  await expect(heading(page, "Model Selection")).toBeFocused();
 });
 
 test("stepping back and forward after the switch does not switch again", async ({ page }) => {
@@ -281,7 +281,7 @@ test("what the visitor typed in Try your own innings survives switching tabs and
 test("the tabs are reachable by keyboard alone, and each opens its panel with its heading", async ({ page }) => {
   await open(page);
   await page.getByTestId("tab-working").focus();
-  for (const [key, id, title] of [["ArrowRight", "found", "What the agent found"], ["ArrowRight", "final-test", "The final test"],
+  for (const [key, id, title] of [["ArrowRight", "found", "Model Selection"], ["ArrowRight", "final-test", "Hold-Out Test"],
                                   ["ArrowRight", "try-your-own", "Try your own innings"], ["Home", "data", ""], ["End", "try-your-own", "Try your own innings"]]) {
     await page.keyboard.press(key);
     await selected(page, id);

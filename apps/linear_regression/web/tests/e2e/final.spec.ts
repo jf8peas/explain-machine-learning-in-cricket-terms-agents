@@ -83,7 +83,7 @@ test("the tab has a header, a TEST banner and four numbered sections with one he
     await expect(section).toBeVisible();
     await expect(section.locator("h3").first()).toHaveText(new RegExp(`^${n}\\. `));
   }
-  const headings = ["1. How did our pick do?", "2. Why the scores differ from What the agent found", "3. How close did each one get?", "4. In cricket terms: what this tells us"];
+  const headings = ["1. How did our pick do?", "2. Why the scores differ from Model Selection", "3. How close did each one get?", "4. In cricket terms: what this tells us"];
   for (const [i, h] of headings.entries()) await expect(page.getByTestId(`final-section-${i + 1}`).locator("h3").first()).toHaveText(h);
   expect(await page.getByTestId("final-panel").locator("details, summary, [aria-expanded]").count()).toBe(0);
   expect(await page.getByTestId("final-panel").locator(".eyebrow, .hero-eyebrow").count()).toBe(0);

@@ -23,10 +23,10 @@ export function renderSummary(target: HTMLElement, state: Record<string, unknown
     target.replaceChildren(h("p", { class: "error", role: "alert", "data-testid": "data-error" }, m.message));
   } else if (m.kind === "empty") {
     target.replaceChildren(h("p", { class: "muted", "data-testid": "summary-text" },
-      "Results will appear here as the agent works, and in the tabs for what it found and the final test."));
+      "Results will appear here as the agent works, and in the Model Selection and Hold-Out Test tabs."));
   } else {
     target.replaceChildren(h("p", { "data-testid": "summary-text" },
       `Best candidate model so far: an average miss of ${m.miss} runs on the check years, proposed by ${m.proposer.toLowerCase()}. `,
-      h("a", { href: "#found", "data-testid": "summary-link" }, "See what the agent found")));
+      h("a", { href: "#found", "data-testid": "summary-link" }, "See Model Selection")));
   }
 }
