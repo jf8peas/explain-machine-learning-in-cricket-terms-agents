@@ -65,3 +65,13 @@ test("Pause stops the display and Resume continues", async ({ page }) => {
   await page.getByTestId("pause").click();
   await expect(page.getByTestId("pause")).toHaveText("Pause");
 });
+
+test("the page has a favicon that is served", async ({ page, request }) => {
+  await page.goto("/");
+  const href = await page.locator('link[rel="icon"]').getAttribute("href");
+  expect(href).toBe("/favicon.svg");
+  const res = await request.get(href!);
+  expect(res.ok()).toBe(true);
+  expect(res.headers()["content-type"]).toContain("svg");
+  expect(await res.text()).toContain("<svg");
+});

@@ -311,3 +311,16 @@ test("the tab never says winner, with the AI, and without it the panel names the
   await expect(page.getByTestId("choice-heading")).toHaveText("The rival's candidate model");
   await expect(page.getByTestId("too-close")).toHaveCount(0);
 });
+
+test("the bottom of Model Selection links on to the Hold-Out Test", async ({ page }) => {
+  await open(page);
+  await playToEnd(page);
+  await openTab(page, "found");
+  const last = await page.getByTestId("results").evaluate((root) => root.lastElementChild!.getAttribute("data-testid"));
+  expect(last).toBe("found-next");                                                  // after the last section
+  const link = page.getByTestId("to-final-bottom");
+  await expect(link).toHaveAttribute("href", "#final-test");
+  await expect(link).toContainText("Hold-Out Test");
+  await link.click();
+  await expect(page.getByTestId("tab-final-test")).toHaveAttribute("aria-selected", "true");
+});

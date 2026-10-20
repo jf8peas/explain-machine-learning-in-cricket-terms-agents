@@ -41,5 +41,6 @@ export function renderFound(target: HTMLElement, state: Record<string, unknown>,
     section(3, "The race on the check seasons", ...renderRace(view)),
     section(4, "The AI's rounds: what it tried, why, and how it went", ...renderRounds(view)),
     section(5, "The rival's grid search: trying every combination", ...renderGrid(view)),
-    section(6, "Every candidate model tried, ranked", ...renderRanking(view)));
+    section(6, "Every candidate model tried, ranked", ...renderRanking(view)),
+    h("p", { class: "found-next", "data-testid": "found-next" }, h("a", { href: "#final-test", "data-testid": "to-final-bottom" }, "Next: see how the chosen candidate model does on the Hold-Out Test →")));
 }
