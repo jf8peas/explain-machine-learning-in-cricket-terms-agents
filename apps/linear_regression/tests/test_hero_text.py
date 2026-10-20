@@ -89,29 +89,61 @@ def test_the_margin_comes_from_the_argument(margin, words):
 
 @pytest.mark.parametrize("miss,avg,says", [
     (22, 22.5, True),
-    (28.1, 22.5, True),      # exactly 25% over (28.125)
-    (28.2, 22.5, False),
-    (16.9, 22.5, True),      # just inside 25% under (16.875)
-    (16.8, 22.5, False),
+    (28, 22.5, True),        # 25% over is 28.125: 28 is inside
+    (29, 22.5, False),
+    (17, 22.5, True),        # 25% under is 16.875: 17 is inside
+    (16, 22.5, False),
     (60, 22.5, False),
     (0, 22.5, False),        # spot on the line is far from a typical miss
 ])
 def test_the_typical_miss_clause_appears_only_when_true(miss, avg, says):
-    example = {**EXAMPLE, "tv_miss": miss}
-    text = hero_text.caption(example, avg)
-    assert ("about its typical miss" in text) is says
+    example = {**EXAMPLE, "tv_projection": EXAMPLE["final_total"] - miss}       # the TV said less than the total by `miss`
+    assert ("about its typical miss" in hero_text.caption(example, avg)) is says
 
 
-def test_the_caption_is_built_from_the_example():
-    text = hero_text.caption(EXAMPLE, 22.5)
-    assert text == ("A real innings: Australia v India, Sydney Cricket Ground, December 2020. Australia made 82 in the "
-                    "first 10 overs and 104 in the last 10. The TV's straight line assumed the same pace, said 164, and "
-                    "was 22 runs out: about its typical miss. Open circles mark wickets.")
+def test_the_typical_miss_clause_follows_the_gap_in_either_direction():
+    over = {**EXAMPLE, "final_total": 150, "tv_projection": 171}                # 21 over, close to 22.5
+    assert "was 21 runs over: about its typical miss." in hero_text.caption(over, 22.5)
+
+
+CONTEXT = "The first 10 overs, in grey, are context; the white part is what everyone is trying to predict."
+
+
+def test_the_caption_is_built_from_the_example_with_the_tv_short():
+    assert hero_text.caption(EXAMPLE, 22.5) == (
+        f"A real innings: Australia v India, Sydney Cricket Ground, December 2020. {CONTEXT} Australia went from 82/2 to 186. "
+        "The TV's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.")
+
+
+def test_the_caption_says_over_when_the_tv_was_above_the_total():
+    text = hero_text.caption({**EXAMPLE, "final_total": 150, "tv_projection": 171, "runs_at_10": 75}, 22.5)
+    assert "Australia went from 75/2 to 150." in text
+    assert "said 171 and was 21 runs over: about its typical miss. Open circles mark wickets." in text
+
+
+def test_the_caption_says_spot_on_when_the_tv_equals_the_total():
+    text = hero_text.caption({**EXAMPLE, "tv_projection": 186}, 22.5)
+    assert "said 186 and was spot on. Open circles mark wickets." in text
+    assert "runs short" not in text and "runs over" not in text and "typical" not in text
 
 
 def test_without_the_clause_the_caption_ends_the_sentence_plainly():
-    text = hero_text.caption({**EXAMPLE, "tv_miss": 60}, 22.5)
-    assert "was 60 runs out. Open circles mark wickets." in text
+    text = hero_text.caption({**EXAMPLE, "tv_projection": 126}, 22.5)             # 60 short, far from typical
+    assert "was 60 runs short. Open circles mark wickets." in text
+
+
+@pytest.mark.parametrize("total,tv", [(186, 164), (150, 171), (180, 180), (181, 180), (179, 180)])
+def test_the_caption_and_the_bracket_words_agree(total, tv):
+    text = hero_text.caption({**EXAMPLE, "final_total": total, "tv_projection": tv}, 22.5)
+    assert f"and was {hero_text.miss_words(total, tv)}" in text
+
+
+def test_the_caption_keeps_the_fixed_context_sentence_and_the_went_from_wording_for_any_innings():
+    for ex in (EXAMPLE, {**EXAMPLE, "batting_team": "India", "runs_at_10": 91, "wickets_at_10": 0, "final_total": 205, "tv_projection": 182}):
+        text = hero_text.caption(ex, 22.5)
+        assert CONTEXT in text
+        assert f"{ex['batting_team']} went from {ex['runs_at_10']}/{ex['wickets_at_10']} to {ex['final_total']}." in text
+        assert text.endswith("Open circles mark wickets.")
 
 
 # --- footnote and chart text -------------------------------------------------------------------------------------
@@ -126,6 +158,20 @@ def test_the_chart_text_has_every_number_the_chart_shows_and_says_the_agent_is_u
         assert part in text
 
 
+def test_the_chart_text_describes_the_zoom_the_miss_and_the_tvs_usual_miss():
+    text = hero()["chart_text"]
+    assert "zoom on the finish" in text.lower()
+    assert "the actual total 186" in text and "the TV projection 164 (22 runs short)" in text and "the know-nothing guess 162" in text
+    assert "usual miss is 22.5 runs either way" in text and "band around its projection" in text
+    assert "grey as context" in text
+
+
+@pytest.mark.parametrize("ex,words", [(EXAMPLE, "22 runs short"), ({**EXAMPLE, "final_total": 150, "tv_projection": 171}, "21 runs over"),
+                                      ({**EXAMPLE, "tv_projection": 186}, "spot on")])
+def test_the_chart_text_uses_the_same_miss_words_as_the_bracket(ex, words):
+    assert f"({words})" in hero_text.chart_text(ex, 22.5, 162)
+
+
 def test_without_an_example_there_is_no_caption_or_chart_text_but_the_panel_stays():
     block = hero(example=None)
     assert block["caption"] is None and block["chart_text"] is None
@@ -135,10 +181,23 @@ def test_without_an_example_there_is_no_caption_or_chart_text_but_the_panel_stay
 @pytest.mark.parametrize("know_nothing,tv,bias,miss", [(23.9, 22.5, -14.3, 22), (50.0, 12.0, 3.0, 40), (10.0, 12.0, 0.0, 12)])
 def test_every_number_in_the_sentences_is_one_of_the_figures(know_nothing, tv, bias, miss):
     import re
-    block = hero(know_nothing=know_nothing, tv=tv, bias=bias, example={**EXAMPLE, "tv_miss": miss})
+    block = hero(know_nothing=know_nothing, tv=tv, bias=bias, example={**EXAMPLE, "tv_projection": 186 - miss, "tv_miss": miss})
     allowed = {f"{know_nothing - tv:g}", f"{tv - know_nothing:g}", f"{abs(bias):.1f}", "3", "10", "20", "0.0", "2,133", "2005",
-               "2022", "2020", "82", "104", "164", f"{miss:g}", "186", "2", "162", f"{tv:g}", f"{know_nothing:g}", "1",
+               "2022", "2020", "82", "104", str(186 - miss), f"{miss:g}", "186", "2", "162", f"{tv:g}", f"{know_nothing:g}", "1",
                f"{round(know_nothing - tv, 1):g}", f"{round(tv - know_nothing, 1):g}"}
     for key in ("caption", "panel", "footnote", "chart_text"):
         for number in re.findall(r"\d(?:[\d,]*\d)?(?:\.\d+)?", block[key]):
             assert number in allowed, (key, number)
+
+
+# --- miss_words: the same rule as the page's bracket (feature 017) ----------------------------------------------------
+
+import json
+from pathlib import Path
+
+MISS_CASES = json.loads((Path(__file__).parent.parent / "web" / "tests" / "fixtures" / "miss_words_cases.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("case", MISS_CASES, ids=lambda c: f"{c['actual']}v{c['tv']}")
+def test_miss_words_matches_the_shared_cases_the_page_is_tested_on(case):
+    assert hero_text.miss_words(case["actual"], case["tv"]) == case["words"]

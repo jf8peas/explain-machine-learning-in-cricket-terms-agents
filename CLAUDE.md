@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/016-validation-vs-test/plan.md](specs/016-validation-vs-test/plan.md)
+Current feature plan: [specs/017-hero-zoom/plan.md](specs/017-hero-zoom/plan.md)
 <!-- SPECKIT END -->

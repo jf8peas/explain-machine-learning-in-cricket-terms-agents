@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { labelMode, NARROW_BELOW, spreadLabels, yAxis } from "../../src/page/worm-layout";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { layoutMode, missWords, NARROW_BELOW, spreadLabels, yAxis, ZOOM_PAD, ZOOM_STEP, zoomRange } from "../../src/page/worm-layout";
 
 describe("yAxis", () => {
   it("is 0 to 200 in steps of 50 when every value fits", () => {
@@ -22,11 +24,91 @@ describe("yAxis", () => {
   });
 });
 
-describe("labelMode", () => {
-  it("puts the labels beside a wide chart and in a key under a narrow one", () => {
-    expect(labelMode(NARROW_BELOW)).toBe("side");
-    expect(labelMode(NARROW_BELOW - 1)).toBe("key");
-    expect(labelMode(328)).toBe("key");
+describe("layoutMode", () => {
+  it("draws the line graph and the zoom side by side on a wide card and stacked on a narrow one", () => {
+    expect(layoutMode(NARROW_BELOW)).toBe("wide");
+    expect(layoutMode(NARROW_BELOW - 1)).toBe("narrow");
+    expect(layoutMode(559)).toBe("narrow");
+    expect(layoutMode(560)).toBe("wide");
+    expect(layoutMode(328)).toBe("narrow");
+  });
+});
+
+const CASES = JSON.parse(readFileSync(fileURLToPath(new URL("../fixtures/miss_words_cases.json", import.meta.url)), "utf8")) as { actual: number; tv: number; words: string }[];
+
+describe("missWords", () => {
+  it("says short, over or spot on for every shared case (the server's caption uses the same cases)", () => {
+    expect(CASES.length).toBeGreaterThanOrEqual(8);
+    for (const c of CASES) expect(missWords(c.actual, c.tv), `${c.actual} v ${c.tv}`).toBe(c.words);
+  });
+
+  it("says short when the TV is below the total and over when it is above", () => {
+    expect(missWords(186, 164)).toBe("22 runs short");
+    expect(missWords(150, 171)).toBe("21 runs over");
+    expect(missWords(180, 180)).toBe("spot on");
+  });
+
+  it("uses the singular for one run and works on the displayed whole numbers", () => {
+    expect(missWords(181, 180)).toBe("1 run short");
+    expect(missWords(179, 180)).toBe("1 run over");
+    expect(missWords(186, 164.4)).toBe("22 runs short");    // 164.4 is shown as 164
+    expect(missWords(186, 164.6)).toBe("21 runs short");    // 164.6 is shown as 165
+  });
+});
+
+describe("zoomRange", () => {
+  const range = (actual: number, tv: number, nothing: number, miss: number) => zoomRange({ actual, tv, nothing }, miss);
+  const contains = (r: ReturnType<typeof range>, v: number) => v >= r.lo + ZOOM_PAD - 1e-9 && v <= r.hi - ZOOM_PAD + 1e-9;
+
+  it("for the current innings runs from the nearest 10 below the lowest value to the nearest 10 above the highest", () => {
+    const r = range(186, 164, 162, 22.5);          // lowest 141.5 (TV - miss), highest 186.5 (TV + miss)
+    expect(r).toEqual({ lo: 130, hi: 190, ticks: [130, 140, 150, 160, 170, 180, 190] });
+  });
+
+  it("keeps the TV and the know-nothing guess apart on a magnified ruler when they are within 2 runs", () => {
+    const r = range(186, 164, 163, 22.5);
+    expect(r.hi - r.lo).toBeLessThanOrEqual(80);
+    for (const v of [186, 164, 163, 164 - 22.5, 164 + 22.5]) expect(contains(r, v), String(v)).toBe(true);
+  });
+
+  it("covers the whole TV band when the TV is above the actual total", () => {
+    const r = range(150, 171, 162, 22.5);          // band 148.5 to 193.5
+    expect(r.lo).toBeLessThanOrEqual(140);
+    expect(r.hi).toBeGreaterThanOrEqual(200);
+    for (const v of [150, 171, 162, 148.5, 193.5]) expect(contains(r, v), String(v)).toBe(true);
+  });
+
+  it("extends past the plotted values when the TV's miss band goes beyond them", () => {
+    const r = range(60, 60, 58, 22.5);              // band 37.5 to 82.5, beyond all three totals
+    expect(r.lo).toBeLessThanOrEqual(30);
+    expect(r.hi).toBeGreaterThanOrEqual(90);
+    for (const v of [60, 58, 37.5, 82.5]) expect(contains(r, v)).toBe(true);
+  });
+
+  it("is at least one tick interval wide when every value coincides", () => {
+    const r = range(100, 100, 100, 0);
+    expect(r.hi - r.lo).toBeGreaterThanOrEqual(ZOOM_STEP);
+    expect(contains(r, 100)).toBe(true);
+    expect(r.ticks.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("never lets a value sit on an edge, even when it is an exact multiple of 10", () => {
+    const r = range(190, 170, 180, 0);              // lowest 170, highest 190: exact tens
+    expect(r.lo).toBeLessThan(170);
+    expect(r.hi).toBeGreaterThan(190);
+    expect(170 - r.lo).toBeGreaterThanOrEqual(ZOOM_PAD);
+    expect(r.hi - 190).toBeGreaterThanOrEqual(ZOOM_PAD);
+  });
+
+  it("has ticks every 10 runs from lo to hi, both included, and lo and hi are multiples of 10", () => {
+    for (const [a, t, n, m] of [[186, 164, 162, 22.5], [150, 171, 162, 22.5], [60, 60, 58, 22.5], [199, 198, 196, 5], [101, 103, 99, 0.4]] as const) {
+      const r = range(a, t, n, m);
+      expect(r.lo % 10).toBe(0);
+      expect(r.hi % 10).toBe(0);
+      expect(r.ticks[0]).toBe(r.lo);
+      expect(r.ticks[r.ticks.length - 1]).toBe(r.hi);
+      r.ticks.forEach((tick, i) => i === 0 || expect(tick - r.ticks[i - 1]).toBe(10));
+    }
   });
 });
 

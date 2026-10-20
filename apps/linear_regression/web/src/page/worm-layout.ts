@@ -3,7 +3,7 @@
 
 export const BASE_MAX = 200;   // runs at the top of the axis unless a plotted value needs more
 export const STEP = 50;        // gridline and label spacing, and the steps the axis grows in
-export const NARROW_BELOW = 560; // a chart card narrower than this (px) puts the end labels in a key under the chart
+export const NARROW_BELOW = 560; // a chart card narrower than this (px) stacks the zoom under the line graph
 
 export interface YAxis { max: number; ticks: number[] }
 
@@ -14,9 +14,37 @@ export function yAxis(values: number[]): YAxis {
   return { max, ticks: Array.from({ length: max / STEP + 1 }, (_, i) => i * STEP) };
 }
 
-/** Beside the chart when there is room for the labels, otherwise in a key under it. */
-export function labelMode(cardWidth: number): "side" | "key" {
-  return cardWidth >= NARROW_BELOW ? "side" : "key";
+/** Wide: one drawing with the line graph and the zoom side by side. Narrow: the zoom stacked under the line graph. */
+export type Mode = "wide" | "narrow";
+export function layoutMode(cardWidth: number): Mode {
+  return cardWidth >= NARROW_BELOW ? "wide" : "narrow";
+}
+
+export const ZOOM_PAD = 2;     // runs of room beyond the lowest and highest value before rounding out to a 10
+export const ZOOM_STEP = 10;   // tick spacing on the zoom's ruler, in runs
+
+export interface ZoomRange { lo: number; hi: number; ticks: number[] }
+
+/** The totals the zoom's ruler covers: from the nearest 10 below the lowest of (actual, TV, know-nothing, TV - miss) to the
+ *  nearest 10 above the highest of (those and TV + miss), with ZOOM_PAD runs of room so no marker sits on an edge, and at
+ *  least one tick interval. Ticks every 10 runs, ends included. Layout only: it works out no statistic. */
+export function zoomRange(values: { actual: number; tv: number; nothing: number }, averageMiss: number): ZoomRange {
+  const all = [values.actual, values.tv, values.nothing, values.tv - averageMiss, values.tv + averageMiss];
+  const lo = Math.floor((Math.min(...all) - ZOOM_PAD) / ZOOM_STEP) * ZOOM_STEP;
+  let hi = Math.ceil((Math.max(...all) + ZOOM_PAD) / ZOOM_STEP) * ZOOM_STEP;
+  if (hi - lo < ZOOM_STEP) hi = lo + ZOOM_STEP;
+  const ticks: number[] = [];
+  for (let t = lo; t <= hi + 1e-9; t += ZOOM_STEP) ticks.push(t);
+  return { lo, hi, ticks };
+}
+
+/** How far the TV was from the total, in words, from the displayed whole numbers: "22 runs short" when it said less than
+ *  the total, "21 runs over" when it said more, "1 run" for one, "spot on" when equal. The server's caption uses the same rule. */
+export function missWords(actual: number, tv: number): string {
+  const n = Math.round(actual) - Math.round(tv);
+  if (n === 0) return "spot on";
+  const size = Math.abs(n);
+  return `${size} ${size === 1 ? "run" : "runs"} ${n > 0 ? "short" : "over"}`;
 }
 
 export interface Wish { id: string; y: number }

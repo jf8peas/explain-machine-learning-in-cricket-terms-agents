@@ -24,6 +24,17 @@ def _plural(x: float) -> str:
     return "run" if _runs(x) == "1" else "runs"
 
 
+def miss_words(actual: int, tv: int) -> str:
+    """How far the TV's projection was from the total, from the displayed whole numbers: "22 runs short" when it said less
+    than the total, "21 runs over" when it said more, "1 run" for one, "spot on" when equal. The page's bracket uses the
+    same rule (worm-layout.ts missWords); web/tests/fixtures/miss_words_cases.json holds the cases both are tested on."""
+    n = round(actual) - round(tv)
+    if n == 0:
+        return "spot on"
+    size = abs(n)
+    return f"{size} {'run' if size == 1 else 'runs'} {'short' if n > 0 else 'over'}"
+
+
 def barely_helps(know_nothing_miss: float, tv_miss: float) -> bool:
     """True only when the TV is better than knowing nothing, but by no more than BARELY_HELPS_SHARE of its miss."""
     gap = round(know_nothing_miss - tv_miss, 1)
@@ -64,21 +75,29 @@ def footnote(first_year: int, last_year: int, innings: int) -> str:
 
 
 def caption(example: Mapping[str, Any], tv_average_miss: float) -> str:
+    """The caption under the chart: which innings, what the grey and white parts are, how the innings went and how far the TV was.
+    The direction and size come from the displayed whole numbers (the page's bracket uses the same rule), and so does the
+    "about its typical miss" clause, so none of them can disagree with the figures shown."""
     batting, bowling = example["batting_team"], example["bowling_team"]
-    last_ten = example["final_total"] - example["runs_at_10"]
-    typical = ": about its typical miss" if about_typical_miss(example["tv_miss"], tv_average_miss) else ""
-    return (f"A real innings: {batting} v {bowling}, {example['venue']}, {example['date_label']}. {batting} made "
-            f"{example['runs_at_10']} in the first 10 overs and {last_ten} in the last 10. The TV's straight line assumed "
-            f"the same pace, said {example['tv_projection']}, and was {_runs(example['tv_miss'])} runs out{typical}. "
+    total, tv = example["final_total"], example["tv_projection"]
+    typical = ": about its typical miss" if about_typical_miss(abs(round(total) - round(tv)), tv_average_miss) else ""
+    return (f"A real innings: {batting} v {bowling}, {example['venue']}, {example['date_label']}. "
+            f"The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. "
+            f"{batting} went from {example['runs_at_10']}/{example['wickets_at_10']} to {total}. "
+            f"The TV's straight line said {tv} and was {miss_words(total, tv)}{typical}. "
             f"Open circles mark wickets.")
 
 
 def chart_text(example: Mapping[str, Any], tv_average_miss: float, average_total: float) -> str:
     batting = example["batting_team"]
+    total, tv = example["final_total"], example["tv_projection"]
     return (f"Runs by over for {batting} v {example['bowling_team']}, {example['venue']}, {example['date_label']}. "
+            f"The first 10 overs are shown in grey as context and the last 10 in the prediction area. "
             f"{batting} were {example['runs_at_10']} for {example['wickets_at_10']} after 10 overs. The TV projection "
-            f"said {example['tv_projection']}. The know-nothing guess said {_runs(average_total)}. The innings finished "
-            f"on {example['final_total']}. The TV's average miss is {_runs(tv_average_miss)} runs either way. The "
+            f"said {tv}. The know-nothing guess said {_runs(average_total)}. The innings finished "
+            f"on {total}. A zoom on the finish shows where each prediction landed at 20 overs: the actual total {total}, "
+            f"the TV projection {tv} ({miss_words(total, tv)}) and the know-nothing guess {_runs(average_total)}. The TV's "
+            f"usual miss is {_runs(tv_average_miss)} runs either way, shown as a band around its projection. The "
             f"agent's prediction is not known.")
 
 

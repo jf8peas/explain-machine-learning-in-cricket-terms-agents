@@ -93,7 +93,7 @@ test("every step sits inside the row of its stage, and the rows sit behind the n
     expect(b.y + b.height, `${n.id} bottom`).toBeLessThanOrEqual(row.y + row.height + 0.5);
   }
   // bottom layer: the rows come before every edge and node in the SVG
-  expect(await page.locator("svg > g").first().getAttribute("class")).toContain("bands");
+  expect(await page.locator("graph-replay svg > g").first().getAttribute("class")).toContain("bands");
 });
 
 test("the main sequence is one vertical line and fit_model sits under check_proposal", async ({ page }) => {

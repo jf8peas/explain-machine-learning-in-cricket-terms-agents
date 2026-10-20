@@ -11,6 +11,8 @@
       --accent: #1d6fe0; --tv: #a85600; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
       /* the validation exam (feature 016): amber fill with white text, pale amber panels */
       --val: #a35d00; --on-val: #ffffff; --val-bg: #fdf6e7; --val-text: #8a4d00;
+      /* the hero chart's context: the first 10 overs (feature 017). The reference line grey #8a93a3 gives only 2.7:1 on the band, so the line is a little darker to keep 3:1 */
+      --context-band: #eef0f3; --context-line: #7a8394; --on-accent: #ffffff;
       /* the chart's four method colours, taken from the colours above so they follow the theme */
       --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
     }
@@ -19,6 +21,7 @@
         --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
         --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
         --val: #e8a33d; --on-val: #1b1405; --val-bg: #2e2410; --val-text: #f0b45a;
+        --context-band: #262d39; --context-line: #9aa5b8; --on-accent: #0b1220;
       }
     }
     * { box-sizing: border-box; }
@@ -42,17 +45,9 @@
     .hero-grid { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; }
     .worm-card { flex: 3 1 560px; min-width: 0; margin: 0; padding: 12px 16px 6px; border: 1px solid var(--border); border-radius: 14px; }
     .worm { display: block; width: 100%; height: auto; }
+    .worm + .worm { margin-top: 10px; }                /* narrow: the zoom stacked under the line graph */
+    .worm text { font-family: inherit; }
     .worm-card figcaption { padding: 4px 4px 0; font-size: .8125rem; line-height: 1.5; color: var(--muted); }
-    .worm-key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0 0; padding: 0 4px; list-style: none; font-size: .8125rem; }
-    .worm-key-item { display: flex; align-items: center; gap: 6px; }
-    .worm-key-item::before { content: ""; width: 22px; border-top: 3px solid currentColor; }
-    .worm-key-actual { color: var(--text); font-weight: 700; }
-    .worm-key-tv { color: var(--tv); font-weight: 700; }
-    .worm-key-tv::before { border-top-style: dashed; }
-    .worm-key-nothing { color: var(--muted); }
-    .worm-key-nothing::before { border-top-style: dotted; }
-    .worm-key-agent { color: var(--accent); font-weight: 700; }
-    .worm-key-agent::before { display: none; }
     .hero-side { flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
     .tv-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--surface); }
     .tv-panel h2 { margin: 0; font-size: 1.125rem; }
