@@ -1,0 +1,107 @@
+{
+ "summary": {
+  "headline": [
+   {
+    "label": "Innings",
+    "value": "5,209"
+   },
+   {
+    "label": "Dates",
+    "value": "17 Feb 2005 to 14 Oct 2026"
+   },
+   {
+    "label": "Downloaded from Cricsheet",
+    "value": "17 Oct 2026"
+   }
+  ],
+  "sections": [
+   {
+    "title": "Innings per competition",
+    "rows": [
+     {
+      "label": "T20 International",
+      "value": "3,380"
+     },
+     {
+      "label": "IPL",
+      "value": "1,210"
+     },
+     {
+      "label": "BBL",
+      "value": "619"
+     }
+    ]
+   },
+   {
+    "title": "How the years are used",
+    "note": "How the agent uses the innings, by calendar year: every candidate model is judged on three check years, each by a model that learned only from the years before it, and the latest year is kept for a single final test.",
+    "rows": [
+     {
+      "label": "Training (2005 to 2022)",
+      "value": "2,897"
+     },
+     {
+      "label": "Training and validation (2023, 2024 and 2025)",
+      "value": "1,734"
+     },
+     {
+      "label": "Test (2026)",
+      "value": "578"
+     }
+    ]
+   },
+   {
+    "title": "Test population",
+    "note": "The innings the agent is judged on: every IPL and BBL innings, and the T20 internationals where both teams are ICC full members. Every check year and the test year are scored on these innings only.",
+    "rows": [
+     {
+      "label": "In the test population",
+      "value": "2,872"
+     },
+     {
+      "label": "Outside it",
+      "value": "2,337"
+     },
+     {
+      "label": "T20 International: in the population",
+      "value": "1,043 of 3,380"
+     },
+     {
+      "label": "IPL: in the population",
+      "value": "1,210 of 1,210"
+     },
+     {
+      "label": "BBL: in the population",
+      "value": "619 of 619"
+     }
+    ]
+   },
+   {
+    "title": "Excluded, and why",
+    "note": "These choices were made before the agent runs, when the data was prepared by the script scripts/prepare_data.py. The agent does not decide what to exclude: it only ever sees the innings that were kept.",
+    "rows": [
+     {
+      "label": "No result",
+      "value": "100"
+     },
+     {
+      "label": "Rain-affected (DLS)",
+      "value": "184"
+     },
+     {
+      "label": "Reduced overs",
+      "value": "11"
+     },
+     {
+      "label": "Innings ended before 10 overs",
+      "value": "28"
+     }
+    ]
+   }
+  ],
+  "attribution": "Ball-by-ball data from Cricsheet (https://cricsheet.org), used under the Open Data Commons Attribution License.",
+  "attribution_url": "https://cricsheet.org",
+  "file_stem": "t20-first-innings",
+  "file_date": "2026-10-17"
+ }
+}

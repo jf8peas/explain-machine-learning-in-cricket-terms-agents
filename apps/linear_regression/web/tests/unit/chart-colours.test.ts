@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// The four chart colours are taken from the page's own colour variables (see web/index.html). Each must stand out
+// The four chart colours are taken from the page's own colour variables (now in web/src/page/theme.css, shared with the Under the hood page). Each must stand out
 // against the card they are drawn on, in both themes: at least 3:1 (the WCAG minimum for graphics). The shape, not the
 // colour, is what tells methods apart, but a mark that cannot be seen would be a bug anyway.
-const html = readFileSync("index.html", "utf8");
+const html = readFileSync("src/page/theme.css", "utf8");
 
 /** The `--name: value` pairs in the first :root block (light) and in the dark one. */
 function blocks() {

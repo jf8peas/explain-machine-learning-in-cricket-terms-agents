@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/017-hero-zoom/plan.md](specs/017-hero-zoom/plan.md)
+Current feature plan: [specs/018-under-the-hood/plan.md](specs/018-under-the-hood/plan.md)
 <!-- SPECKIT END -->

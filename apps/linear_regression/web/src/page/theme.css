@@ -1,0 +1,37 @@
+/* Shared by the main page and the Under the hood page: colour tokens (light and dark), base styles and the 1100 px content width. */
+:root {
+  --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
+  --accent: #1d6fe0; --tv: #a85600; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
+  /* the validation exam (feature 016): amber fill with white text, pale amber panels */
+  --val: #a35d00; --on-val: #ffffff; --val-bg: #fdf6e7; --val-text: #8a4d00;
+  /* the hero chart's context: the first 10 overs (feature 017). The reference line grey #8a93a3 gives only 2.7:1 on the band, so the line is a little darker to keep 3:1 */
+  --context-band: #eef0f3; --context-line: #7a8394; --on-accent: #ffffff;
+  /* the chart's four method colours, taken from the colours above so they follow the theme */
+  --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
+    --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
+    --val: #e8a33d; --on-val: #1b1405; --val-bg: #2e2410; --val-text: #f0b45a;
+    --context-band: #262d39; --context-line: #9aa5b8; --on-accent: #0b1220;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+h1 { font-size: 1.6rem; margin: 0 0 6px; }
+h2 { font-size: 1.15rem; margin: 28px 0 8px; }
+h3 { font-size: 1rem; margin: 16px 0 6px; }
+
+/* The two links to the "How this app was built" page and the project's feedback page (feature 018), used on both pages */
+.about-nav { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; }
+.about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: var(--accent); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; }
+.about-link:hover { background: var(--surface); }
+.about-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.about-link svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The VALIDATION and TEST pills (feature 016), used on the result tabs and the Under the hood page */
+.exam-pill { display: inline-block; flex: none; padding: 3px 12px; border-radius: 999px; font-size: .8125rem; font-weight: 800; letter-spacing: .08em; line-height: 1.4; }
+.exam-pill-validation { background: var(--val); color: var(--on-val); }
+.exam-pill-test { background: var(--text); color: var(--bg); }

@@ -6,32 +6,12 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>Linear Regression Agent: Can It Beat the TV Score?</title>
   <meta name="description" content="App 1 of 8 in Explain Machine Learning in Cricket Terms. Watch a LangGraph agent predict a T20 first-innings total from the score at 10 overs and try to beat the broadcaster's projected score." />
+  <link rel="stylesheet" href="/src/page/theme.css" />
   <style>
-    :root {
-      --bg: #ffffff; --surface: #f6f7f9; --border: #d5d9e0; --text: #1b2230; --muted: #5b6678;
-      --accent: #1d6fe0; --tv: #a85600; --win: #1f7a46; --lose: #b3261e; --win-bg: #e4f3ea; --lose-bg: #fbe9e7;
-      /* the validation exam (feature 016): amber fill with white text, pale amber panels */
-      --val: #a35d00; --on-val: #ffffff; --val-bg: #fdf6e7; --val-text: #8a4d00;
-      /* the hero chart's context: the first 10 overs (feature 017). The reference line grey #8a93a3 gives only 2.7:1 on the band, so the line is a little darker to keep 3:1 */
-      --context-band: #eef0f3; --context-line: #7a8394; --on-accent: #ffffff;
-      /* the chart's four method colours, taken from the colours above so they follow the theme */
-      --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #12161d; --surface: #1b212b; --border: #333c4a; --text: #e6eaf0; --muted: #98a3b5;
-        --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
-        --val: #e8a33d; --on-val: #1b1405; --val-bg: #2e2410; --val-text: #f0b45a;
-        --context-band: #262d39; --context-line: #9aa5b8; --on-accent: #0b1220;
-      }
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
-    h1 { font-size: 1.6rem; margin: 0 0 6px; }
-    h2 { font-size: 1.15rem; margin: 28px 0 8px; }
-    h3 { font-size: 1rem; margin: 16px 0 6px; }
     /* the breadcrumb above the tab bar, and The Run tab's hero (feature 013) */
+    .header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 16px; margin: 0 0 14px; }
+    .header-row .breadcrumb { margin: 0; }
+    @media (max-width: 640px) { .about-nav { flex-basis: 100%; margin-left: -10px; } }
     .breadcrumb { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; margin: 0 0 14px; font-size: .875rem; color: var(--muted); }
     .breadcrumb a { color: var(--accent); text-decoration: none; }
     .breadcrumb a:hover { text-decoration: underline; }
@@ -115,9 +95,6 @@
     ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 4px 0 0; padding: 0; }
     li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
     /* the two exams (feature 016): a pill and a full-width banner on each result tab. Words always accompany the colour. */
-    .exam-pill { display: inline-block; flex: none; padding: 3px 12px; border-radius: 999px; font-size: .8125rem; font-weight: 800; letter-spacing: .08em; line-height: 1.4; }
-    .exam-pill-validation { background: var(--val); color: var(--on-val); }
-    .exam-pill-test { background: var(--text); color: var(--bg); }
     .exam-banner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; width: 100%; margin: 0 0 8px; padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
     .exam-banner-text { flex: 1 1 18rem; min-width: 0; margin: 0; }
     .exam-banner-validation { background: var(--val-bg); border: 1px solid var(--val); color: var(--text); }
@@ -345,11 +322,24 @@
 </head>
 <body>
   <main>
-    <nav class="breadcrumb" data-testid="breadcrumb" aria-label="Breadcrumb">
-      <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
-      <span aria-hidden="true">›</span>
-      <span aria-current="page">Linear regression</span>
-    </nav>
+    <div class="header-row">
+      <nav class="breadcrumb" data-testid="breadcrumb" aria-label="Breadcrumb">
+        <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">Linear regression</span>
+      </nav>
+      <nav class="about-nav" data-testid="about-nav" aria-label="About this app">
+        <a class="about-link" data-testid="link-under-the-hood" href="/under-the-hood.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Under the hood
+        </a>
+        <a class="about-link" data-testid="link-feedback" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Feedback
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+      </nav>
+    </div>
     <tab-set default-tab="working" aria-label="Page sections">
     <div data-tab="data" data-label="Data" data-testid="data-panel">
       <h2 tabindex="-1">The innings the agent works from</h2>

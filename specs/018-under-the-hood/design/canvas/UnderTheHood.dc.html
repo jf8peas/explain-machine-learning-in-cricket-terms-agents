@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Under the hood: how this app was built</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+:root{--bg:#ffffff;--surface:#f6f7f9;--border:#d5d9e0;--text:#1b2230;--muted:#5b6678;--accent:#1d6fe0;--on-accent:#ffffff;--val:#a35d00;--on-val:#ffffff}
+@media (prefers-color-scheme: dark){:root{--bg:#12161d;--surface:#1b212b;--border:#333c4a;--text:#e6eaf0;--muted:#98a3b5;--accent:#6ea8ff;--on-accent:#0b1220;--val:#e8a33d;--on-val:#1b1405}}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent)}a:hover{color:var(--accent);text-decoration:underline}
+h2{margin:0;font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-.01em}
+h3{margin:0;font-size:19px;line-height:1.3;font-weight:650}
+p{margin:0}
+ul,ol{margin:0;padding-left:1.25em}
+li+li{margin-top:4px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px}
+.util:hover,.panel-btn:hover{background:var(--surface)}
+.util:focus-visible,.panel-btn:focus-visible,.all-btn:focus-visible,.jump:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.jump:hover{background:var(--surface);text-decoration:none}
+</style>
+</helmet>
+<div style="background: var(--bg); color: var(--text)">
+<main style="max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; box-sizing: border-box">
+
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 24px; margin: 0 0 32px">
+<a class="util" href="Main.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 8px; margin-left: -8px; border-radius: 8px; font-size: 15px; font-weight: 600; color: var(--accent); text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
+Back to the app
+</a>
+<a class="util" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+Feedback
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">(opens the GitHub issues page in a new tab)</span>
+</a>
+</header>
+
+<section aria-labelledby="page-title" style="display: flex; flex-direction: column; gap: 10px; margin: 0 0 28px">
+<p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Under the hood · linear regression</p>
+<h1 id="page-title" style="margin: 0; font-size: 44px; line-height: 1.1; font-weight: 750; letter-spacing: -.01em">How this app was built</h1>
+<p style="font-size: 18px; line-height: 1.5; color: var(--muted); max-width: 68ch">The question it answers, the data it learns from, what happens when you press Play, and how the answer reaches the page.</p>
+</section>
+
+<nav aria-label="On this page" style="display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px">
+<a class="jump" href="#question" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">The question</a>
+<a class="jump" href="#data" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">1 · The data</a>
+<a class="jump" href="#play" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">2 · Pressing Play</a>
+<a class="jump" href="#agent" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">3 · Inside the agent</a>
+<a class="jump" href="#see" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">4 · What you see</a>
+<a class="jump" href="#ship" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; font-size: 14px; color: var(--text); text-decoration: none">5 · Shipping it</a>
+</nav>
+
+<section id="question" aria-labelledby="h-question" style="display: flex; flex-direction: column; gap: 18px; padding: 48px 0 0">
+<h2 id="h-question">The question</h2>
+<p style="font-size: 17px; max-width: 72ch">Halfway through a T20 first innings, the broadcaster projects the final total as run rate × 20 overs. This app builds a linear regression that tries to do better, and lets you watch it being built.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>The goal</h3><p class="muted">Miss the real total by at least 3 runs less than the TV, on average, on a season nothing was learned or chosen from.</p></div>
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>The method</h3><p class="muted">A language model proposes candidate models. A mechanical grid search competes with it. Code fits and scores every one.</p></div>
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>The show</h3><p class="muted">The work runs as a LangGraph agent. The page replays it step by step, then explains the result in cricket terms.</p></div>
+</div>
+<p style="font-size: 17px; font-weight: 600; padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px">One rule runs through the whole build: the language model chooses and words things, but every number comes from code.</p>
+</section>
+
+<section aria-labelledby="h-picture" style="display: flex; flex-direction: column; gap: 18px; padding: 48px 0 0">
+<h2 id="h-picture">The big picture</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>Your browser</h3><p class="muted">A static page, bundled with Vite. It asks for data, replays the run and draws every chart.</p><p class="mono" style="color: var(--accent)">web/</p></div>
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>A Python function on Vercel</h3><p class="muted">FastAPI with six GET routes. It runs the LangGraph agent and streams each step back.</p><p class="mono" style="color: var(--accent)">api/ + backend/linreg/</p></div>
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>Two data files</h3><p class="muted">innings.csv and overs.csv ship inside the function. They are read, never written.</p><p class="mono" style="color: var(--accent)">data/</p></div>
+</div>
+<p class="muted" style="max-width: 80ch">Done beforehand, by hand: a script turns Cricsheet's ball-by-ball files into the data files. During a run, two outside services help: OpenRouter relays calls to the chosen language model, and Upstash Redis holds the run limits.</p>
+</section>
+
+<section id="data" aria-labelledby="h-data" style="display: flex; flex-direction: column; gap: 20px; padding: 56px 0 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Part 1</p><h2 id="h-data">The data, prepared before anyone visits</h2></div>
+<h3>From Cricsheet to two tables</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-start">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p>scripts/prepare_data.py downloads three zips, reads every men's match and keeps the first innings when it can be predicted fairly. It drops 323 matches:</p>
+<ul>
+<li><strong>DLS, 184:</strong> rain changed the overs or the target, so the total is not a normal 20-over score.</li>
+<li><strong>No result, 100:</strong> the match was abandoned, so the innings may have been cut short.</li>
+<li><strong>Ended before 10 overs, 28:</strong> all out or stopped early, so there is no 10-over score.</li>
+<li><strong>Reduced overs, 11:</strong> scheduled for fewer than 20 overs, so run rate × 20 does not apply.</li>
+</ul>
+</div>
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<table>
+<thead><tr><th>Competition</th><th class="n">Matches read</th><th class="n">Innings kept</th></tr></thead>
+<tbody>
+<tr><td>T20 internationals</td><td class="n">3,627</td><td class="n">3,380</td></tr>
+<tr><td>IPL</td><td class="n">1,243</td><td class="n">1,210</td></tr>
+<tr><td>BBL</td><td class="n">662</td><td class="n">619</td></tr>
+<tr><td><strong>Total</strong></td><td class="n"><strong>5,532</strong></td><td class="n"><strong>5,209</strong></td></tr>
+</tbody>
+</table>
+<p class="muted" style="font-size: 14px">It writes innings.csv (one row per innings) and overs.csv (the score after every over). Data downloaded 17 October 2026.</p>
+</div>
+</div>
+<h3 style="margin-top: 12px">Each innings becomes 19 candidate features</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-start">
+<div style="flex: 3 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p class="muted">Fourteen measured at the end of over 10</p>
+<ul style="columns: 2 220px; column-gap: 32px">
+<li>Runs at 10 overs</li><li>Wickets at 10 overs</li><li>Powerplay runs</li><li>Powerplay wickets</li><li>Runs in overs 7 to 10</li><li>Wickets in overs 7 to 10</li><li>Fours hit</li><li>Sixes hit</li><li>Dot balls faced</li><li>Extras conceded</li><li>Current partnership runs</li><li>Balls since the last wicket</li><li>Batting team a full member</li><li>Bowling team a full member</li>
+</ul>
+</div>
+<div style="flex: 2 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p class="muted">Five worked out from those</p>
+<ul><li>Wickets in hand</li><li>Runs at 10 overs × wickets in hand</li><li>IPL (0/1) and BBL (0/1)</li><li>Both teams full members</li></ul>
+<p style="font-size: 15px"><strong>Why 0/1?</strong> A regression only does arithmetic, so the competition becomes two yes/no columns. A T20 international is 0 in both.</p>
+</div>
+</div>
+<div style="background: var(--surface); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px">
+<h3>Who is predicted: 2,872 of 5,209 innings</h3>
+<p class="muted">Every IPL and BBL innings, plus T20 internationals where both teams are ICC full members. Only these are scored; other internationals can still be learned from.</p>
+</div>
+</section>
+
+<section id="play" aria-labelledby="h-play" style="display: flex; flex-direction: column; gap: 20px; padding: 56px 0 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Part 2</p><h2 id="h-play">What happens when you press Play</h2></div>
+<h3>The page makes a few calls; only Play runs the agent</h3>
+<div style="overflow-x: auto">
+<table style="min-width: 640px">
+<thead><tr><th>When</th><th>Call</th><th>What happens</th></tr></thead>
+<tbody>
+<tr><td>The page loads</td><td class="mono">/api/structure, /api/models, /api/catalogue, /api/reference</td><td>The graph's shape, the model list, the features and the figures for the chart at the top.</td></tr>
+<tr><td>You press Play</td><td class="mono">/api/run?model=…</td><td>The run limits are checked, then the agent runs and streams one event per finished step.</td></tr>
+<tr><td>You open the Data tab</td><td class="mono">/api/data</td><td>All 5,209 innings, the column definitions and a summary.</td></tr>
+<tr><td>Step, Back, sort, filter, Predict</td><td>None</td><td>Done in your browser on data it already has.</td></tr>
+</tbody>
+</table>
+</div>
+<p class="muted" style="max-width: 80ch">FastAPI is the doorway: a Python web framework that turns ordinary functions into web addresses, so a browser can ask Python to run the agent. It streams results as they happen, and Vercel can run it directly.</p>
+<h3 style="margin-top: 8px">On the server, after you press Play</h3>
+<ol style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<li style="display: flex; gap: 14px; align-items: flex-start"><span style="flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">1</span><span><strong>Vercel receives the request</strong> and hands it to the Python function.</span></li>
+<li style="display: flex; gap: 14px; align-items: flex-start"><span style="flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">2</span><span><strong>FastAPI finds the right function</strong> for /run.</span></li>
+<li style="display: flex; gap: 14px; align-items: flex-start"><span style="flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); border: 2px solid var(--accent); border-radius: 50%; color: var(--on-accent); font-weight: 700; font-size: 14px">3</span><span><strong>The gate says yes or no.</strong> Is the model on the list? One run at a time, 5 an hour per visitor, 300 a day for the site. A no comes back as a message, and nothing runs.</span></li>
+<li style="display: flex; gap: 14px; align-items: flex-start"><span style="flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">4</span><span><strong>The agent's graph runs,</strong> node by node.</span></li>
+<li style="display: flex; gap: 14px; align-items: flex-start"><span style="flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">5</span><span><strong>Each finished node is sent straight back</strong> to your browser while the next one runs.</span></li>
+</ol>
+</section>
+
+<section id="agent" aria-labelledby="h-agent" style="display: flex; flex-direction: column; gap: 20px; padding: 56px 0 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Part 3</p><h2 id="h-agent">Inside the agent</h2></div>
+<h3>First, the eight stages any ML project goes through</h3>
+<div style="overflow-x: auto">
+<table style="min-width: 560px">
+<thead><tr><th style="width: 48px">#</th><th>Stage</th><th>The question an analyst asks</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Prepare the data</td><td>Is the data clean and in a usable form?</td></tr>
+<tr><td>2</td><td>Split the data</td><td>What do we learn from, choose with, and mark on?</td></tr>
+<tr><td>3</td><td>Understand the data</td><td>What patterns are there?</td></tr>
+<tr><td>4</td><td>Frame the problem</td><td>What are we predicting, and what counts as good?</td></tr>
+<tr><td>5</td><td>Choose the candidate model</td><td>Which features, model type and hyperparameters?</td></tr>
+<tr><td>6</td><td>Fit the model</td><td>What are the best parameters for this candidate model?</td></tr>
+<tr><td>7</td><td>Final assessment</td><td>How good is it on data it has never seen?</td></tr>
+<tr><td>8</td><td>Interpret and communicate</td><td>What does it mean?</td></tr>
+</tbody>
+</table>
+</div>
+<h3 style="margin-top: 8px">The agent's graph: twelve steps, each tagged with its stage</h3>
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">1 · load_data</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">2 · split</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">3 · explore</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">4 · baseline</span><span aria-hidden="true" class="muted">→</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600">5 · propose_features</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">5 · check_proposal</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">6 · fit_model</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">5 · evaluate</span>
+<span class="muted" style="font-size: 14px">↺ loops back, up to six rounds</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">5 · grid_search</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">7 · final_test</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px">8 · explain_in_cricket_terms</span><span aria-hidden="true" class="muted">→</span>
+<span class="mono" style="padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 600">8 · write_in_cricket_terms</span>
+</div>
+<p class="muted" style="font-size: 14px">The number is the stage. Filled steps call a language model; the other ten are ordinary code.</p>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-top: 12px">
+<h3>Stage by stage</h3>
+<button class="all-btn" type="button" onClick="{{toggleAll}}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--accent); cursor: pointer">{{allLabel}}</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s1.toggle}}" aria-expanded="{{p.s1.expanded}}" aria-controls="panel-s1" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">1</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Prepare the data</strong><span class="muted" style="font-size: 15px">load_data checks the data before anything else runs</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s1.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s1.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s1" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p>On every run it checks that:</p>
+<ul><li>innings.csv can be read and has every column</li><li>no feature value is blank or not a number</li><li>every worked-out column matches its recipe</li><li>every 0/1 competition column matches its competition</li><li>each check season and the test season have at least 100 innings to score</li></ul>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="background: var(--surface); border-radius: 10px; padding: 14px 16px"><strong>All well:</strong> it reports 5,209 innings from 45 seasons and the run moves on.</div>
+<div style="background: var(--surface); border-radius: 10px; padding: 14px 16px"><strong>Anything wrong:</strong> it says what, in plain English, and the run ends. No model is fitted or called.</div>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s2.toggle}}" aria-expanded="{{p.s2.expanded}}" aria-controls="panel-s2" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">2</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Split the data</strong><span class="muted" style="font-size: 15px">Three seasons to choose with, one to test</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s2.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s2.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s2" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 380px; min-width: 0; overflow-x: auto">
+<table>
+<thead><tr><th>Season</th><th>Role</th><th>Learns from</th><th class="n">Scored on</th></tr></thead>
+<tbody>
+<tr><td>2023</td><td>Check 1</td><td>2005–2022</td><td class="n">176</td></tr>
+<tr><td>2024</td><td>Check 2</td><td>2005–2023</td><td class="n">196</td></tr>
+<tr><td>2025</td><td>Check 3</td><td>2005–2024</td><td class="n">196</td></tr>
+<tr><td>2026</td><td>Hold-out test</td><td>2005–2025</td><td class="n">171</td></tr>
+</tbody>
+</table>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p><strong>Validation chooses.</strong> Every candidate model is fitted once per check and scored on the mean miss over the three.</p>
+<p><strong>The test judges.</strong> 2026 is read once, after the choice is made, so it is the honest number.</p>
+<p class="muted">Never at random: each season is predicted only from the seasons before it.</p>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s3.toggle}}" aria-expanded="{{p.s3.expanded}}" aria-controls="panel-s3" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">3</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Understand the data</strong><span class="muted" style="font-size: 15px">Summary statistics brief the language model</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s3.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s3.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s3" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p>The explore step works out, from seasons before the test:</p>
+<ul><li>each feature's correlation with the final total</li><li>runs added after 10 overs, by wickets down</li><li>the average total by competition and by season</li><li>innings per competition per season</li></ul>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p>These figures go into every message to the language model, so it can reason with real numbers without seeing a single row. Nothing is fitted here.</p>
+<p class="muted">On today's data, runs at 10 overs × wickets in hand tracks the final total most closely (correlation 0.75).</p>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s4.toggle}}" aria-expanded="{{p.s4.expanded}}" aria-controls="panel-s4" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">4</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Frame the problem</strong><span class="muted" style="font-size: 15px">What counts as good: four methods, four measures</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s4.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s4.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s4" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p><strong>Four methods</strong></p>
+<ul><li>The know-nothing guess: the average past total</li><li>The TV projection: run rate × 20 overs</li><li>The AI's candidate model</li><li>The rival's candidate model</li></ul>
+<p style="margin-top: 6px"><strong>Four measures</strong></p>
+<ul><li>Average miss in runs</li><li>Share within 10 and within 20 runs</li><li>Miss as a share of a typical total</li><li>Bias: guessing too high or too low</li></ul>
+</div>
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p>The bar, on 2,133 past innings (2005 to 2022):</p>
+<table>
+<thead><tr><th>Method</th><th class="n">Average miss</th></tr></thead>
+<tbody><tr><td>Know-nothing guess</td><td class="n">23.9</td></tr><tr><td>TV projection</td><td class="n">22.5</td></tr></tbody>
+</table>
+<p class="muted">Knowing the score at 10 overs barely helps the TV, which guesses 14.3 runs too low on average. The goal is to beat it by at least 3 runs.</p>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s5.toggle}}" aria-expanded="{{p.s5.expanded}}" aria-controls="panel-s5" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 13px">5–6</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Choose and fit</strong><span class="muted" style="font-size: 15px">Two searchers propose candidate models; code scores them</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s5.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s5.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s5" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p><strong>A candidate model is four choices</strong></p>
+<table>
+<thead><tr><th>Choice</th><th>Options</th></tr></thead>
+<tbody>
+<tr><td>Features</td><td>1 to 8 of the 19</td></tr>
+<tr><td>Training window</td><td>All seasons, or the last 10, 5 or 3</td></tr>
+<tr><td>Recency weighting</td><td>None, gentle or strong</td></tr>
+<tr><td>Training innings</td><td>Test population only, or all</td></tr>
+</tbody>
+</table>
+<p class="muted" style="font-size: 15px">The window and the weighting are hyperparameters: settings chosen before fitting.</p>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p><strong>The AI, up to six rounds.</strong> It proposes; code checks the rules, fits on the training years, scores on the three checks and reports back.</p>
+<p><strong>The rival, every combination.</strong> A grid search tries all 24 settings, with forward selection inside each, in about half a second.</p>
+<p><strong>The pick.</strong> The lower validation score goes forward; a tie goes to the AI. If the AI can't take part, the rival's pick goes forward alone.</p>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s7.toggle}}" aria-expanded="{{p.s7.expanded}}" aria-controls="panel-s7" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">7</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Final assessment</strong><span class="muted" style="font-size: 15px">One test, once, on a season nothing was chosen from</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s7.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s7.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s7" style="padding: 4px 20px 20px 72px; display: flex; flex-direction: column; gap: 12px">
+<p>An example run with the language model switched off, on the 171 test innings of 2026:</p>
+<div style="overflow-x: auto">
+<table style="min-width: 520px">
+<thead><tr><th>Method</th><th class="n">Average miss</th><th class="n">Within 10 runs</th><th class="n">Bias</th></tr></thead>
+<tbody>
+<tr><td>Know-nothing guess</td><td class="n">34.5</td><td class="n">22.8%</td><td class="n">−20.0</td></tr>
+<tr><td>TV projection</td><td class="n">21.4</td><td class="n">33.9%</td><td class="n">−7.2</td></tr>
+<tr><td><strong>Our pick (the rival's)</strong></td><td class="n"><strong>17.8</strong></td><td class="n">37.4%</td><td class="n">−1.1</td></tr>
+</tbody>
+</table>
+</div>
+<p>3.6 runs (16.8%) better than the TV projection, which reaches the goal. <span class="muted">Your run will differ: the AI's choices change from run to run.</span></p>
+</div>
+</sc-if>
+</div>
+
+<div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+<button class="panel-btn" type="button" onClick="{{p.s8.toggle}}" aria-expanded="{{p.s8.expanded}}" aria-controls="panel-s8" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 20px; min-height: 64px; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit">
+<span style="flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 14px">8</span>
+<span style="flex: 1; display: flex; flex-direction: column"><strong style="font-size: 17px">Interpret and communicate</strong><span class="muted" style="font-size: 15px">Code works out the facts; the language model may only word them</span></span>
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{p.s8.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{p.s8.open}}" hint-placeholder-val="{{ false }}">
+<div id="panel-s8" style="padding: 4px 20px 20px 72px; display: flex; flex-wrap: wrap; gap: 20px 32px">
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<p><strong>Code builds five blocks</strong> from named facts about the run:</p>
+<ul><li>the verdict</li><li>a takeaway on run rate</li><li>a takeaway on what drives the total</li><li>a takeaway on the TV projection</li><li>a rule of thumb</li></ul>
+</div>
+<div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<p><strong>The language model may reword the three takeaways,</strong> naming facts by name instead of writing numbers.</p>
+<p class="muted">A reply with a digit, a word like "too low" or an unknown fact is rejected, and the plain wording stays.</p>
+</div>
+</div>
+</sc-if>
+</div>
+
+</div>
+</section>
+
+<section id="see" aria-labelledby="h-see" style="display: flex; flex-direction: column; gap: 20px; padding: 56px 0 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Part 4</p><h2 id="h-see">What you see on the page</h2></div>
+<p style="max-width: 80ch">Each step arrives as a small event while the agent is still working. Your browser keeps them and replays them at a readable pace, so you can pause, step back and jump without running the agent again.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px">
+<p style="align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 2px 10px; border-radius: 999px; background: var(--val); color: var(--on-val)">VALIDATION</p>
+<h3>Model Selection</h3>
+<p class="muted">How the choice was made, on the three check seasons: the contest, how each candidate is scored, the race, the AI's rounds with its reasons, the rival's grid search, and every candidate ranked.</p>
+</div>
+<div style="border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px">
+<p style="align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 2px 10px; border-radius: 999px; background: var(--text); color: var(--bg)">TEST</p>
+<h3>Hold-Out Test</h3>
+<p class="muted">How the choice did, once, on the test season: our pick against the goal, why the scores differ from Model Selection, how close each method got, and the takeaways in cricket terms.</p>
+</div>
+</div>
+<p class="muted" style="max-width: 80ch">Two scores less than 0.5 runs apart are called too close to call. The graph, the tabs and the data grid are general-purpose components, written so the next seven apps can reuse them.</p>
+</section>
+
+<section id="ship" aria-labelledby="h-ship" style="display: flex; flex-direction: column; gap: 20px; padding: 56px 0 0">
+<div style="display: flex; flex-direction: column; gap: 4px"><p style="font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent)">Part 5</p><h2 id="h-ship">How it is built and shipped</h2></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>The code</h3><p class="muted">Everything for this app sits in one folder: the API, the agent, the data, the preparation script, the page and the tests. Each feature was planned with Spec Kit before it was built.</p></div>
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>Deployment</h3><p class="muted">One Vercel project serves the static page and the Python function, with a 90-second limit per run. The model key and settings live on the server only.</p></div>
+<div style="background: var(--surface); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px"><h3>Part of a bigger site</h3><p class="muted">This is app 1 of 8 for <a href="https://explain-machine-learning-in-cricket.vercel.app/">Explain Machine Learning in Cricket Terms</a>, one per algorithm.</p></div>
+</div>
+</section>
+
+<footer style="margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; font-size: 14px; color: var(--muted)">
+<p>Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>, used under the Open Data Commons Attribution License.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 4px 16px">
+<a href="Main.dc.html" style="font-weight: 600">Back to the app</a>
+<a href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" style="font-weight: 600">Questions or ideas? Leave feedback<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap"> (opens in a new tab)</span></a>
+</div>
+</footer>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":6200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: {} };
+  }
+  renderVals() {
+    const ids = ['s1', 's2', 's3', 's4', 's5', 's7', 's8'];
+    const open = this.state.open || {};
+    const allOpen = ids.every((id) => open[id]);
+    const p = {};
+    ids.forEach((id) => {
+      const isOpen = !!open[id];
+      p[id] = {
+        open: isOpen,
+        expanded: isOpen ? 'true' : 'false',
+        chev: 'flex: none; color: var(--muted); transition: transform .15s; transform: rotate(' + (isOpen ? '180' : '0') + 'deg)',
+        toggle: () => this.setState((s) => ({ open: Object.assign({}, s.open, { [id]: !s.open[id] }) })),
+      };
+    });
+    return {
+      p,
+      allLabel: allOpen ? 'Collapse all' : 'Expand all',
+      toggleAll: () => {
+        const next = {};
+        ids.forEach((id) => { next[id] = !allOpen; });
+        this.setState({ open: next });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
