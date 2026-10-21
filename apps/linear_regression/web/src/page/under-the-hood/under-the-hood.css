@@ -7,9 +7,10 @@
 .lead { margin: 0; font-size: 1.125rem; line-height: 1.5; color: var(--muted); max-width: 70ch; }
 
 .jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
-.jump a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; color: var(--accent); font-size: 14px; font-weight: 600; text-decoration: none; }
-.jump a:hover { background: var(--surface); }
-.jump a:focus-visible, .stage-head:focus-visible, .outline-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.pill-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--border); border-radius: 999px; color: var(--accent); font-size: 14px; font-weight: 600; text-decoration: none; }
+.pill-link:hover { background: var(--surface); }
+.pill-link [aria-hidden] { margin-left: .35em; }
+.pill-link:focus-visible, .stage-head:focus-visible, .outline-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 section { margin-top: 44px; scroll-margin-top: 16px; }
 section h2 { margin: 0 0 10px; font-size: 1.5rem; line-height: 1.25; }
@@ -30,6 +31,11 @@ section p { max-width: 75ch; }
 .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .card p { margin: 0; }
 .card .exam-pill { margin-bottom: 8px; }
+
+/* Who built this (feature 019): one .card per tester, so another tester is another card */
+.testers { display: grid; gap: 14px; margin: 18px 0 0; }
+.card .tester-kicker { margin-bottom: 4px; color: var(--muted); }
+.people-link { margin-top: 10px; }
 .split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 28px; align-items: start; margin: 8px 0; }
 .split > * { min-width: 0; }
 .reasons { margin: 0; }

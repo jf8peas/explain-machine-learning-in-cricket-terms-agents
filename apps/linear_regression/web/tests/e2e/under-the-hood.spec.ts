@@ -8,7 +8,7 @@ const ISSUES = "https://github.com/jf8peas/explain-machine-learning-in-cricket-t
 const FEEDBACK_NAME = "Feedback (opens the GitHub issues page in a new tab)";
 const TABS = ["data", "working", "found", "final-test", "try-your-own"] as const;
 const STAGES = ["1", "2", "3", "4", "5-6", "7", "8"] as const;
-const SECTIONS = ["question", "big-picture", "data", "play", "agent", "what-you-see", "shipping"] as const;
+const SECTIONS = ["question", "big-picture", "data", "play", "agent", "what-you-see", "shipping", "people"] as const;
 const PLACEHOLDER = "not available right now";
 const GROUP_PLACEHOLDER = "These figures are not available right now.";
 
@@ -106,6 +106,7 @@ test("the page loads directly with its heading block, top bar and every section"
   const headings: Record<string, string> = {
     question: "The question", "big-picture": "The big picture", data: "The data, prepared before anyone visits",
     play: "What happens when you press Play", agent: "Inside the agent", "what-you-see": "What you see on the page", shipping: "How it is built and shipped",
+    people: "John Fong",
   };
   for (const id of SECTIONS) {
     await expect(page.locator(`section#${id}`)).toHaveCount(1);
@@ -136,8 +137,8 @@ test("the page's cards, tables and chips are all there", async ({ page }) => {
 test("the jump links point at the sections and move the page there", async ({ page }) => {
   await gotoPage(page);
   const links = page.getByTestId("jump-links").getByRole("link");
-  await expect(links).toHaveText(["The question", "1 · The data", "2 · Pressing Play", "3 · Inside the agent", "4 · What you see", "5 · Shipping it"]);
-  const targets = ["question", "data", "play", "agent", "what-you-see", "shipping"];
+  await expect(links).toHaveText(["The question", "1 · The data", "2 · Pressing Play", "3 · Inside the agent", "4 · What you see", "5 · Shipping it", "Who built this"]);
+  const targets = ["question", "data", "play", "agent", "what-you-see", "shipping", "people"];
   for (const [i, id] of targets.entries()) {
     await expect(links.nth(i)).toHaveAttribute("href", `#${id}`);
     await expect(page.locator(`#${id}`)).toHaveCount(1);
@@ -145,6 +146,63 @@ test("the jump links point at the sections and move the page there", async ({ pa
   await links.nth(5).click();
   await expect(page).toHaveURL(/#shipping$/);
   await expect(page.locator("#h-ship")).toBeInViewport();
+  await links.nth(6).click();
+  await expect(page).toHaveURL(/#people$/);
+  await expect(page.locator("#h-people")).toBeInViewport();
+});
+
+// Feature 019: the author and tester credits at the end of the page.
+const AUTHOR_URL = "https://www.linkedin.com/in/john-fong-04b7a120/";
+const TESTER_URL = "https://www.linkedin.com/in/alesja-tanabe-3207931b1";
+const AUTHOR_LINK = "View LinkedIn profile for John Fong (opens in a new tab)";
+const TESTER_LINK = "View LinkedIn profile for Alesja Tanabe (opens in a new tab)";
+
+test("Who built this is the last section, with the author, the tester card and the design copy", async ({ page }) => {
+  await gotoPage(page);
+  const people = page.locator("section#people");
+  await expect(people.locator("> p.part")).toHaveText("Who built this");
+  await expect(people.locator("> h2")).toHaveText("John Fong");
+  await expect(people.locator("> p").nth(1)).toHaveText("John Fong is an on-the-tools business analyst who builds full-stack data products end to end. This app is a personal project exploring how a LangGraph agent can work through a machine-learning problem the way a person would, and explain what it did in cricket terms.");
+  const card = people.locator(".testers > .card");
+  await expect(card).toHaveCount(1);
+  await expect(card.locator("p.tester-kicker")).toHaveText("Who's testing it");
+  await expect(card.locator("h3")).toHaveText("Alesja Tanabe");
+  await expect(card.locator("p.muted")).toHaveText("Alesja Tanabe is a Senior QA Engineer in Playtech's Videobet unit with nearly 5 years of experience in gaming software quality. She specializes in black-box testing for physical gaming machines, evaluating platform reliability, edge cases, and overall player experience on Playtech's proprietary gaming platform.");
+  expect(await page.locator("main > section").last().getAttribute("id")).toBe("people");
+  expect(await people.evaluate((el) => el.nextElementSibling?.id)).toBe("footer");
+  await expect(page.locator("img, picture, video")).toHaveCount(0);
+});
+
+test("the footer credits the author and tester above the Cricsheet attribution", async ({ page }) => {
+  await gotoPage(page);
+  const paras = page.locator("footer#footer > p");
+  await expect(paras.nth(0)).toHaveText("Built by John Fong · Tested by Alesja Tanabe");
+  await expect(paras.nth(1)).toContainText("Cricsheet");
+});
+
+test("both LinkedIn links open a new tab, are named for their owner and are not stretched", async ({ page }) => {
+  await gotoPage(page);
+  const section = page.locator("section#people");
+  const sectionWidth = (await section.boundingBox())!.width;
+  for (const [id, url, name] of [["link-linkedin-author", AUTHOR_URL, AUTHOR_LINK], ["link-linkedin-tester", TESTER_URL, TESTER_LINK]] as const) {
+    const link = page.getByTestId(id);
+    await expect(link).toHaveAttribute("href", url);
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", /noopener/);
+    await expect(link).toContainText("View LinkedIn profile");
+    await expect(page.getByRole("link", { name, exact: true })).toHaveCount(1);
+    await expect(page.getByRole("link", { name, exact: true })).toHaveAttribute("data-testid", id);
+    const box = (await link.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(43.5);
+    expect(box.width).toBeLessThan(sectionWidth / 2);
+    await link.focus();
+    expect(parseFloat(await link.evaluate((el) => getComputedStyle(el).outlineWidth))).toBeGreaterThan(0);
+  }
+});
+
+test("the main page header has no Author link", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: /author|who built/i })).toHaveCount(0);
 });
 
 test("Back to the app and Feedback work at the top and in the footer", async ({ page }) => {
@@ -431,7 +489,7 @@ test("text is readable in both themes and every control is a real link or button
   await expect(figure(page, "totalInnings")).not.toHaveText(PLACEHOLDER);
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
-    for (const selector of ["main > section p", ".lead", ".eyebrow", ".jump a", ".about-link", ".page-foot p", ".note", ".exam-pill-validation", ".exam-pill-test", ".stage-sum", ".chip.llm", ".steps .gate .n"])
+    for (const selector of ["main > section p", ".card p.muted", ".tester-kicker", ".pill-link", ".lead", ".eyebrow", ".jump a", ".about-link", ".page-foot p", ".note", ".exam-pill-validation", ".exam-pill-test", ".stage-sum", ".chip.llm", ".steps .gate .n"])
       expect(await contrastOf(page, selector), `${scheme} ${selector}`).toBeGreaterThanOrEqual(4.5);
   }
   expect(await page.locator("[onclick], [role=button]:not(button), div[tabindex]").count()).toBe(0);
@@ -451,7 +509,7 @@ test("every link and button is at least 44 px tall and keyboard order follows th
   }
   // tabbing visits the top bar first, then the jump links, then the stage controls, then the footer, each with an outline
   const seen: string[] = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 50; i++) {
     await page.keyboard.press("Tab");
     const info = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement;
@@ -465,4 +523,7 @@ test("every link and button is at least 44 px tall and keyboard order follows th
   expect(seen.indexOf("toggle-all")).toBeGreaterThan(seen.indexOf("The question"));
   expect(seen.indexOf("stage-header-1")).toBe(seen.indexOf("toggle-all") + 1);
   expect(seen.at(-1)).toBe("link-feedback-footer");
+  const order = ["stage-header-7", "link-linkedin-author", "link-linkedin-tester", "back-footer", "link-feedback-footer"].map((id) => seen.indexOf(id));
+  expect(order.every((n) => n >= 0)).toBe(true);
+  expect(order).toEqual([...order].sort((a, b) => a - b));
 });

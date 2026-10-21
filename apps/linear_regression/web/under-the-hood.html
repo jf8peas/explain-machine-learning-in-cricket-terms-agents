@@ -30,12 +30,13 @@
     </div>
 
     <nav class="jump" data-testid="jump-links" aria-label="On this page">
-      <a href="#question">The question</a>
-      <a href="#data">1 · The data</a>
-      <a href="#play">2 · Pressing Play</a>
-      <a href="#agent">3 · Inside the agent</a>
-      <a href="#what-you-see">4 · What you see</a>
-      <a href="#shipping">5 · Shipping it</a>
+      <a class="pill-link" href="#question">The question</a>
+      <a class="pill-link" href="#data">1 · The data</a>
+      <a class="pill-link" href="#play">2 · Pressing Play</a>
+      <a class="pill-link" href="#agent">3 · Inside the agent</a>
+      <a class="pill-link" href="#what-you-see">4 · What you see</a>
+      <a class="pill-link" href="#shipping">5 · Shipping it</a>
+      <a class="pill-link" href="#people">Who built this</a>
     </nav>
 
     <section id="question" aria-labelledby="h-question">
@@ -321,7 +322,23 @@
       </div>
     </section>
 
+    <section id="people" aria-labelledby="h-people">
+      <p class="part">Who built this</p>
+      <h2 id="h-people">John Fong</h2>
+      <p>John Fong is an on-the-tools business analyst who builds full-stack data products end to end. This app is a personal project exploring how a LangGraph agent can work through a machine-learning problem the way a person would, and explain what it did in cricket terms.</p>
+      <div class="people-link"><a class="pill-link" data-testid="link-linkedin-author" href="https://www.linkedin.com/in/john-fong-04b7a120/" target="_blank" rel="noopener">View LinkedIn profile <span aria-hidden="true">→</span><span class="visually-hidden"> for John Fong (opens in a new tab)</span></a></div>
+      <div class="testers">
+        <div class="card">
+          <p class="part tester-kicker">Who's testing it</p>
+          <h3>Alesja Tanabe</h3>
+          <p class="muted">Alesja Tanabe is a Senior QA Engineer in Playtech's Videobet unit with nearly 5 years of experience in gaming software quality. She specializes in black-box testing for physical gaming machines, evaluating platform reliability, edge cases, and overall player experience on Playtech's proprietary gaming platform.</p>
+          <div class="people-link"><a class="pill-link" data-testid="link-linkedin-tester" href="https://www.linkedin.com/in/alesja-tanabe-3207931b1" target="_blank" rel="noopener">View LinkedIn profile <span aria-hidden="true">→</span><span class="visually-hidden"> for Alesja Tanabe (opens in a new tab)</span></a></div>
+        </div>
+      </div>
+    </section>
+
     <footer id="footer" class="page-foot">
+      <p>Built by John Fong · Tested by Alesja Tanabe</p>
       <p>Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>, used under the Open Data Commons Attribution License.</p>
       <div class="foot-links">
         <a class="about-link" data-testid="back-footer" href="/">

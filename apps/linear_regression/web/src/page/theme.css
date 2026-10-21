@@ -35,3 +35,6 @@ h3 { font-size: 1rem; margin: 16px 0 6px; }
 .exam-pill { display: inline-block; flex: none; padding: 3px 12px; border-radius: 999px; font-size: .8125rem; font-weight: 800; letter-spacing: .08em; line-height: 1.4; }
 .exam-pill-validation { background: var(--val); color: var(--on-val); }
 .exam-pill-test { background: var(--text); color: var(--bg); }
+
+/* Text for assistive technology only (the Under the hood page links); same rule as the main page's own */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
