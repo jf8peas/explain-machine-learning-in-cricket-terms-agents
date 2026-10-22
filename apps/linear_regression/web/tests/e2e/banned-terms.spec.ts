@@ -1,4 +1,4 @@
-// No banned name anywhere a visitor can see or hear (feature 021, FR-013): both pages, on the recorded run's finished state and on a
+// No banned name anywhere a visitor can see or hear (feature 021, FR-013): both pages, before a run, on a finished run and on a
 // fake-model live run, with everything open and every Scorebook panel opened in turn. It collects the visible text (shadow DOM
 // included), accessible names (aria-label, aria-labelledby and aria-describedby targets, alt, title, placeholder), SVG titles and
 // descriptions, live-region text and announcements made while a run plays, the page title and the preview tags. A hit outside the
@@ -131,21 +131,23 @@ async function stepThrough(page: Page, host: string, seen: Item[]) {
 async function mainPageItems(page: Page): Promise<Item[]> {
   await page.addInitScript(recordAnnouncements);
   await page.goto("/?interval=40&view=everything");
+  await expect(page.getByTestId("hero-title")).toBeVisible();
+  const items = await collect(page);                                          // the idle page: the question, the goal, the locked cards
+  expect(items.some((i) => /Press play to see how it does/.test(i.text))).toBe(true);
   await finishRun(page);
-  await page.getByTestId("live-toggle").scrollIntoViewIfNeeded();
-  const items = await collect(page);
-  await stepThrough(page, "#graph-panel graph-replay", items);
+  items.push(...(await collect(page)));
+  await stepThrough(page, "[data-testid=run-graph] graph-replay", items);
   await page.getByTestId("scorebook-cards").scrollIntoViewIfNeeded();
   await openScorebook(page, "models", items);
   await openScorebook(page, "data", items);
   return items;
 }
 
-test("the main page, on the recorded run with everything open and every Scorebook panel open, has no banned name", async ({ page }) => {
+test("the main page, idle and then on a finished run with everything open and every Scorebook panel open, has no banned name", async ({ page }) => {
   const banned = await bannedList(page);
   const items = await mainPageItems(page);
   expect(items.length).toBeGreaterThan(200);                                 // it is reading the page, not an empty one
-  expect(items.some((i) => i.kind === "announcement")).toBe(true);           // and it heard the live region
+  expect(items.some((i) => i.kind === "announcement")).toBe(true);           // and it heard the live regions
   expect(items.some((i) => i.kind === "meta") && items.some((i) => i.kind === "document.title")).toBe(true);
   expect(findHits(items, banned, "main page")).toEqual([]);
 });
@@ -163,19 +165,17 @@ test("How this app was built, with everything open, has no banned name", async (
   expect(findHits(items, banned, "How this app was built")).toEqual([]);
 });
 
-test("a fake-model live run, finished, has no banned name on the main page", async ({ page }) => {
+test("a run of the model that fails, and one with no agent, have no banned name on the main page", async ({ page }) => {
   const banned = await bannedList(page);
   await page.addInitScript(recordAnnouncements);
   await page.goto("/?interval=40&view=everything");
   await expect(page.getByTestId("hero-title")).toBeVisible();
-  await page.getByTestId("live-toggle").scrollIntoViewIfNeeded();
-  await page.getByTestId("live-start").click();
-  await expect(page.getByTestId("watch-button")).toHaveText("▶ Watch your run again", { timeout: 60_000 });
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await finishRun(page, "Unreliable");                                          // the brute-force search runs alone: the other wording
   const items = await collect(page);
+  await stepThrough(page, "[data-testid=run-graph] graph-replay", items);
   await openScorebook(page, "models", items);
   expect(items.some((i) => i.kind === "announcement")).toBe(true);
-  expect(findHits(items, banned, "main page (live run)")).toEqual([]);
+  expect(findHits(items, banned, "main page (no agent)")).toEqual([]);
 });
 
 test("the check can fail: a banned name in the Scoreboard is reported with its landmark, one in the agent's reasoning is not", async ({ page }) => {

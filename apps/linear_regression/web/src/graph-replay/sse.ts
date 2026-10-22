@@ -15,6 +15,8 @@ export interface StreamHandlers {
   onOpen(): void;
   /** The server refused the start. Nothing was run, so nothing already on screen should be disturbed. */
   onRefused(info: Refusal): void;
+  /** A node began (the server's `start` event). Optional: a server that sends none still works. */
+  onStart?(e: { step: number; node: string }): void;
   onStep(e: StepEvent): void;
   onDone(info: { steps: number }): void;
   /** The server reported a failure through an `error` event. */
@@ -76,7 +78,8 @@ export async function streamRun(url: string, signal: AbortSignal, h: StreamHandl
         const msg = parseBlock(buf.slice(0, idx));
         buf = buf.slice(idx + 2);
         if (!msg) continue;
-        if (msg.event === "step") h.onStep(msg.data as StepEvent);
+        if (msg.event === "start") h.onStart?.(msg.data as { step: number; node: string });
+        else if (msg.event === "step") h.onStep(msg.data as StepEvent);
         else if (msg.event === "done") { ended = true; h.onDone(msg.data as { steps: number }); }
         else if (msg.event === "error") { ended = true; h.onError((msg.data as { message: string }).message); }
       }

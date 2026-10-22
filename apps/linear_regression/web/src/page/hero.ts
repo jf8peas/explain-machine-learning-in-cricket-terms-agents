@@ -1,21 +1,20 @@
-// The hero (app-specific): the agent is the hero. A dark band with the headline, the Scoreboard card and two links, and a
-// Commentary panel about how good the TV projection is, the goal and who does what. Every word that depends on the run comes from
-// the server's headline set and every number from the run or /api/reference; the only words typed here are fixed copy with no
-// figures. Everything goes in as text, never as markup.
+// The hero (feature 022, app-specific): the question and the goal, not a result. A dark band with the kicker, the question, the lead,
+// one button that starts the experiment, the goal card and a Commentary panel (how good the TV is on past innings, why a season the
+// agent never sees, who does what). Every number and data-dependent sentence is the server's (/api/reference); the only words typed
+// here are fixed copy. Everything goes in as text, never as markup.
 import { h, fmt } from "./dom";
-import { cap, term } from "./terms";
-import type { Reference } from "./reference-types";
+import { renderGoalCard, showResultStrip, type GoalCard } from "./goal-card";
+import type { ResultStrip } from "./headlines";
 import { UNAVAILABLE } from "./reference";
-import { cardView, type Headlines } from "./scoreboard";
-import { originLine, type RunInfo } from "./run-source";
-import { dayText } from "./recorded";
+import type { Reference } from "./reference-types";
+import { hasTerms, term } from "./terms";
 
-export const kicker = (): string => `An ${term("agent")} experiment`.toUpperCase();
-/** Shown only when no recorded run could be loaded, so no result is claimed. */
-export const fallbackH1 = (): string => `Can an ${term("agent")} beat the ${term("tv")}?`;
-export const FALLBACK_LEAD = "Halfway through a T20 innings, where will it finish? Run the agent live to find out.";
-export const MISSING = "The recorded run could not be loaded. Run it live to see the agent work.";
-export const whoDoesWhat = (): string => `The ${term("agent")} chooses the ${term("clues")}. Code fits the model, scores it and checks every number.`;
+// Without the server's words (its reference could not be loaded) the page still asks its question, with a plain "agent".
+export const kicker = (): string => (hasTerms() ? `An ${term("agent")} experiment` : "An agent experiment").toUpperCase();
+export const question = (): string => `Can ${hasTerms() ? `an ${term("agent")}` : "an agent"} build its own prediction model and beat the TV?`;
+export const LEAD = "Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it is tested on a season it has never seen.";
+export const START_LABEL = "▶ Start the experiment";
+export const whoDoesWhat = (): string => `The ${term("agent")} chooses the ${term("clues")}; code does the rest.`;
 
 /** The sentence as text and <strong> pieces: each phrase in `bold` is emphasised wherever it appears. Pure on its input. */
 export function emphasised(text: string, bold: string[]): (Node | string)[] {
@@ -28,24 +27,6 @@ export function emphasised(text: string, bold: string[]): (Node | string)[] {
     strong.textContent = part;
     return strong;
   });
-}
-
-function card(run: RunInfo | null): HTMLElement | null {
-  const final = run?.state.final as { headlines?: Headlines; accuracy?: Record<string, { n: number }> } | undefined;
-  const testYear = (run?.state.split as { test_year?: number } | undefined)?.test_year;
-  const view = cardView(final?.headlines, testYear, final?.accuracy?.broadcaster?.n);
-  if (!view) return null;
-  return h("div", { class: "scoreboard-card", "data-testid": "scoreboard-card" },
-    h("p", { class: "kicker", "data-testid": "scoreboard-kicker" }, view.kicker),
-    h("div", { class: "scoreboard-numbers" },
-      h("div", { class: "scoreboard-figure agent" },
-        h("span", { class: "big", "data-testid": "scoreboard-agent" }, view.subject.miss),
-        h("span", { class: "cap" }, view.subject.label)),
-      h("div", { class: "scoreboard-figure tv" },
-        h("span", { class: "big", "data-testid": "scoreboard-tv" }, view.tv.miss),
-        h("span", { class: "cap" }, view.tv.label))),
-    h("ul", { class: "scoreboard-facts", "data-testid": "scoreboard-facts" },
-      ...view.facts.map((f) => h("li", { "data-fact": f.id }, f.text))));
 }
 
 function commentary(ref: Reference | null): HTMLElement {
@@ -63,23 +44,35 @@ function commentary(ref: Reference | null): HTMLElement {
       h("p", { class: "tv-sentence", "data-testid": "tv-sentence" }, ...emphasised(ref.hero.panel, ref.hero.panel_emphasis)),
       h("p", { class: "tv-footnote", "data-testid": "tv-footnote" }, ref.hero.footnote));
   }
-  panel.append(h("p", { "data-testid": "who-does-what" }, h("strong", {}, "Who does what: "), whoDoesWhat()));
+  const year = ref?.test?.year;
+  panel.append(
+    h("p", { "data-testid": "why-unseen" }, h("strong", {}, `Why a season it never sees: `),
+      `Any model looks good on the data it chose from. ${year ?? `The ${term("test_season")}`} stays locked until the agent has picked its model, then it is used once.`),
+    h("p", { "data-testid": "who-does-what" }, h("strong", {}, "Who does what: "), whoDoesWhat()));
   return panel;
 }
 
-/** Fill the hero section for the run now showing and the reference figures. */
-export function renderHero(root: HTMLElement, run: RunInfo | null, ref: Reference | null): void {
-  const headlines = (run?.state.final as { headlines?: Headlines } | undefined)?.headlines;
-  const scoreboard = card(run);
+export interface Hero {
+  /** Show the result strip at the foot of the goal card, or take it away. */
+  setStrip(strip: ResultStrip | null): void;
+}
+
+/** Fill the hero from /api/reference. `onStart` takes the reader to the player (the button's click). */
+export function renderHero(root: HTMLElement, ref: Reference | null, onStart: () => void): Hero {
+  const card = renderGoalCard((ref?.goal_card as GoalCard | undefined) ?? null);
+  const start = h("a", { class: "btn filled start", href: "#watch", "data-testid": "start-experiment" }, START_LABEL);
+  start.addEventListener("click", (ev) => {
+    // The link says where it goes (#watch), but following it would blur whatever is focused: the page moves there itself, then focuses the picker.
+    ev.preventDefault();
+    if (location.hash !== "#watch") history.pushState(null, "", "#watch");
+    onStart();
+  });
   root.replaceChildren(h("div", { class: "hero-inner" },
     h("p", { class: "kicker", "data-testid": "hero-kicker" }, kicker()),
-    h("h1", { id: "hero-title", "data-testid": "hero-title" }, headlines?.hero_h1 ?? fallbackH1()),
-    scoreboard ?? h("div", { class: "scoreboard-card missing", "data-testid": "scoreboard-card" },
-      h("p", { "data-testid": "hero-missing", role: "status" }, MISSING)),
-    h("p", { class: "hero-lead", "data-testid": "hero-lead" }, headlines?.lead ?? FALLBACK_LEAD),
-    h("p", { class: "hero-links", "data-testid": "hero-links" },
-      h("a", { class: "btn filled", href: "#watch", "data-testid": "link-watch" }, "Watch it work"),
-      h("a", { class: "btn outlined", href: "#try", "data-testid": "link-try" }, "Try your own innings")),
-    h("p", { class: "run-origin", "data-testid": "run-origin" }, originLine(run, dayText)),
+    h("h1", { id: "hero-title", "data-testid": "hero-title" }, question()),
+    card,
+    h("p", { class: "hero-lead", "data-testid": "hero-lead" }, LEAD),
+    h("p", { class: "hero-links", "data-testid": "hero-links" }, start),
     commentary(ref)));
+  return { setStrip: (strip) => showResultStrip(card, strip) };
 }

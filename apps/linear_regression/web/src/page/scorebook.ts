@@ -10,7 +10,10 @@ import { cap, introducer, term } from "./terms";
 import { renderGrid } from "./found/grid";
 import { renderRanking } from "./found/ranking";
 import { buildView } from "./found/view";
-import type { RunInfo } from "./run-source";
+import { SCORE_LOCKED } from "./locked";
+
+/** What the Scorebook reads from the run the page is showing. */
+export interface ScorebookRun { state: Record<string, unknown> }
 
 export const KICKER = "THE SCOREBOOK";
 export const HEADING = "For the data scientists: every detail.";
@@ -23,6 +26,8 @@ export interface Scorebook {
   open(panel: PanelId): void;
   /** The run on the page changed: redraw an open panel from it. */
   refresh(): void;
+  /** Until a run has reached its final test, "Every idea tried" and the agent graph card show "Available after a run" and do not open. */
+  setLocked(locked: boolean): void;
 }
 
 interface Card { id: string; testid: string; title: string; line: string }
@@ -33,7 +38,8 @@ const cards = (): Card[] => [
   { id: "data", testid: "scorebook-card-data", title: "The data", line: "Every innings, to sort, filter and download." },
 ];
 
-export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null): Scorebook {
+export function setupScorebook(root: HTMLElement, getRun: () => ScorebookRun | null): Scorebook {
+  let locked = true;
   let openId: PanelId | null = null;
   let grid: DataGrid | null = null;
   let dataStarted = false;
@@ -81,17 +87,15 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
   }
 
   function openGraph() {
-    const toggle = document.querySelector<HTMLElement>("[data-testid=graph-toggle]");
-    if (toggle) { toggle.dataset.open = "true"; syncToggles(); }
-    const target = document.getElementById("graph-panel");
-    target?.scrollIntoView({ behavior: "auto", block: "start" });
+    document.querySelector<HTMLElement>("[data-testid=run-graph]")?.scrollIntoView({ behavior: "auto", block: "start" });
   }
 
   const cardNodes = new Map<string, HTMLElement>();
   const cardList = cards().map((c) => {
     const el = h("button", { type: "button", class: "sb-card", "data-testid": c.testid, "aria-controls": "scorebook-panel", ...(c.id === "graph" ? {} : { "aria-expanded": "false" }) },
-      h("strong", {}, c.title), h("span", {}, c.line));
+      h("strong", {}, c.title), h("span", { class: "sb-line visually-hidden" }, c.line));
     el.addEventListener("click", () => {
+      if (locked && c.id !== "data") return;
       if (c.id === "graph") return openGraph();
       setOpen(openId === c.id ? null : (c.id as PanelId));
     });
@@ -112,12 +116,23 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
 
   return {
     open: (id) => setOpen(id),
+    setLocked(next) {
+      locked = next;
+      if (next && openId === "models") setOpen(null);
+      for (const [id, el] of cardNodes) {
+        const runCard = id !== "data";
+        el.toggleAttribute("data-locked", next && runCard);
+        if (runCard) el.setAttribute("aria-disabled", String(next));
+      }
+      this.refresh();
+    },
     refresh() {
       // the card words come from the glossary, which can arrive after the page is first drawn
       for (const c of cards()) {
         const el = cardNodes.get(c.id);
         if (el?.children[0]) el.children[0].textContent = c.title;
-        if (el?.children[1]) el.children[1].textContent = c.line;
+        if (el?.children[1]) el.children[1].textContent = locked && c.id !== "data" ? SCORE_LOCKED : c.line;
+        el?.children[1]?.classList.toggle("visually-hidden", !(locked && c.id !== "data"));       // the one-line description is read out; shown only to say a card is locked
       }
       if (openId === "models") drawModels();
     },

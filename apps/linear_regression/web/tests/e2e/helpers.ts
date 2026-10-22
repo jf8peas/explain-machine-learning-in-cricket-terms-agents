@@ -1,11 +1,19 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { visitorFor } from "./fixtures";
 
-/** Open the page at the fast pace with every Commentary panel open (the agent graph is in one), and wait until the graph is drawn.
- *  (Feature 020: the page plays the recorded run by itself once it scrolls into view; nothing is pressed.) */
+/** Open the page at the fast pace with every Commentary panel open, run the fake model to its end (the default AI) and wait for the graph
+ *  to be drawn; the graph's run controls and path come with Show me everything once there is a run. */
 export async function open(page: Page, interval = 120) {
   await page.goto(`/?interval=${interval}&view=everything`);
   await expect(page.locator('[data-node="load_data"]')).toBeVisible();
+  await finishRun(page);
   await openPath(page);
+}
+
+/** The page with everything open and the graph drawn, and no run yet. */
+export async function openIdle(page: Page, interval = 120) {
+  await page.goto(`/?interval=${interval}&view=everything`);
+  await expect(page.locator('[data-node="load_data"]')).toBeVisible();
 }
 
 /** The graph's "Path taken" list is closed until asked for (it is one of the longest pieces of text); open it to use the timeline. */
@@ -34,22 +42,59 @@ export const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${J
 
 export const timelineItems = (page: Page) => page.getByTestId("timeline-item");
 
-/** Scroll to the player once the page above it has filled in (scrolling earlier would be undone when the hero and the problem appear). */
+/** Scroll to the player once the hero above it has filled in. */
 export async function toPlayer(page: Page) {
-  await expect(page.getByTestId("scoreboard-agent")).toBeVisible();
+  await expect(page.getByTestId("hero-title")).toBeVisible();
   await page.getByTestId("player").scrollIntoViewIfNeeded();
 }
 
-/** Scroll to the player and wait until the recorded run has played to its end ("Watch again"). */
-export async function finishRun(page: Page) {
+/** The page is loaded: press Play (the default AI, or the one named) and wait until the run has finished. The first run on a server
+ *  is the slowest (the grid search is worked out once per process), so the wait is generous. */
+export async function finishRun(page: Page, model?: string) {
   await toPlayer(page);
-  await expect(page.getByTestId("watch-button")).toHaveText(/Watch (your run )?again/, { timeout: 45_000 });
+  if (model) await page.getByTestId("model-select").selectOption({ label: model });
+  await page.getByTestId("play-button").click();
+  await expect(page.getByTestId("player-status")).toHaveText(/^Finished with/, { timeout: 90_000 });
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());   // arrow keys step the replay
 }
 
-/** The run is played by itself now, so this is the same as waiting for it to finish. */
+/** Open the page, press "Start the experiment" and Play, and wait until the run has finished. `query` is the page's query string. */
+export async function runToEnd(page: Page, query = "", model?: string) {
+  await page.goto(`/${query}`);
+  await expect(page.getByTestId("start-experiment")).toBeVisible();
+  await page.getByTestId("start-experiment").click();
+  await expect(page.getByTestId("model-select")).toBeFocused();
+  await finishRun(page, model);
+}
+
+/** Wait for the run that is going (or has gone) to be finished; it does not start one. */
 export async function playToEnd(page: Page) {
-  await finishRun(page);
+  await expect(page.getByTestId("player-status")).toHaveText(/^Finished with/, { timeout: 90_000 });
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+}
+
+/** A scripted fake-model run fetched straight from the API as a visitor of its own (so the page's visitor keeps its limit), for tests
+ *  that need the figures the page will show. */
+export async function fakeRun(request: APIRequestContext, visitor: string, model = "") {
+  const res = await request.get(`/api/run${model ? `?model=${model}` : ""}`, { headers: { "X-Forwarded-For": visitor } });
+  const events: { step: number; node: string; summary: string; changes: Record<string, unknown> }[] = [];
+  for (const block of (await res.text()).trim().split(/\n\n/)) {
+    const lines = block.split(/\n/);
+    if (lines[0] === "event: step") events.push(JSON.parse(lines[1].slice(6)));
+  }
+  const state: Record<string, unknown> = {};
+  for (const e of events) Object.assign(state, e.changes);
+  return { events, state };
+}
+
+/** A visitor address for a request of its own inside a test (the page itself is another visitor, set by fixtures.ts). */
+export function visitorOf(testId: string, salt: string): string {
+  return visitorFor(testId, salt);
+}
+
+/** The server-sent-events text for a list of step events, with a start before each step and a done at the end. */
+export function streamOf(events: { step: number; node: string }[]): string {
+  return events.map((e) => sse("start", { step: e.step, node: e.node }) + sse("step", e)).join("") + sse("done", { steps: events.length });
 }
 
 /** The contrast ratio (WCAG) between an element's text colour and its effective background, in the theme now showing. */
@@ -95,7 +140,8 @@ export async function visibleMainText(page: Page): Promise<string> {
     const shown = (el: Element) => {
       const cs = getComputedStyle(el);
       return cs.display !== "none" && cs.visibility !== "hidden" && !(el as HTMLElement).hidden &&
-        !el.classList.contains("visually-hidden") && !el.classList.contains("sr-only") && !el.hasAttribute("data-reasoning");
+        !el.classList.contains("visually-hidden") && !el.classList.contains("sr-only") && !el.hasAttribute("data-reasoning") &&
+        !el.hasAttribute("data-diagram");          // a diagram's labels (node names, badges, row notes) are not prose: counted apart, like the agent's reasoning
     };
     const walk = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE) { out.push(node.textContent ?? ""); return; }

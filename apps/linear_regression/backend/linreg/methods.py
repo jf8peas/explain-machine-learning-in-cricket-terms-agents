@@ -157,7 +157,7 @@ def banned_payload() -> list[dict]:
 
 
 def terms_version() -> str:
-    """A short fingerprint of the terms and definitions, stored with the recorded run (the run's own wording is checked by rebuilding it)."""
+    """A short fingerprint of the terms and definitions, sent with the glossary so a page can tell when the words changed."""
     body = json.dumps({"terms": terms_payload(), "definitions": definitions()}, sort_keys=True)
     return "w1-" + hashlib.sha256(body.encode("utf-8")).hexdigest()[:12]
 

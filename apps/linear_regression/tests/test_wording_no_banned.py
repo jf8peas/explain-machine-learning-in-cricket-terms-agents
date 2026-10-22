@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from linreg import cricket_blocks, headlines, methods, setup_settings
+from linreg import cricket_blocks, headlines, methods, setup_settings, wording
+from linreg.hero_text import goal_card
 from linreg.methods import BANNED
 from tests.test_explanation_numbers import blocks_for, facts_for, state_for
 
 FIXTURES = Path(__file__).resolve().parent.parent / "web" / "tests" / "fixtures"
-SHIPPED = Path(__file__).resolve().parent.parent / "web" / "public" / "recorded-run.json"
 
 
 def strings(o):
@@ -70,9 +70,16 @@ def without_reasoning(changes: dict) -> dict:
     return out
 
 
-@pytest.mark.parametrize("path", [SHIPPED, FIXTURES / "recorded-run.fake.json"], ids=["shipped", "fake fixture"])
-def test_the_recorded_run_uses_no_banned_name_outside_the_agents_reasoning(path):
+@pytest.mark.parametrize("path", [FIXTURES / "fake-run.json"], ids=["fake run fixture"])
+def test_a_fake_run_uses_no_banned_name_outside_the_agents_reasoning(path):
     recording = json.loads(path.read_text(encoding="utf-8"))
     for event in recording["events"]:
         for text in strings([event["summary"], without_reasoning(event["changes"])]):
             assert banned_hits(text, allow_forward_in_brackets=True) == [], (event["node"], text[:90])
+
+
+def test_the_doing_lines_the_goal_card_and_the_result_strip_use_no_banned_name():
+    assert [h for text in strings(wording.doing_lines(2026)) for h in banned_hits(text)] == []
+    assert [h for text in strings(goal_card(3, 22.5, {"first_year": 2005, "last_year": 2022}, {"year": 2026, "innings": 171})) for h in banned_hits(text)] == []
+    for case in json.loads((FIXTURES / "headline_cases.json").read_text(encoding="utf-8")):
+        assert banned_hits(" ".join(strings(headlines.build(**case["inputs"])["result_strip"]))) == []

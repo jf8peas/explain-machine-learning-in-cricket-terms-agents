@@ -29,6 +29,10 @@ export interface ReplayChangeDetail {
   run: number;
   /** True when the stream ended with an error event, or the connection was lost before the run finished. */
   failed: boolean;
+  /** The node that has started and not yet completed (a live run only). */
+  inProgress: string | null;
+  /** The node that was working when a run stopped part-way. */
+  failedNode: string | null;
 }
 
 const esc = (s: unknown) =>
@@ -80,12 +84,12 @@ export class GraphReplay extends HTMLElement {
         </div>
         <div class="status" role="status" aria-live="polite" data-testid="status"></div>
         <div class="main">
-          <div class="graph"><div class="rows" role="group" aria-label="The agent's steps, in rows" data-testid="graph"></div></div>
+          <div class="graph"><div class="rows" role="group" aria-label="The agent's steps, in rows" data-testid="graph" data-diagram></div></div>
           <section class="panel legend" data-testid="legend" aria-labelledby="h-legend" hidden></section>
           <div class="side">
             <section class="panel item-panel" data-testid="item-panel" aria-labelledby="h-item" aria-live="polite" hidden></section>
-            <section class="panel" aria-labelledby="h-event"><h3 id="h-event">Event</h3><div id="event" data-testid="event" aria-live="polite"></div></section>
-            <section class="panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state" data-region="state"><summary>Show every value</summary><div class="state" id="state" data-testid="state"></div></details></section>
+            <section class="panel event-panel" aria-labelledby="h-event"><h3 id="h-event">Event</h3><div id="event" data-testid="event" aria-live="polite"></div></section>
+            <section class="panel state-panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state" data-region="state"><summary>Show every value</summary><div class="state" id="state" data-testid="state"></div></details></section>
           </div>
         </div>
         <details class="path" data-testid="path"><summary>Path taken</summary><ol class="timeline" aria-label="Path taken" data-testid="timeline"></ol></details>
@@ -160,6 +164,9 @@ export class GraphReplay extends HTMLElement {
 
   /** Every step received so far (a copy), so a host page can keep a finished run. */
   get events(): StepEvent[] { return [...this.buf.events]; }
+
+  /** The structure the graph was drawn from (nodes, edges and whatever the app sent with them, such as `doing`), once loaded. */
+  get loadedStructure(): Structure | null { return this.structure; }
 
   // ---------------- structure ----------------
   private async loadStructure() {
@@ -247,8 +254,8 @@ export class GraphReplay extends HTMLElement {
         this.messageIsError = false;
         this.runNumber += 1;
         this.runFailed = false;
-        this.buf.reset();
-        this.buf.play();
+        this.buf.beginLive();
+        this.emit("runopen", {});
       },
       onRefused: (info: Refusal) => {
         if (signal.aborted) return;
@@ -257,16 +264,28 @@ export class GraphReplay extends HTMLElement {
         this.setMessage(info.message, true);
         this.dispatchEvent(new CustomEvent<Refusal>("refused", { detail: info, bubbles: true, composed: true }));
       },
-      onStep: (e: StepEvent) => { if (!signal.aborted) this.buf.push(e); },
-      onDone: () => { if (signal.aborted) return; this.running = false; this.buf.finish(); },
-      onError: (m) => { if (signal.aborted) return; this.running = false; this.runFailed = true; this.setMessage(m, true); this.buf.finish(); },
+      onStart: (e) => { if (!signal.aborted) { this.buf.start(e.node); this.emit("nodestart", e); } },
+      onStep: (e: StepEvent) => { if (!signal.aborted) { this.buf.push(e); this.emit("nodestep", e); } },
+      onDone: () => { if (signal.aborted) return; this.running = false; this.buf.finish(); this.emit("rundone", {}); },
+      onError: (m) => {
+        if (signal.aborted) return;
+        this.running = false;
+        this.runFailed = true;
+        this.message = m;
+        this.messageIsError = true;
+        this.buf.fail();
+        this.emit("runerror", { message: m });
+      },
       onDisconnect: () => {
         if (signal.aborted) return;
         this.running = false;
         this.starting = false;
         this.runFailed = true;
-        this.setMessage("The connection was lost before the run finished. The steps already received are still here to explore.", true);
-        this.buf.finish();
+        const lost = "The connection was lost before the run finished. The steps already received are still here to explore.";
+        this.message = lost;
+        this.messageIsError = true;
+        this.buf.fail();
+        this.emit("runerror", { message: lost });
       },
     });
     this.update();
@@ -280,6 +299,10 @@ export class GraphReplay extends HTMLElement {
     this.message = "";
     this.messageIsError = false;
     this.buf.reset();
+  }
+
+  private emit<T>(name: string, detail: T) {
+    this.dispatchEvent(new CustomEvent<T>(name, { detail, bubbles: true, composed: true }));
   }
 
   private setMessage(m: string, isError = false) {
@@ -359,7 +382,7 @@ export class GraphReplay extends HTMLElement {
         cursor: b.cursor, steps: b.events.length, finished: b.finished, atEnd: b.atEnd, playing: b.playing, state: b.stateAt(),
         finalState: b.finished && b.events.length ? b.stateAt(b.events.length - 1) : null,
         receivedState: foldState(b.events),
-        run: this.runNumber, failed: this.runFailed,
+        run: this.runNumber, failed: this.runFailed, inProgress: b.inProgress, failedNode: b.failedNode,
       },
       bubbles: true, composed: true,
     }));
@@ -370,11 +393,19 @@ export class GraphReplay extends HTMLElement {
     if (!drawn) return;
     const b = this.buf;
     const counts = b.visitCounts();
-    const active = b.cursor >= 0 ? b.events[b.cursor].node : null;
+    // The ringed node is the one working: while a run streams, the node that has started and not completed; when a finished run is
+    // stepped or replayed, the node of the step shown until the last step (then none). A node that was working when the run
+    // stopped takes the error mark. A completed node is "done".
+    const active = b.failedNode ? null
+      : b.follow ? b.inProgress
+      : b.cursor >= 0 && !b.atEnd ? b.events[b.cursor].node : null;
     for (const [id, el] of drawn.nodeEls) {
       const n = counts.get(id) ?? 0;
+      const failedHere = id === b.failedNode;
       el.classList.toggle("active", id === active);
       el.classList.toggle("visited", n > 0);
+      el.classList.toggle("failed", failedHere);
+      el.setAttribute("data-state", failedHere ? "error" : id === active ? "running" : n > 0 ? "done" : "idle");
       const tick = el.querySelector(".tick") as HTMLElement | null;
       if (tick) {
         tick.textContent = visitTick(n);
@@ -383,6 +414,7 @@ export class GraphReplay extends HTMLElement {
       if (n >= 2) el.setAttribute("data-visits", String(n)); else el.removeAttribute("data-visits");
       if (id === active) el.setAttribute("aria-current", "step"); else el.removeAttribute("aria-current");
     }
+    this.toggleAttribute("data-live", b.follow);
     this.applyFilter();
     this.updateLoop();
   }

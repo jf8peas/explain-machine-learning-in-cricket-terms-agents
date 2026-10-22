@@ -1,6 +1,7 @@
 // Show me everything (feature 020): one switch in the header opens every Commentary panel; the choice is remembered, works without
 // storage, and a link with ?view=everything opens it. Opening a panel never moves the reader.
 import { expect, test, type Page } from "./fixtures";
+import { finishRun } from "./helpers";
 
 async function open(page: Page, query = "") {
   await page.goto(`/${query}`);
@@ -41,17 +42,18 @@ test("every Commentary panel is closed to begin with, opens with the switch, and
 
 test("a section's own toggle opens just its panel, with its state exposed, and the switch does not undo it", async ({ page }) => {
   await open(page);
-  const toggle = page.getByTestId("graph-toggle");
-  await expect(toggle).toHaveAttribute("aria-controls", "graph-panel");
+  await finishRun(page);                                                       // the verdict, and its toggle, come with a finished run
+  const toggle = page.getByTestId("trust-toggle");
+  await expect(toggle).toHaveAttribute("aria-controls", "trust-panel");
   await toggle.click();
-  await expect(page.getByTestId("graph-panel")).toBeVisible();
+  await expect(page.getByTestId("trust-panel")).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByTestId("hero-commentary")).toBeHidden();
   await page.getByTestId("view-switch").click();
   await page.getByTestId("view-switch").click();
-  await expect(page.getByTestId("graph-panel")).toBeVisible();                // the visitor's own choice survives the switch
+  await expect(page.getByTestId("trust-panel")).toBeVisible();                // the visitor's own choice survives the switch
   await toggle.click();
-  await expect(page.getByTestId("graph-panel")).toBeHidden();
+  await expect(page.getByTestId("trust-panel")).toBeHidden();
 });
 
 test("the choice is remembered across a reload", async ({ page }) => {
@@ -100,7 +102,8 @@ test("with storage blocked the switch still works for the page", async ({ page }
 
 test("opening a Commentary panel does not move the reader: the content opens below its toggle", async ({ page }) => {
   await open(page);
-  for (const id of ["live-toggle", "graph-toggle"]) {
+  await finishRun(page);
+  for (const id of ["trust-toggle"]) {
     const toggle = page.getByTestId(id);
     await toggle.scrollIntoViewIfNeeded();
     const before = (await toggle.boundingBox())!.y;
@@ -110,7 +113,7 @@ test("opening a Commentary panel does not move the reader: the content opens bel
     expect((await toggle.boundingBox())!.y).toBeCloseTo(before, 0);              // the toggle has not moved
     const t = (await toggle.boundingBox())!, p = (await panel.boundingBox())!;
     expect(p.y + p.height).toBeGreaterThan(t.y);                                // the panel is below it, or beside it, never above
-    if (id === "graph-toggle") expect(p.y).toBeGreaterThanOrEqual(t.y + t.height - 1);
+    expect(p.y).toBeGreaterThanOrEqual(t.y + t.height - 1);
   }
 });
 

@@ -175,7 +175,7 @@ FAKE_MODEL_OPTIONS = [
     {"id": "fake/quick", "name": "Quick", "note": "Finishes in two rounds."},
     {"id": "fake/slow", "name": "Thorough", "note": "The same steady sequence, but slow."},
     {"id": "fake/markup", "name": "Markup", "note": "Its reason contains HTML, which must show as text."},
-    {"id": "fake/broken", "name": "Unreliable", "note": "Always fails, so forward selection runs alone."},
+    {"id": "fake/broken", "name": "Unreliable", "note": "Always fails, so the brute-force search runs alone."},
     {"id": "fake/timeout", "name": "Sluggish", "note": "Always times out."},
 ]
 

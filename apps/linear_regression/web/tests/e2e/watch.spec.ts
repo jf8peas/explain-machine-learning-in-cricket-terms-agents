@@ -1,20 +1,20 @@
-// Watch it think (feature 020): the recorded run plays by itself when the section scrolls into view, can be paused and watched
-// again, makes no run request, and shows the agent's own reasoning exactly as written. The full agent graph is in Commentary.
+// Watch it think (features 020 and 022): nothing plays by itself; the reader presses Play and the run streams in. The round feed shows
+// the agent's own reasoning exactly as written; "Watch it again" replays the finished run with no run request; the graph is shown by
+// default, and with Show me everything it has Back, Step, Reset and Speed once a run has finished.
 import { readFileSync } from "node:fs";
-import { toPlayer } from "./helpers";
+import { finishRun } from "./helpers";
 import { expect, test } from "./fixtures";
 import type { Page } from "./fixtures";
 
-const recorded = () => JSON.parse(readFileSync("tests/fixtures/recorded-run.fake.json", "utf8"));
-const stateOf = () => Object.assign({}, ...recorded().events.map((e: { changes: object }) => e.changes));
+// The scripted fake run is deterministic, so its rounds are what a live run with the default AI shows.
+const fakeRunFile = () => JSON.parse(readFileSync("tests/fixtures/fake-run.json", "utf8"));
+const stateOf = () => Object.assign({}, ...fakeRunFile().events.map((e: { changes: object }) => e.changes));
 const roundsOf = () => stateOf().rounds as { round: number; reason: string; outcome: string }[];
 
-async function open(page: Page, query = "?interval=120") {
+async function open(page: Page, query = "?interval=40") {
   await page.goto(`/${query}`);
   await expect(page.getByTestId("hero-title")).toBeVisible();
 }
-const toWatch = (page: Page) => toPlayer(page);
-const button = (page: Page) => page.getByTestId("watch-button");
 const rows = (page: Page) => page.getByTestId("round-item");
 
 function countRunRequests(page: Page) {
@@ -26,28 +26,27 @@ function countRunRequests(page: Page) {
 test("the section has its kicker, heading and the loop strip", async ({ page }) => {
   await open(page);
   await expect(page.locator("#watch .kicker").first()).toHaveText("WATCH IT THINK");
-  await expect(page.locator("#watch-title")).toHaveText("Each round, the agent proposes an idea. Code tests it.");
+  await expect(page.locator("#watch-title")).toHaveText("Choose the AI, press play, and watch it work.");
   const pills = await page.getByTestId("loop-strip").locator("li").allTextContents();
   expect(pills).toEqual(["1 · Agent proposes clues", "2 · Code checks", "3 · Code fits a regression", "4 · Code scores it", "↺ repeat until no better"]);
   await expect(page.getByTestId("loop-strip").locator("li.ai")).toHaveText("1 · Agent proposes clues");
 });
 
-test("it plays by itself when scrolled into view, with no button pressed and no run request", async ({ page }) => {
+test("nothing plays by itself: no round and no run request until Play is pressed", async ({ page }) => {
   const requests = countRunRequests(page);
   await open(page);
-  await expect(rows(page)).toHaveCount(0);                                   // nothing plays while the section is out of sight
-  await toWatch(page);
-  await expect(rows(page).first()).toBeVisible({ timeout: 10_000 });
-  await expect(button(page)).toHaveText("❚❚ Pause");                         // a visible pause while it plays by itself
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
-  await expect(rows(page)).toHaveCount(roundsOf().length);
+  await page.getByTestId("player").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1500);
+  await expect(rows(page)).toHaveCount(0);
   expect(requests()).toBe(0);
+  await finishRun(page);
+  expect(requests()).toBe(1);
 });
 
 test("every round shows its idea, the agent's own reasoning exactly as written, a score and one status", async ({ page }) => {
   await open(page);
-  await toWatch(page);
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
+  await finishRun(page);
+  await expect(rows(page)).toHaveCount(roundsOf().length);
   const expected = roundsOf();
   for (const [i, round] of expected.entries()) {
     const row = rows(page).nth(i);
@@ -62,60 +61,41 @@ test("every round shows its idea, the agent's own reasoning exactly as written, 
   expect(statuses[0]).toBe("first_score");
   expect(new Set(statuses)).toEqual(new Set(statuses.filter((s) => ["first_score", "new_best", "no_better", "rejected", "finished", "failed"].includes(s as string))));
   await expect(page.getByTestId("best-idea")).toContainText("Best idea:");
+  await expect(page.getByTestId("best-idea")).toContainText("learning from");
+  await expect(page.getByTestId("see-result")).toContainText("See how it did on");
+  await expect(page.getByTestId("see-result")).toHaveAttribute("href", "#verdict");
 });
 
-test("the run label names the recorded run's day and model", async ({ page }) => {
+test("rounds arrive as the run goes, not all at the end", async ({ page }) => {
   await open(page);
-  const run = recorded();
-  await expect(page.getByTestId("run-label")).toContainText(`Recorded`);
-  await expect(page.getByTestId("run-label")).toContainText(run.model_name);
-  await expect(page.getByText("Lower score = closer predictions (average runs off)")).toBeVisible();
+  await page.getByTestId("model-select").selectOption({ label: "Thorough" });
+  await page.getByTestId("play-button").click();
+  await expect(rows(page).first()).toBeVisible({ timeout: 60_000 });
+  expect(await rows(page).count()).toBeLessThan(roundsOf().length);
+  await expect(rows(page)).toHaveCount(roundsOf().length, { timeout: 90_000 });
 });
 
-test("Pause pauses it and Resume carries on, by mouse and by keyboard", async ({ page }) => {
-  await open(page, "?interval=700");
-  await toWatch(page);
-  await expect(button(page)).toHaveText("❚❚ Pause", { timeout: 10_000 });
-  await button(page).click();
-  await expect(button(page)).toHaveText("▶ Resume");
-  const before = await rows(page).count();
-  await page.waitForTimeout(1600);
-  expect(await rows(page).count()).toBe(before);                            // it really stopped
-  await button(page).focus();
-  await page.keyboard.press("Space");                                        // keyboard resumes
-  await expect(button(page)).toHaveText("❚❚ Pause");
-  await page.keyboard.press("Enter");                                        // and pauses again
-  await expect(button(page)).toHaveText("▶ Resume");
-});
-
-test("Watch again plays the saved run again from the start, with no run request", async ({ page }) => {
+test("Watch it again plays the finished run again from the start, with no run request", async ({ page }) => {
+  await open(page, "?interval=300");
+  await finishRun(page);
   const requests = countRunRequests(page);
-  await open(page);
-  await toWatch(page);
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
-  await button(page).click();
-  await expect(button(page)).toHaveText("❚❚ Pause");
-  await expect(rows(page)).toHaveCount(1, { timeout: 5_000 });              // it starts again from the first round
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
-  await expect(rows(page)).toHaveCount(roundsOf().length);
+  await page.getByTestId("watch-again").click();
+  await expect(rows(page)).toHaveCount(1, { timeout: 15_000 });               // it starts again from the first round
+  await expect(rows(page)).toHaveCount(roundsOf().length, { timeout: 60_000 });
   expect(requests()).toBe(0);
 });
 
-test("for a visitor who prefers reduced motion nothing animates: the finished run is shown at once", async ({ page }) => {
+test("for a visitor who prefers reduced motion Watch it again shows the finished run at once", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await open(page, "");
-  await toWatch(page);
+  await open(page, "?interval=40");
+  await finishRun(page);
+  await page.getByTestId("watch-again").click();
   await expect(rows(page)).toHaveCount(roundsOf().length, { timeout: 5_000 });
-  await expect(button(page)).toHaveText("▶ Watch again");
+  await expect(page.locator("graph-replay [data-node][data-state=\"running\"]")).toHaveCount(0);
 });
 
-test("the full agent graph is closed until asked for, then shows four rows in the server's order with the stage legend", async ({ page }) => {
-  await open(page);
-  await expect(page.getByTestId("graph-panel")).toBeHidden();
-  await expect(page.getByTestId("graph-toggle")).toHaveAttribute("aria-expanded", "false");
-  await page.getByTestId("graph-toggle").click();
-  await expect(page.getByTestId("graph-toggle")).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByTestId("graph-panel")).toBeVisible();
+test("the graph is shown with four rows in the server's order, and the stage legend comes with Show me everything", async ({ page }) => {
+  await open(page, "?view=everything");
   const structure = await (await page.request.get("/api/structure")).json();
   const replay = page.locator("graph-replay");
   const titles = await replay.locator("[data-testid=graph-row] .row-title").allTextContents();
@@ -129,34 +109,30 @@ test("the full agent graph is closed until asked for, then shows four rows in th
   await expect(replay.locator('[data-node="propose_features"] .actor-tag')).toHaveText("AI");
   await expect(replay.locator('[data-node="load_data"] .actor-tag')).toHaveCount(0);
   await expect(replay.locator("[data-testid=legend-stage]")).toHaveCount(structure.stages.length);
-  await expect(replay.getByTestId("raw-state").locator("> summary")).toHaveText("Show every value");      // the raw values are one click further
-  await replay.getByTestId("raw-state").locator("> summary").click();
-  await expect(replay.locator("[data-testid=state]")).toBeVisible();
 });
 
-test("inside the graph Commentary there are Back, Step, Reset and Speed, and the node reached is ringed", async ({ page }) => {
+test("with Show me everything and a finished run there are Back, Step, Reset and Speed, and the node reached is ringed", async ({ page }) => {
   await open(page, "?interval=150&view=everything");
   const replay = page.locator("graph-replay");
-  await toWatch(page);
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
+  await finishRun(page);
   for (const id of ["back", "step", "reset", "speed"]) await expect(replay.getByTestId(id)).toBeVisible();
   await expect(replay.getByTestId("play")).toBeHidden();                      // its own Play would start a run: the page supplies the run
-  await expect(replay.locator('[data-node="write_in_cricket_terms"]')).toHaveClass(/active/);
+  await expect(replay.locator(".node.active")).toHaveCount(0);                 // the run is over: nothing is working
   await replay.getByTestId("back").click();
-  await expect(replay.locator('[data-node="write_in_cricket_terms"]')).not.toHaveClass(/active/);
   await expect(replay.locator('[data-node="explain_in_cricket_terms"]')).toHaveClass(/active/);
+  await expect(replay.locator('[data-node="explain_in_cricket_terms"]')).toHaveAttribute("data-state", "running");
+  await replay.getByTestId("back").click();
+  await expect(replay.locator('[data-node="explain_in_cricket_terms"]')).not.toHaveClass(/active/);
   await replay.getByTestId("reset").click();
   await expect(replay.locator(".node.active")).toHaveCount(0);               // back to before the first step, the run kept
-  await expect(rows(page)).toHaveCount(0);
-  await button(page).click();                                                 // and it can be watched again
+  await page.getByTestId("watch-again").click();                              // and it can be watched again
   await expect(rows(page).first()).toBeVisible();
 });
 
 test("at 390 px the loop strip, round rows and graph rows wrap with no sideways scroll, everything open", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
-  await open(page, "?interval=100&view=everything");
-  await toWatch(page);
-  await expect(button(page)).toHaveText("▶ Watch again", { timeout: 30_000 });
+  await open(page, "?interval=40&view=everything");
+  await finishRun(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  for (const id of ["watch-button", "live-toggle", "graph-toggle"]) expect((await page.getByTestId(id).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  for (const id of ["play-button", "watch-again", "model-select"]) expect((await page.getByTestId(id).boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });

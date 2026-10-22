@@ -9,17 +9,18 @@ const MAIN_TEXT = [
   // the header
   '[data-testid=breadcrumb] a', '[data-testid=breadcrumb] [aria-current]', '[data-testid=link-feedback] .label', '[data-testid=link-under-the-hood] .label', '[data-testid=view-switch] .label',
   // the hero, a dark band
-  '[data-testid=hero-kicker]', '[data-testid=hero-title]', '[data-testid=hero-lead]', '[data-testid=link-watch]', '[data-testid=link-try]', '[data-testid=run-origin]',
-  '[data-testid=scoreboard-kicker]', '[data-testid=scoreboard-agent]', '[data-testid=scoreboard-tv]', '.scoreboard-figure .cap', '[data-testid=scoreboard-facts] li',
+  '[data-testid=hero-kicker]', '[data-testid=hero-title]', '[data-testid=hero-lead]', '[data-testid=start-experiment]',
+  '[data-testid=goal-kicker]', '[data-testid=goal-sentence]', '[data-testid=goal-tv-figure]', '[data-testid=goal-target-figure]', '.goal-figure .what', '[data-testid=goal-judged]', '[data-testid=result-strip]', '[data-testid=result-link]',
   '[data-testid=hero-commentary] .commentary-label', '[data-testid=tv-sentence]', '[data-testid=tv-footnote]', '[data-testid=who-does-what]', '[data-testid=tv-miss]',
   // the problem
   '#problem .kicker', '[data-testid=problem-title]', '[data-testid=problem-lead]', '[data-testid=tile-score-at-10] .tile-value', '[data-testid=tile-score-at-10] .tile-label',
   '[data-testid=tile-tv-said] .tile-value', '[data-testid=problem-caption]',
   // watch it think
-  '#watch .kicker', '#watch-title', '.loop-strip li:not(.ai)', '.loop-strip li.ai', '.loop-strip li.repeat', '[data-testid=watch-button]', '[data-testid=live-toggle]', '[data-testid=run-label]',
-  '.scale-note', '[data-testid=watch-commentary] h3', '[data-testid=watch-commentary] p', '.season-strip li', '.season-strip li.locked', '.round-n', '[data-testid=round-idea]',
+  '#watch .kicker', '#watch-title', '.loop-strip li:not(.ai)', '.loop-strip li.ai', '.loop-strip li.repeat', '[data-testid=play-button]', '[data-testid=watch-again]', '[data-testid=run-line]', '[data-testid=player-status]', '[data-testid=agent-explainer]', '.agent-legend .lg-ai',
+  '.agent-question', '[data-testid=right-now] h3', '[data-testid=right-now-step]', '[data-testid=right-now-doing]', '.rn-row dt', '[data-testid=see-result]',
+ '[data-testid=watch-commentary] h3', '[data-testid=watch-commentary] p', '.season-strip li', '.season-strip li.locked', '.round-n', '[data-testid=round-idea]',
   '[data-testid=model-reason]', '[data-testid=round-score]', '.status-tag.status-first_score', '.status-tag.status-new_best', '.status-tag.status-no_better', '.status-tag.status-rejected',
-  '.status-tag.status-finished', '[data-testid=best-idea]', '[data-testid=graph-toggle]', '[data-testid=model-note]', '[data-testid=variation-note]', '[data-testid=live-start]', '.setup-chips li',
+  '.status-tag.status-finished', '[data-testid=best-idea]', '[data-testid=model-note]', '.setup-chips li',
   // the graph (inside its shadow root)
   'graph-replay .row-title', 'graph-replay .row-note', 'graph-replay .node-name', 'graph-replay .node.actor-llm .actor-tag', 'graph-replay .stage-badge', 'graph-replay .row-loop',
   'graph-replay .legend-stage .name', 'graph-replay .legend-stage .question', 'graph-replay .panel h3', 'graph-replay .item-tag', 'graph-replay .item-node .node-name',
@@ -31,7 +32,7 @@ const MAIN_TEXT = [
   // your turn, a dark band
   '#try .kicker', '#try-title', '#try .lead', '[data-testid=tryit-model-label]', '#try form label', '#try form .btn', '[data-testid=tryit-hint]',
   // the Scorebook and the footer
-  '#scorebook .kicker', '#scorebook-title', '.sb-card strong', '.sb-card span', 'footer p', 'footer a',
+  '#scorebook .kicker', '#scorebook-title', '.sb-card strong', 'footer p', 'footer a',
 ];
 
 const BUILT_TEXT = [

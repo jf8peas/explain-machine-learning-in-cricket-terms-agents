@@ -7,6 +7,7 @@ test("stepping, the timeline and Reset replay from the buffer without running th
   const requests = countRunRequests(page);
   await open(page);
   await playToEnd(page);
+  const runRequests = requests.count();                                       // the one live run that was just made
   const last = (await timelineItems(page).count()) - 1;
   await expect(current(page)).toContainText("write_in_cricket_terms");
 
@@ -22,15 +23,15 @@ test("stepping, the timeline and Reset replay from the buffer without running th
   await page.getByTestId("back").click();
   await expect(page.getByTestId("event-node")).toHaveText("split");
 
-  expect(requests.count()).toBe(0); // nothing was fetched: the run was saved
+  expect(requests.count()).toBe(runRequests); // nothing was fetched: the run was kept
 
   await page.getByTestId("reset").click();                                    // back to before the first step; the run is kept
   await expect(page.locator(".node.active")).toHaveCount(0);
   await expect(page.getByTestId("event-node")).toHaveCount(0);
   await expect(timelineItems(page)).not.toHaveCount(0);
-  await page.getByTestId("watch-button").click();                            // and it can be watched again
+  await page.getByTestId("watch-again").click();                             // and it can be watched again
   await expect(page.locator(".node.active")).toHaveCount(1);
-  expect(requests.count()).toBe(0);
+  expect(requests.count()).toBe(runRequests);
 });
 
 test("stepping past either end is ignored", async ({ page }) => {
@@ -49,14 +50,15 @@ test("stepping past either end is ignored", async ({ page }) => {
 test("arrow keys do not step while typing in a field", async ({ page }) => {
   await open(page);
   await playToEnd(page);
-  await page.getByTestId("model-select").focus();                           // a select in the live-run panel (open with everything)
+  await page.getByTestId("model-select").focus();                           // the select that chooses the AI
   await page.keyboard.press("ArrowLeft");
   await expect(current(page)).toContainText("write_in_cricket_terms");
 });
 
-test("Pause stops the display and Resume continues", async ({ page }) => {
+test("Pause stops the replay and Resume continues", async ({ page }) => {
   await open(page, 500);
-  await toPlayer(page);
+  await page.getByTestId("watch-again").click();                              // a finished run is replayed at the chosen pace
+  await expect(page.getByTestId("pause")).toHaveText("Pause");
   await expect(timelineItems(page)).not.toHaveCount(0);
   await page.getByTestId("pause").click();
   await expect(page.getByTestId("pause")).toHaveText("Resume");

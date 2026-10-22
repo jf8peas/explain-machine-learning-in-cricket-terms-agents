@@ -56,7 +56,7 @@ export interface RankingRow {
   training_innings?: string;
   miss: number;                   // tenths
 }
-/** The candidate model chosen on validation, before the final test. It describes the recorded decision; it never overrides it. */
+/** The candidate model chosen on validation, before the final test. It describes the decision the run made; it never overrides it. */
 export interface ChoiceView {
   state: "pending" | "clear" | "whisker" | "noAi";
   chosen: "ai" | "rival" | null;  // whose candidate model goes forward
@@ -123,8 +123,8 @@ function roundViews(rounds: RoundNote[], llm: Attempt[]): RoundView[] {
   return views;
 }
 
-/** The choice panel's state. A gap under TOO_CLOSE_RUNS (including a tie, and equal scores when the rival was recorded as chosen) is
- *  a "whisker"; the lower score still goes forward, as recorded. With no scorable AI candidate model the rival goes forward alone. */
+/** The choice panel's state. A gap under TOO_CLOSE_RUNS (including a tie, and equal scores when the rival was the one chosen) is
+ *  a "whisker"; the lower score still goes forward, as decided. With no scorable AI candidate model the rival goes forward alone. */
 export function choiceView(w: ValidationWinner | undefined, ai: number | null, rival: number | null): ChoiceView {
   if (!w) return { state: "pending", chosen: null, chosenMiss: null, otherMiss: null, gap: null, tooClose: false };
   if (ai === null) {

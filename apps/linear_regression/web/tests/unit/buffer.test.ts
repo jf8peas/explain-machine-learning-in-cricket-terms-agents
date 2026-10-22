@@ -191,3 +191,62 @@ describe("playing a saved run (feature 020)", () => {
     expect(b.cursor).toBe(-1);
   });
 });
+
+describe("a live run (feature 022): the display follows arrival and the node that has started is the one working", () => {
+  it("shows each step as it arrives, with no pacing, once a live run has begun", () => {
+    b.beginLive();
+    expect(b.follow).toBe(true);
+    b.push(ev(1, "a"));
+    expect(b.cursor).toBe(0);
+    b.push(ev(2, "b")); b.push(ev(3, "c"));
+    expect(b.cursor).toBe(2);
+    expect(b.playing).toBe(false);                             // no timer was started
+    expect(clock.fn).toBeNull();
+  });
+
+  it("a start names the working node, and its step clears it", () => {
+    b.beginLive();
+    b.start("a");
+    expect(b.inProgress).toBe("a");
+    b.push(ev(1, "a"));
+    expect(b.inProgress).toBeNull();
+    b.start("b");
+    b.push(ev(2, "other"));                                    // a step for a different node leaves the working one alone
+    expect(b.inProgress).toBe("b");
+  });
+
+  it("done ends following and leaves nothing in progress", () => {
+    b.beginLive(); b.start("a"); b.push(ev(1, "a")); b.start("b");
+    b.finish();
+    expect(b.follow).toBe(false);
+    expect(b.inProgress).toBeNull();
+    expect(b.atEnd).toBe(true);
+  });
+
+  it("a run that stops part-way keeps the node that was working and what had arrived", () => {
+    b.beginLive(); b.start("a"); b.push(ev(1, "a")); b.start("b");
+    b.fail();
+    expect(b.failedNode).toBe("b");
+    expect(b.inProgress).toBeNull();
+    expect(b.follow).toBe(false);
+    expect(b.finished).toBe(true);
+    expect(b.events.map((e) => e.node)).toEqual(["a"]);
+  });
+
+  it("a new live run clears the old one, including the error mark", () => {
+    b.beginLive(); b.start("a"); b.fail();
+    b.beginLive();
+    expect(b.failedNode).toBeNull();
+    expect(b.events).toEqual([]);
+    expect(b.follow).toBe(true);
+  });
+
+  it("a replay keeps its pace: a loaded run does not follow", () => {
+    b.beginLive(); b.push(ev(1, "a")); b.push(ev(2, "b")); b.finish();
+    b.rewind(); b.play();
+    expect(b.follow).toBe(false);
+    expect(b.cursor).toBe(0);
+    clock.tick();
+    expect(b.cursor).toBe(1);
+  });
+});

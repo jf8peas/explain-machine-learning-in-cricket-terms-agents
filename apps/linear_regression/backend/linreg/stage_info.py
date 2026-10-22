@@ -15,6 +15,7 @@ from .data_table import DEFAULT_MANIFEST, exclusion_rows
 from .data_loading import DataError, load_innings
 from .graph import NODE_STAGES
 from .methods import term, with_technical
+from .wording import doing_lines
 from .season_split import rolling_checks
 from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, Row, row_set, stage_set
 
@@ -131,6 +132,14 @@ def loop_note(data_path: str | Path | None = None) -> str | None:
         return None
 
 
+def test_year(data_path: str | Path | None = None) -> int | None:
+    """The test season's year, from the same rolling checks the agent uses (only the year: no test row is read), or None."""
+    try:
+        return rolling_checks(load_innings(data_path, required=["match_date", "in_test_population"])).test_year
+    except (DataError, IndexError, KeyError, ValueError):
+        return None
+
+
 def rows() -> tuple[Row, ...]:
     """The display rows in order, with their notes. Every number in a note is read from its constant."""
     return (
@@ -149,4 +158,5 @@ def structure_extras(manifest_path: str | Path | None = None, data_path: str | P
         "loop": {"fit": FIT_STAGE, "choose": CHOOSE_STAGE},
         "notes": {**({"general": general} if (general := loop_note(data_path)) else {}), "stages": stage_notes()},
         "items": [prepare_item(manifest_path)],
+        "doing": doing_lines(test_year(data_path)),
     }

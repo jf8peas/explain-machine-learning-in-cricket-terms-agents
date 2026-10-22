@@ -15,9 +15,10 @@ def meta(attr: str, name: str) -> str:
     return found.group(1)
 
 
-def test_the_tags_are_fixed_text_worded_for_the_winning_case_and_have_no_image():
-    assert meta("property", "og:title") == "An AI agent built its own prediction model. Then it beat the TV."
+def test_the_tags_are_fixed_text_the_question_and_have_no_image():
+    assert meta("property", "og:title") == "Can an AI agent beat the TV at predicting a T20 score?"
     assert meta("property", "og:description").startswith("Halfway through a T20 innings, where will it finish?")
+    assert "Choose an AI, press play and watch it try" in meta("property", "og:description")
     assert meta("property", "og:type") == "website"
     assert meta("name", "twitter:card") == "summary"
     assert "og:image" not in HTML and "twitter:image" not in HTML

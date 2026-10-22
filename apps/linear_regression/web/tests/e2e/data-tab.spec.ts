@@ -474,11 +474,11 @@ test.describe("load failure", () => {
     await page.route("**/api/data", (route) =>
       fail ? route.fulfill({ status: 500, json: { detail: "The innings data file was not found." } }) : route.continue());
     await page.goto("/");
-    await expect(page.getByTestId("scoreboard-agent")).toBeVisible();          // the hero and the recorded run do not wait on the data
+    await expect(page.getByTestId("hero-title")).toBeVisible();          // the hero does not wait on the data
     await page.getByTestId("scorebook-card-data").click();
     await expect(page.getByTestId("data-state")).toContainText("could not be loaded");
     await expect(page.getByTestId("data-state")).toContainText("not found");
-    await expect(page.getByTestId("scoreboard-agent")).toBeVisible();
+    await expect(page.getByTestId("hero-title")).toBeVisible();
     await expect(page.getByTestId("verdict-title")).toBeVisible();
     fail = false;
     await page.getByTestId("data-retry").click();

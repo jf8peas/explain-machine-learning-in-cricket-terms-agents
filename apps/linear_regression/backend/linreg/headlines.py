@@ -82,6 +82,18 @@ def vs_search(agent_miss: float | None, search_miss: float | None, tries: int) -
             else f"The agent finished {size} behind the {SEARCH}.")
 
 
+RESULT_LABEL = {"beat": "goal reached", "edged": "short of the goal", "held": "goal missed", "no_llm": "search only"}
+
+
+def result_strip(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float) -> dict[str, str]:
+    """The strip at the foot of the goal card once a run has finished: the case in two or three words and how far out the agent
+    (or, with no language model, the brute-force search) and the TV were, on the same displayed misses as the verdict."""
+    subject, who = (agent_miss, "agent") if case != "no_llm" else (search_miss, SEARCH)
+    text = (f"The {who} was {_runs(subject)} runs out, the TV {_runs(tv_miss)}." if subject is not None
+            else f"The TV was {_runs(tv_miss)} runs out.")
+    return {"label": RESULT_LABEL[case], "text": text}
+
+
 def scoreboard(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float, tries: int) -> dict[str, Any]:
     """The Scoreboard card's labels and facts. Without a language model the card shows the search, without the tries and the
     claim about the AI, which then has nothing to be said about."""
@@ -105,4 +117,5 @@ def build(*, agent_miss: float | None, search_miss: float | None, tv_miss: float
     return {"case": case, "hero_h1": HERO_H1[case], "lead": LEAD["search" if case == "no_llm" else "agent"],
             "verdict_h2": verdict_h2(case, agent_miss, search_miss, tv_miss),
             "vs_search": vs_search(agent_miss, search_miss, tries),
-            "scoreboard": scoreboard(case, agent_miss, search_miss, tv_miss, tries)}
+            "scoreboard": scoreboard(case, agent_miss, search_miss, tv_miss, tries),
+            "result_strip": result_strip(case, agent_miss, search_miss, tv_miss)}

@@ -44,6 +44,7 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
     finding = reference_finding(known["average_miss"], projected["average_miss"])
     training = {"first_year": years[0], "last_year": years[-1], "innings": len(train)}
     average_total = round(float(actual.mean()))
+    test = {"year": int(rolling.test_year), "innings": int(rolling.n_test)}      # counts only: no test row is read
     example = _example(train, path)
     return {
         "goal": goal(),
@@ -67,6 +68,8 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
         "hero": hero_text.build_hero({"know_nothing": known, "broadcaster": projected}, training,
                                      goal()["margin_runs"], average_total, example),
         "message": None,
+        "goal_card": hero_text.goal_card(goal()["margin_runs"], projected["average_miss"], training, test),
+        "test": test,
         **reference_terms(),
     }
 
@@ -84,7 +87,8 @@ def _example(train, path: str | Path | None) -> dict[str, Any] | None:
 def _unavailable() -> dict[str, Any]:
     return {"goal": goal(), "methods": method_defs(), "training": None, "figures": None, "gap": None,
             "finding": None, "words": None, "sentences": None, "meter": None, "average_total": None, "example": None,
-            "hero": None, "message": NOT_LOADED, **reference_terms()}
+            "hero": None, "message": NOT_LOADED,
+            "goal_card": hero_text.goal_card(goal()["margin_runs"]), "test": None, **reference_terms()}
 
 
 def create_router(data_path: str | Path | None = None) -> APIRouter:

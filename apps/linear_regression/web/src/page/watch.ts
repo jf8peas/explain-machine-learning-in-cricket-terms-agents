@@ -1,7 +1,8 @@
-// Watch it think (app-specific): the centrepiece. A loop strip, a player that plays the recorded run by itself when it first
-// scrolls into view (or at once, finished, for a visitor who prefers reduced motion), a round feed with the agent's own reasoning,
-// and the full agent graph in a Commentary panel. A button replays what is saved, with no model called and no run limit used; a
-// live-run panel can start the agent for real. Every word about a round comes from the run; nothing is fetched to replay it.
+// Watch it think (feature 022, app-specific): the centrepiece. The reader chooses the AI and presses Play, which starts a real live run;
+// the graph is shown by default and follows the run as it arrives (the node working is ringed, finished nodes are done), a "Right now"
+// card says what is happening, and the round feed shows the agent's own words round by round. "Watch it again" replays the finished run
+// from the events already received (no model call, no run limit used). The page-level run state lives in main.ts; this module turns
+// the graph's events into transitions of it and draws what depends on it.
 import "../graph-replay/graph-replay";
 import type { GraphReplay, ReplayChangeDetail } from "../graph-replay/graph-replay";
 import type { StepEvent } from "../graph-replay/buffer";
@@ -9,31 +10,33 @@ import { labelFor, loadCatalogue, loadedCatalogue, menuLabel, menuShort } from "
 import { h } from "./dom";
 import { examYears } from "./exam";
 import { buildView } from "./found/view";
-import { buildLivePanel } from "./live-panel";
-import { watchButton, type ShownRun } from "./player-state";
+import { buildPlayer } from "./player";
 import { feedRows, llmNotice, nextAnnouncement, type AnnounceState, type FeedRow } from "./round-feed";
-import { currentRun, failed, received, refused, runLabel, startLive, type RunInfo, type SourceState } from "./run-source";
-import { dayText } from "./recorded";
+import { buildRightNow } from "./right-now";
+import { describeStep, failed, finished, press, refused, replayable, rightNow, started, stepped, type RunState } from "./run-state";
+import { term } from "./terms";
 
 export const KICKER = "WATCH IT THINK";
-export const HEADING = "Each round, the agent proposes an idea. Code tests it.";
+export const HEADING = "Choose the AI, press play, and watch it work.";
 export const LOOP_STEPS = ["1 · Agent proposes clues", "2 · Code checks", "3 · Code fits a regression", "4 · Code scores it"];
 export const LOOP_REPEAT = "↺ repeat until no better";
-export const SCALE_NOTE = "Lower score = closer predictions (average runs off)";
-export const LIVE_TOGGLE = "Run it live with your choice of AI";
-export const GRAPH_TOGGLE = "Show the full agent graph";
-export const FAILED_LIVE = "The live run did not finish, so the page keeps showing the run it had.";
-export const NO_RECORDING = "There is no recorded run to play. Run it live to watch the agent work.";
+export const AGENT_QUESTION = "What makes it an agent?";
+export const AGENT_EXPLAINER = "A language model working in a loop: it looks at the results so far, decides what to try next, and stops when it can't do better. Here the AI makes those decisions in the purple steps; code does everything else.";
+export const AGENT_LEGEND = ["Purple dashed: the AI decides", "Solid: code", "Green: done", "Ringed: happening now"];
+export const AGENT_COMMENTARY = "Built with LangGraph. Each box is a node, a Python function, and each arrow is an edge. Some edges are conditional: after check_proposal and evaluate, the graph reads its state and chooses where to go next: back to propose_features, on to fit_model, or out to the yardstick. The state carries the data, every idea tried and every score from one step to the next.";
+export const FEED_EMPTY = "The agent's ideas appear here, one round at a time, once you press play.";
 
-/** How the page holds the run it is showing, so Watch it think can switch it when a live run reaches its final test. */
-export interface PageState {
-  source(): SourceState;
-  update(next: SourceState): void;
+/** How the page holds the run state: Watch it think reads it and moves it on. */
+export interface WatchDeps {
+  state(): RunState;
+  set(next: RunState): void;
 }
 
 export interface Watch {
-  /** The recorded run has loaded (or could not be). */
-  setRecorded(run: RunInfo | null): void;
+  /** Redraw what depends on the run state (the player, Right now, the feed, the closing line, the graph's controls). */
+  render(state: RunState): void;
+  /** Move the reader to the picker: scroll to it and focus the select. */
+  focusPicker(): void;
 }
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -60,11 +63,26 @@ function commentaryAbove(state: Record<string, unknown>): HTMLElement {
       h("li", { class: "learn" }, h("strong", {}, "Learn"), ` ${first}–${years.first - 1}`),
       ...years.checks.map((y) => h("li", { class: "check" }, h("strong", {}, "Check"), ` ${y}`)),
       h("li", { class: "locked" }, h("strong", {}, "Locked"), ` ${years.test}`));
-    parts.append(strip, h("p", {}, `Each idea is fitted on the seasons before a check season and scored on it; the three scores are averaged. ${years.test} stays locked until the end.`));
+    parts.append(strip, h("p", {}, `Each idea is fitted on the seasons before a check season and scored on it; the three scores are averaged.`));
   } else {
     parts.append(h("p", { class: "muted" }, "The seasons appear once the data is split."));
   }
   return parts;
+}
+
+function explainer(): HTMLElement[] {
+  const legend = h("p", { class: "agent-legend", "data-testid": "agent-legend" });
+  AGENT_LEGEND.forEach((text, i) => {
+    if (i) legend.append(" · ");
+    legend.append(h("span", { class: `lg lg-${["ai", "code", "done", "now"][i]}` }, text));
+  });
+  return [
+    h("h3", { class: "agent-question" }, AGENT_QUESTION),
+    h("p", { "data-testid": "agent-explainer" }, AGENT_EXPLAINER),
+    legend,
+    h("div", { "data-region": "commentary", class: "commentary", id: "agent-commentary", "data-testid": "agent-commentary" },
+      h("span", { class: "commentary-label" }, "Commentary"), h("p", {}, AGENT_COMMENTARY)),
+  ];
 }
 
 function rowEl(r: FeedRow): HTMLElement {
@@ -72,7 +90,7 @@ function rowEl(r: FeedRow): HTMLElement {
   return h("li", { class: `round-row status-${r.status}`, "data-testid": "round-item", "data-round": String(r.round), "data-status": r.status },
     h("span", { class: "round-n" }, `ROUND ${r.round}`),
     h("div", { class: "round-main" },
-      h("p", { class: "round-idea", "data-testid": "round-idea" }, h("strong", {}, r.idea), r.seasons ? ` · ${r.seasons}` : ""),
+      h("p", { class: "round-idea", "data-testid": "round-idea" }, h("strong", {}, r.idea)),         // the seasons are one of the settings, shown in Commentary
       ...(r.reason ? [h("blockquote", { class: "reason", "data-reasoning": "", "data-region": "reasoning", "data-testid": "model-reason" }, r.reason)] : []),
       ...(chips.length ? [h("div", { "data-region": "commentary", class: "commentary round-settings", "data-testid": "round-settings" },
         h("ul", { class: "setup-chips" }, ...chips))] : [])),
@@ -81,166 +99,173 @@ function rowEl(r: FeedRow): HTMLElement {
       h("span", { class: `status-tag status-${r.status}`, "data-testid": "round-status" }, r.statusText)));
 }
 
-export function setupWatch(root: HTMLElement, page: PageState): Watch {
+export function setupWatch(root: HTMLElement, deps: WatchDeps): Watch {
   const query = new URLSearchParams(location.search).get("interval");
   const replay = document.createElement("graph-replay") as GraphReplay;
   replay.setAttribute("structure-url", "/api/structure");
+  replay.setAttribute("compact", "");
+  replay.setAttribute("hide-legend", "");
   if (query) replay.setAttribute("interval-ms", query);
 
-  const watchBtn = h("button", { type: "button", class: "btn filled", "data-testid": "watch-button" }, "▶ Watch the recorded run");
-  const liveToggle = h("button", { type: "button", class: "btn outlined", "data-testid": "live-toggle", "data-commentary-toggle": "", "aria-controls": "live-panel", "aria-expanded": "false" }, LIVE_TOGGLE);
-  const runLabelEl = h("span", { class: "run-label", "data-testid": "run-label" });
+  const player = buildPlayer();
+  const right = buildRightNow();
   const region = h("div", { class: "visually-hidden", role: "status", "aria-live": "polite", "aria-atomic": "true", "data-testid": "round-live-region" });
   const feed = h("ol", { class: "round-feed", "data-testid": "round-feed", "aria-label": "The rounds so far" });
+  const empty = h("p", { class: "muted", "data-testid": "feed-empty" }, FEED_EMPTY);
   const notice = h("p", { class: "llm-notice", role: "status", "data-testid": "llm-notice", hidden: "" });
-  const bestIdea = h("p", { class: "best-idea", "data-testid": "best-idea" });
-  const graphToggle = h("button", { type: "button", class: "toggle", "data-testid": "graph-toggle", "data-commentary-toggle": "", "aria-controls": "graph-panel", "aria-expanded": "false" }, `${GRAPH_TOGGLE} `);
-  const graphPanel = h("div", { "data-region": "commentary", class: "commentary graph-panel", id: "graph-panel", "data-testid": "graph-panel" }, h("span", { class: "commentary-label" }, "Commentary"), replay);
-  const live = buildLivePanel();
+  const closing = h("p", { class: "best-idea", "data-testid": "best-idea" });
+  const seeResult = h("a", { href: "#verdict", class: "see-result", "data-testid": "see-result", hidden: "" });
   const above = h("div", { "data-testid": "watch-above" });
-  const empty = h("p", { class: "muted", "data-testid": "feed-empty" });
 
-  const player = h("div", { class: "player", "data-testid": "player" },
-    h("div", { class: "toolbar" }, watchBtn, liveToggle, runLabelEl),
-    h("p", { class: "scale-note" }, SCALE_NOTE),
-    live.el, region, empty, feed, notice, bestIdea, graphToggle, graphPanel);
+  const stage = h("div", { class: "run-stage" }, h("div", { class: "run-graph", "data-testid": "run-graph" }, replay), right.el);
+  const player_ = h("div", { class: "player", "data-testid": "player" },
+    player.el, ...explainer(), stage, region, empty, feed, notice, closing, seeResult);
 
   root.replaceChildren(
     h("p", { class: "kicker" }, KICKER),
     h("h2", { id: "watch-title" }, HEADING),
-    loopStrip(), above, player);
+    loopStrip(), above, player_);
 
-  // ---- what the player is doing
-  let shows: ShownRun = "recorded";
-  let last: ReplayChangeDetail | null = null;
+  // ---- what the player is showing
+  let replaying = false;                  // "Watch it again" is playing the finished run through the graph
+  let replayState: Record<string, unknown> = {};
+  let replayDetail: ReplayChangeDetail | null = null;
   let announce: AnnounceState = { cursor: -1, spoken: new Set() };
-  let liveActive = false;       // a live run was asked for and has not ended
-  let liveOpening = false;      // ... and the server has not accepted it yet
-  let seenRun = 0;
-  let recordedLoaded = false;
-  let autoplayed = false;
+  let lastDrawn: RunState | null = null;
 
-  const label = () => runLabel(currentRun(page.source()), dayText);
+  const doing = (): Record<string, string> => replay.loadedStructure?.doing ?? {};
+  const actorOf = (node: string | null): "ai" | "code" | null => {
+    const n = replay.loadedStructure?.nodes.find((x) => x.id === node);
+    return n?.actor === "llm" ? "ai" : n?.actor === "code" ? "code" : null;
+  };
+  const roundCap = () => loadedCatalogue()?.round_cap ?? null;
+  const viewIsEverything = () => document.body?.dataset.view === "everything";
 
-  function paint(d: ReplayChangeDetail) {
-    last = d;
-    const btn = watchButton({ shows, playing: d.playing, atEnd: d.atEnd, started: d.cursor >= 0 });
-    watchBtn.textContent = btn.label;
-    watchBtn.dataset.action = btn.action;
-    runLabelEl.textContent = label();
-    const rows = feedRows(buildView(d.state).rounds, labelFor, menuLabel, menuShort);
+  function shownState(s: RunState): Record<string, unknown> {
+    if (replaying) return replayState;
+    return s.current?.state ?? s.last?.state ?? {};
+  }
+
+  function paintFeed(s: RunState) {
+    const shown = shownState(s);
+    const view = buildView(shown);
+    const rows = feedRows(view.rounds, labelFor, menuLabel, menuShort);
     feed.replaceChildren(...rows.map(rowEl));
-    const best = d.state.llm_best as { features: string[]; window?: string } | null | undefined;
-    bestIdea.textContent = best
-      ? `Best idea: ${best.features.map(labelFor).join(", ")}${best.window ? `, ${menuLabel("window", best.window).replace(/^./, (c) => c.toLowerCase())}` : ""}.`
-      : "";
-    const said0 = llmNotice(d.state.llm_status as string | undefined, d.state.llm_failure as string | null | undefined, rows.length);
-    notice.hidden = !said0;
-    notice.textContent = said0 ?? "";
-    if (d.cursor < 0) announce = { cursor: -1, spoken: new Set() };
-    const said = nextAnnouncement(announce, { cursor: d.cursor, rows });
-    announce = said.state;
-    if (said.line) region.textContent = said.line;
+    empty.hidden = rows.length > 0 || s.phase === "running";
+    empty.textContent = s.phase === "running" && !rows.length ? "The first idea will appear when the agent has proposed it." : FEED_EMPTY;
+    if (s.phase === "running" && !rows.length) empty.hidden = false;
+    const said = llmNotice(shown.llm_status as string | undefined, shown.llm_failure as string | null | undefined, rows.length);
+    notice.hidden = !said;
+    notice.textContent = said ?? "";
+    return rows;
   }
 
-  function trackLive(d: ReplayChangeDetail) {
-    if (d.run !== seenRun) {
-      seenRun = d.run;
-      if (liveOpening) { liveOpening = false; shows = "live"; live.say("The live run is under way."); }
-    }
-    if (!liveActive || liveOpening) return;
-    const events: StepEvent[] = replay.events;
-    page.update(received(page.source(), events, d.receivedState));
-    const ended = d.failed || (d.finished && !d.receivedState.final);
-    if (ended) {
-      const out = failed(page.source());
-      page.update(out.state);
-      liveActive = false;
-      live.setBusy(false);
-      live.say(FAILED_LIVE, true);
-      if (out.show) { replay.loadRun(out.show); replay.showEnd(); }
-      shows = currentRun(page.source())?.kind ?? "recorded";
-    } else if (d.finished) {
-      liveActive = false;
-      live.setBusy(false);
-      live.say("The live run is finished. The page now shows it.");
-    }
+  function paintClosing(s: RunState) {
+    const shown = shownState(s);
+    const best = shown.llm_best as { features: string[]; window?: string } | null | undefined;
+    const done = !!shown.final && (s.phase !== "running" || replaying);
+    if (!done || !best) { closing.textContent = ""; seeResult.hidden = true; return; }
+    const seasons = best.window ? menuLabel("window", best.window) : null;
+    closing.textContent = `Best idea: ${best.features.map(labelFor).join(", ")}${seasons ? `, learning from ${seasons}` : ""}.`;
+    const years = examYears(shown.split as Parameters<typeof examYears>[0]);
+    seeResult.textContent = `See how it did on ${years ? years.test : `the ${term("test_season")}`} ↓`;
+    seeResult.hidden = false;
   }
+
+  function paintControls(s: RunState) {
+    const everything = viewIsEverything();
+    const hasRun = !!(s.current?.events.length || s.last);
+    // the run controls, the event and state panels and the path come back with Show me everything, once there is a run to step through
+    if (everything && hasRun && s.phase !== "running") replay.removeAttribute("compact"); else replay.setAttribute("compact", "");
+    if (everything) replay.removeAttribute("hide-legend"); else replay.setAttribute("hide-legend", "");
+  }
+
+  function paintRightNow(s: RunState) {
+    if (replaying && replayDetail && replayDetail.cursor >= 0) {
+      const events = replay.events;
+      const node = events[replayDetail.cursor]?.node ?? null;
+      right.render(describeStep(node, replayState, doing(), roundCap()));
+      return;
+    }
+    right.render(rightNow(s, doing(), roundCap()));
+  }
+
+  function render(s: RunState) {
+    lastDrawn = s;
+    const node = replaying ? null : s.current?.inProgress ?? null;
+    player.render(s, node ? doing()[node] ?? null : null, actorOf(node));
+    paintFeed(s);
+    paintClosing(s);
+    paintRightNow(s);
+    paintControls(s);
+    const seasonsState = shownState(s);
+    if (seasonsState.split) above.replaceChildren(commentaryAbove(seasonsState));
+  }
+
+  // ---- the graph's events become transitions of the run state
+  replay.addEventListener("nodestart", (ev) => deps.set(started(deps.state(), (ev as CustomEvent<{ node: string }>).detail)));
+  replay.addEventListener("nodestep", (ev) => deps.set(stepped(deps.state(), (ev as CustomEvent<StepEvent>).detail)));
+  replay.addEventListener("rundone", () => deps.set(finished(deps.state())));
+  replay.addEventListener("runerror", (ev) => deps.set(failed(deps.state(), (ev as CustomEvent<{ message: string }>).detail.message)));
+  replay.addEventListener("refused", (ev) => {
+    const info = (ev as CustomEvent<{ reason: string; message: string }>).detail;
+    deps.set(refused(deps.state(), info.message));            // the gate's own words, as an alert under the button
+    if (info.reason === "model_not_allowed") void player.reload();
+  });
 
   replay.addEventListener("replaychange", (ev) => {
     const d = (ev as CustomEvent<ReplayChangeDetail>).detail;
-    trackLive(d);
-    paint(d);
-  });
-
-  replay.addEventListener("refused", (ev) => {
-    const info = (ev as CustomEvent<{ reason: string; message: string }>).detail;
-    page.update(refused(page.source()));
-    liveActive = false;
-    liveOpening = false;
-    live.setBusy(false);
-    live.say(info.message, true);            // the gate's own words, in the panel
-    if (info.reason === "model_not_allowed") void live.reload();
+    replayDetail = d;
+    if (replaying) {
+      replayState = d.state;
+      if (d.atEnd && !d.playing) replaying = false;
+      if (d.cursor < 0) announce = { cursor: -1, spoken: new Set() };
+      const rows = feedRows(buildView(d.state).rounds, labelFor, menuLabel, menuShort);
+      const said = nextAnnouncement(announce, { cursor: d.cursor, rows });
+      announce = said.state;
+      if (said.line) region.textContent = said.line;
+      if (lastDrawn) render(lastDrawn);
+    } else if (lastDrawn?.phase === "running") {
+      // a live run: the per-round line is spoken as the rounds arrive (never every node)
+      const rows = feedRows(buildView(d.state).rounds, labelFor, menuLabel, menuShort);
+      const said = nextAnnouncement(announce, { cursor: d.cursor, rows });
+      announce = said.state;
+      if (said.line) region.textContent = said.line;
+    }
   });
 
   // ---- buttons
-  watchBtn.addEventListener("click", () => {
-    const action = watchBtn.dataset.action;
-    if (action === "pause") replay.pause();
-    else if (action === "restart") replay.restart();
-    else replay.play();
-  });
-
-  live.onStart(() => {
-    if (!replay.isReady) { live.say("The graph is still loading. Try again in a moment.", true); return; }
-    const choice = live.chosen();
-    liveActive = true;
-    liveOpening = true;
-    live.setBusy(true);
-    live.say("Starting the run…");
-    page.update(startLive(page.source(), choice.name));
+  player.onPlay(() => {
+    if (!replay.isReady) { deps.set({ ...deps.state(), message: "The graph is still loading. Try again in a moment." }); return; }
+    const choice = player.chosen();
+    replaying = false;
+    announce = { cursor: -1, spoken: new Set() };
+    deps.set(press(deps.state(), choice.name));
     replay.startLive(choice.url);
   });
 
-  // ---- the recorded run, and playing it by itself
-  /** At least a quarter of the player is on screen right now (not merely at some earlier moment, before the page above it filled in). */
-  function inView(): boolean {
-    const r = player.getBoundingClientRect();
-    const shown = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
-    return r.height > 0 && shown >= Math.min(r.height * 0.25, window.innerHeight * 0.25);
-  }
+  player.onWatchAgain(() => {
+    const run = replayable(deps.state());
+    if (!run) return;
+    replaying = true;
+    replayState = {};
+    announce = { cursor: -1, spoken: new Set() };
+    replay.loadRun(run.events);
+    if (reduced()) { replay.showEnd(); replaying = false; } else replay.restart();
+    if (lastDrawn) render(lastDrawn);
+  });
 
-  function maybeAutoplay() {
-    if (autoplayed || !recordedLoaded || !inView()) return;
-    autoplayed = true;
-    if (reduced()) replay.showEnd();       // no animation: the finished run
-    else replay.play();
-  }
-
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting)) maybeAutoplay();
-    }, { threshold: [0, 0.25] });
-    observer.observe(player);
-  }
-
-  // the commentary above the player needs the catalogue and the run's seasons
-  void loadCatalogue().catch(() => undefined).then(() => { if (last) paint(last); });
-  const refreshAbove = (state: Record<string, unknown>) => above.replaceChildren(commentaryAbove(state));
-  refreshAbove({});
+  document.addEventListener("viewchange", () => { if (lastDrawn) render(lastDrawn); });
+  replay.addEventListener("structureready", () => { if (lastDrawn) render(lastDrawn); });
+  void loadCatalogue().catch(() => undefined).then(() => { if (lastDrawn) render(lastDrawn); });
+  above.replaceChildren(commentaryAbove({}));
+  render(deps.state());
 
   return {
-    setRecorded(run) {
-      recordedLoaded = !!run;
-      if (!run) {
-        empty.textContent = NO_RECORDING;
-        watchBtn.disabled = true;
-        return;
-      }
-      watchBtn.disabled = false;
-      replay.loadRun(run.events);
-      refreshAbove(run.state);
-      requestAnimationFrame(() => requestAnimationFrame(maybeAutoplay));      // after the sections above have filled in and settled
+    render,
+    focusPicker() {
+      root.scrollIntoView({ block: "start" });
+      player.focusSelect();
     },
   };
 }

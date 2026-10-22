@@ -48,8 +48,8 @@ def test_a_glossary_term_in_the_fixed_text_is_spelled_as_the_list_spells_it():
                 assert found.lower() == t.plain.lower(), (name, found, t.plain)
 
 
-def test_the_preview_tags_name_the_agent_with_the_listed_term():
+def test_the_preview_tags_name_the_agent_with_the_listed_term_and_ask_the_reader_to_choose_an_ai():
     html = PAGES["index.html"].read_text(encoding="utf-8")
     title = re.search(r'<meta property="og:title" content="([^"]*)"', html).group(1)
     assert methods.term("agent") in title
-    assert methods.term("agent") in re.search(r'<meta property="og:description" content="([^"]*)"', html).group(1)
+    assert "Choose an AI" in re.search(r'<meta property="og:description" content="([^"]*)"', html).group(1)       # the picker's own word

@@ -1,8 +1,7 @@
 """The sentences the agent's steps write about themselves (feature 021). App-specific, pure.
 
 Each function takes already-worked-out pieces (numbers, a list of clues in words) and returns the sentence, using the glossary in
-methods.py. The nodes call them when a run happens; scripts/reword_recorded_run.py calls them again with the pieces the recorded
-run holds, so a recording can be put in today's words without running the agent. Nothing here reads data or a model.
+methods.py. The nodes call them when a run happens. Nothing here reads data or a model.
 """
 from __future__ import annotations
 
@@ -120,3 +119,23 @@ def keep_templates_reason(kind: str, detail: str | None = None) -> str:
 def wrote_summary(covered: int, offered: int) -> str:
     return (f"The {AGENT} wrote the words for {covered} of {offered} takeaways; code filled in every number and every "
             "direction.")
+
+
+def doing_lines(test_year: int | None = None) -> dict[str, str]:
+    """What each node is doing, in plain words, for the page's "Right now" card (feature 022). One line for every node of the
+    graph; the final test names the test season's year when it is known."""
+    season = str(test_year) if test_year else f"the {TEST}"
+    return {
+        "load_data": "Code is loading the innings",
+        "split": "Code is splitting the seasons: learn, check, test",
+        "explore": f"Code is summarising the past seasons for the {AGENT}",
+        "baseline": f"Code is scoring the {term('tv')} and the {term('average_total')}",
+        "propose_features": f"The {AGENT} is choosing its {term('clues')}",
+        "check_proposal": f"Code is checking the {IDEA}",
+        "fit_model": "Code fits the regression",
+        "evaluate": f"Code scores it on the {CHECKS}",
+        "grid_search": f"The {SEARCH} tries every combination of {term('settings')}",
+        "final_test": f"Unlocking {season} and scoring once",
+        "explain_in_cricket_terms": "Code builds the facts for the explanation",
+        "write_in_cricket_terms": f"The {AGENT} words the explanation; code fills in every number",
+    }

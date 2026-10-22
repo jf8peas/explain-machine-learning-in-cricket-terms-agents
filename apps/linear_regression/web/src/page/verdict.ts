@@ -12,12 +12,12 @@ import { renderDriversCard, renderRuleOfThumb } from "./final/takeaways";
 import type { CricketExplanation, FinalState } from "./final/types";
 import { rows } from "./final/view";
 import { examYears, yearsText } from "./exam";
-import type { RunInfo } from "./run-source";
-import type { Headlines } from "./scoreboard";
+import type { Headlines } from "./headlines";
+import { lockedCard, testYearSentence, verdictTitle } from "./locked";
+import { lock, type RunState } from "./run-state";
 import { barCaption, barViews, renderBars } from "./verdict-bars";
 
 export const KICKER = "THE VERDICT";
-export const WAITING = "The verdict appears once the agent has a result.";
 export const bestModelNote = (): string => `from the best model on the ${term("check_seasons")}`;
 export const TRUST_TOGGLE = "Why you can trust this score";
 
@@ -55,7 +55,7 @@ function card(title: string, testid: string, ...content: (Node | null)[]): HTMLE
   return h("article", { class: "vcard", "data-testid": testid }, h("h3", {}, title), ...content.filter((c): c is Node => c !== null));
 }
 
-function commentary(state: Record<string, unknown>, final: VerdictFinal): HTMLElement {
+function commentary(state: Record<string, unknown>, final: VerdictFinal, rule: HTMLElement | null): HTMLElement {
   const expl = state.explanation as CricketExplanation | undefined;
   const view = examView(state);
   const list = rows(final);
@@ -66,20 +66,24 @@ function commentary(state: Record<string, unknown>, final: VerdictFinal): HTMLEl
   const panel = h("div", { "data-region": "commentary", class: "commentary", id: "verdict-commentary", "data-testid": "verdict-commentary" },
     h("span", { class: "commentary-label" }, "Commentary"),
     card(`${cap(term("check_seasons"))} vs the ${altTerm("test_season")}`, "vcard-seasons", pick, ...(view ? renderDifferCompact(view) : [])),
-    card("How often is it close?", "vcard-close", ...renderCloseness(list, expl, testYear, false, false)),
+    ...(rule ? [card("A rule of thumb", "vcard-rule", h("div", { class: "rule-card", "data-testid": "rule-card" }, rule, h("p", { class: "rule-from", "data-testid": "rule-from" }, bestModelNote())))] : []),
+        card("How often is it close?", "vcard-close", ...renderCloseness(list, expl, testYear, false, false)),
     card("What moves the final total", "vcard-drivers",
-      h("p", { class: "muted", "data-testid": "drivers-label" }, `Runs each clue adds, ${bestModelNote()}.`),
+      h("p", { class: "muted", "data-testid": "drivers-label" }, "Runs each clue adds."),
       expl ? renderDriversCard(expl) : null));
   return panel;
 }
 
-/** Fill the verdict section for the run now showing. */
-export function renderVerdict(root: HTMLElement, run: RunInfo | null): void {
-  const state = run?.state ?? {};
+/** Fill the verdict section: a locked card until a run has reached its final test, then the run's verdict. A later run, going or failed,
+ *  leaves the earlier run's verdict in place. `testYear` is the test season's year from /api/reference, for the locked wording. */
+export function renderVerdict(root: HTMLElement, run: RunState, testYear: number | null): void {
+  const locked = lock(run);
+  const state = run.last?.state ?? {};
   const final = state.final as VerdictFinal | undefined;
-  if (!final?.headlines || !final.accuracy) {
-    root.replaceChildren(h("p", { class: "kicker" }, KICKER), h("h2", { id: "verdict-title" }, "The verdict"),
-      h("p", { class: "muted", "data-testid": "verdict-waiting" }, WAITING));
+  if (locked.locked || !final?.headlines || !final.accuracy) {
+    const variant = locked.variant;
+    root.replaceChildren(h("p", { class: "kicker" }, KICKER),
+      lockedCard({ id: "verdict-title", testid: "verdict-locked", title: verdictTitle(variant, run.message), body: testYearSentence(testYear) }));
     return;
   }
   const expl = state.explanation as CricketExplanation | undefined;
@@ -95,11 +99,10 @@ export function renderVerdict(root: HTMLElement, run: RunInfo | null): void {
     h("p", { class: "kicker" }, KICKER),
     h("h2", { id: "verdict-title", "data-testid": "verdict-title" }, ...h2Pieces),
     ...(final.headlines.vs_search ? [h("p", { class: "lead", "data-testid": "verdict-vs-search" }, ...vsPieces)] : []),
-    renderBars(barViews(final.accuracy as Record<string, { average_miss: number }>)),
+    renderBars(barViews(final.accuracy as Record<string, { average_miss: number }>, run.last?.modelName)),
     h("p", { class: "cap-line", "data-testid": "verdict-caption" }, barCaption(innings, years?.test)),
-    ...(rule ? [h("div", { class: "rule-card", "data-testid": "rule-card" }, rule, h("p", { class: "rule-from", "data-testid": "rule-from" }, bestModelNote()))] : []),
     h("button", { type: "button", class: "toggle", "data-testid": "trust-toggle", "data-commentary-toggle": "", "aria-controls": "trust-panel", "aria-expanded": "false" }, `${TRUST_TOGGLE} `),
     trustPanel(years),
-    commentary(state, final));
+    commentary(state, final, rule));
   syncToggles();
 }

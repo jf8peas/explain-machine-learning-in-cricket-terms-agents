@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "./fixtures";
-import { open, playToEnd, serveStructure, timelineItems, toPlayer } from "./helpers";
+import { open, openIdle, openPath, playToEnd, serveStructure, timelineItems, toPlayer } from "./helpers";
 
 // Stage badges, the legend, the Event panel and timeline cues, the done-beforehand item and the round pill, against the real app
-// playing its recorded run (the scripted fake model). Stage names come from /api/structure, never from this file. The rows
+// running the scripted fake model. Stage names come from /api/structure, never from this file. The rows
 // themselves are in graph-rows.spec.ts.
 
 // The numbers follow the order a run first reaches each stage.
@@ -269,9 +269,11 @@ test.describe("by touch", () => {
 });
 
 test("selecting a stage while the run plays does not interrupt it, and the active node is never dimmed", async ({ page }) => {
-  await open(page, 250);
+  await openIdle(page, 250);
   await toPlayer(page);
-  await expect(page.locator(".node.active")).toHaveCount(1);
+  await page.getByTestId("model-select").selectOption({ label: "Thorough" });
+  await page.getByTestId("play-button").click();
+  await expect(page.locator(".node.active")).toHaveCount(1, { timeout: 30_000 });
   await page.evaluate(() => {                                                // watch for any moment an active node is dimmed
     const root = document.querySelector("graph-replay")!.shadowRoot!;
     const w = window as unknown as { __activeDimmed: boolean; __sawDim: boolean };
@@ -281,10 +283,10 @@ test("selecting a stage while the run plays does not interrupt it, and the activ
       if (root.querySelector(".node.dim")) w.__sawDim = true;
     }).observe(root, { subtree: true, attributes: true, attributeFilter: ["class"] });
   });
-  const before = await timelineItems(page).count();
   await legendStage(page, "assess").click();                                 // a stage the run has not reached yet
   await playToEnd(page);
-  expect(await timelineItems(page).count()).toBeGreaterThan(before);         // the run carried on, to the end
+  await openPath(page);
+  expect(await timelineItems(page).count()).toBeGreaterThan(20);             // the run carried on, to the end
   const seen = await page.evaluate(() => {
     const w = window as unknown as { __activeDimmed: boolean; __sawDim: boolean };
     return { activeDimmed: w.__activeDimmed, sawDim: w.__sawDim };
@@ -306,7 +308,7 @@ test("the selection survives Back, Step, Reset and watching again", async ({ pag
   await page.getByTestId("reset").click();
   await expect(legendStage(page, "choose")).toHaveAttribute("aria-pressed", "true");
   await expect(node(page, "fit_model")).toHaveClass(/dim/);
-  await page.getByTestId("watch-button").click();
+  await page.getByTestId("watch-again").click();
   await expect(page.locator(".node.active")).toHaveCount(1);
   await expect(legendStage(page, "choose")).toHaveAttribute("aria-pressed", "true");
   await expect(node(page, "fit_model")).toHaveClass(/dim/);
@@ -346,7 +348,7 @@ test("the graph, the Event panel and the timeline show the same stage for every 
     await items.nth(i).click();
     const name = ((await items.nth(i).textContent()) ?? "").replace(/^\d+\.\s*/, "").trim();
     const stage = s.stages.find((x) => x.id === s.nodes.find((n) => n.id === name)!.stage)!;
-    await expect(page.locator(".node.active").getByTestId("stage-badge")).toHaveText(String(stage.number));      // the graph
+    if (i < total - 1) await expect(page.locator(".node.active").getByTestId("stage-badge")).toHaveText(String(stage.number));      // the graph (the last step rings nothing: the run is over)
     const line = page.getByTestId("event-stage");                                                               // the panel
     await expect(line.locator(".badge")).toHaveText(String(stage.number));
     await expect(line).toContainText(stage.name);
@@ -464,14 +466,16 @@ test.describe("item by touch", () => {
 });
 
 test("opening the item while the run plays does not interrupt it or change the Event panel", async ({ page }) => {
-  await open(page, 200);
+  await openIdle(page, 200);
   await toPlayer(page);
-  await expect(page.locator(".node.active")).toHaveCount(1);
-  const before = await timelineItems(page).count();
+  await page.getByTestId("model-select").selectOption({ label: "Thorough" });
+  await page.getByTestId("play-button").click();
+  await expect(page.locator(".node.active")).toHaveCount(1, { timeout: 30_000 });
   await itemNode(page).click();
   await expect(itemPanel(page)).toBeVisible();
   await playToEnd(page);
-  expect(await timelineItems(page).count()).toBeGreaterThan(before);
+  await openPath(page);
+  expect(await timelineItems(page).count()).toBeGreaterThan(20);
   await expect(itemPanel(page)).toBeVisible();                                   // the replay did not close it
   await expect(page.getByTestId("event-node")).toBeVisible();                    // and the Event panel still shows the step
 });

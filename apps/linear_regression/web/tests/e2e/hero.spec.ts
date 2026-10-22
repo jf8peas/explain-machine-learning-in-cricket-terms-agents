@@ -1,13 +1,13 @@
-// The hero (feature 020): the agent is the hero. The headline, the Scoreboard card and the links come from the recorded run with
-// no button pressed; the Commentary about the TV projection is closed until asked for.
+// The hero (feature 022): the question and the goal, not a result. The goal card's figures are the server's; after a run finishes the
+// result strip at its foot gives the case in the server's words; the Commentary about the TV is closed until asked for. (The idle page
+// itself is in idle.spec.ts.)
 import { readFileSync } from "node:fs";
 import { expect, test } from "./fixtures";
 import type { Page } from "./fixtures";
+import { finishRun, streamOf } from "./helpers";
 
-const recorded = () => JSON.parse(readFileSync("tests/fixtures/recorded-run.fake.json", "utf8"));
-const finalOf = (run = recorded()) => run.events.find((e: { node: string }) => e.node === "final_test").changes.final;
-const stateOf = (run = recorded()) => Object.assign({}, ...run.events.map((e: { changes: object }) => e.changes));
-const CASES: { name: string; expected: { case: string; hero_h1: string; lead: string; scoreboard: { subject_label: string; subject_miss: number; tv_miss: number; facts: { id: string; text: string }[] } } }[] =
+const fixture = () => JSON.parse(readFileSync("tests/fixtures/fake-run.json", "utf8"));
+const CASES: { name: string; expected: { case: string; hero_h1: string; verdict_h2: string; scoreboard: { tv_miss: number }; result_strip: { label: string; text: string } } }[] =
   JSON.parse(readFileSync("tests/fixtures/headline_cases.json", "utf8"));
 
 async function open(page: Page, query = "") {
@@ -15,63 +15,44 @@ async function open(page: Page, query = "") {
   await expect(page.getByTestId("hero-title")).toBeVisible();
 }
 
-/** Serve the recording with another headline set in its final test, to see how the hero shows each case. */
-async function serveWithHeadlines(page: Page, headlines: unknown, accuracy?: Record<string, unknown>) {
-  const run = recorded();
+/** Serve a run whose final test carries another headline set, to see how the hero and the verdict show each case. */
+async function serveWithHeadlines(page: Page, headlines: unknown, tvMiss: number) {
+  const run = fixture();
   const step = run.events.find((e: { node: string }) => e.node === "final_test");
-  step.changes.final = { ...step.changes.final, headlines, ...(accuracy ? { accuracy } : {}) };
-  await page.route("**/recorded-run.json", (route) => route.fulfill({ json: run }));
+  const acc = step.changes.final.accuracy;
+  step.changes.final = { ...step.changes.final, headlines, accuracy: { ...acc, broadcaster: { ...acc.broadcaster, average_miss: tvMiss } } };
+  await page.route("**/api/run*", (route) =>
+    route.fulfill({ status: 200, headers: { "content-type": "text/event-stream" }, body: streamOf(run.events) }));
 }
 
-test("the hero reads, with nothing pressed: kicker, the server's headline, the lead and the two links", async ({ page }) => {
-  await open(page);
-  const headlines = finalOf().headlines;
-  await expect(page.getByTestId("hero-kicker")).toHaveText("AN AI AGENT EXPERIMENT");
-  await expect(page.getByTestId("hero-title")).toHaveText(headlines.hero_h1);
-  await expect(page.getByTestId("hero-lead")).toHaveText(headlines.lead);
-  await expect(page.getByTestId("link-watch")).toHaveText("Watch it work");
-  await expect(page.getByTestId("link-watch")).toHaveAttribute("href", "#watch");
-  await expect(page.getByTestId("link-try")).toHaveText("Try your own innings");
-  await expect(page.getByTestId("link-try")).toHaveAttribute("href", "#try");
-});
-
-test("the Scoreboard card shows the agent's and the TV's average miss, and the three facts, from the run's final test", async ({ page }) => {
-  await open(page);
-  const final = finalOf(), state = stateOf();
-  const kicker = `SCOREBOARD · ${state.split.test_year} SEASON, ${final.accuracy.broadcaster.n} UNSEEN INNINGS`;
-  await expect(page.getByTestId("scoreboard-kicker")).toHaveText(kicker);
-  await expect(page.getByTestId("scoreboard-agent")).toHaveText(final.accuracy.llm.average_miss.toFixed(1));
-  await expect(page.getByTestId("scoreboard-tv")).toHaveText(final.accuracy.broadcaster.average_miss.toFixed(1));
-  const facts = await page.getByTestId("scoreboard-facts").locator("li").allTextContents();
-  expect(facts).toEqual(final.headlines.scoreboard.facts.map((f: { text: string }) => f.text));
-  expect(facts[0]).toBe(state.rounds_used === 1 ? "1 try" : `${state.rounds_used} tries`);   // every proposal counts, rejected ones too
-  expect(facts[1]).toBe("0 numbers made up by the AI agent");
-});
-
-test("a line under the card says it is a recorded run, with the day and the model", async ({ page }) => {
-  await open(page);
-  const run = recorded();
-  const [y, m, d] = run.recorded_on.split("-").map(Number);
-  const month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][m - 1];
-  await expect(page.getByTestId("run-origin")).toHaveText(`From a recorded run on ${d} ${month} ${y} with ${run.model_name}. Run it live to see your own.`);
+test("after a run finishes, the strip at the foot of the goal card gives the result in the server's words and links to the verdict", async ({ page }) => {
+  await open(page, "?interval=40");
+  await expect(page.getByTestId("result-strip")).toHaveCount(0);
+  await finishRun(page);
+  const strip = page.getByTestId("result-strip");
+  await expect(strip).toBeVisible();
+  const state = Object.assign({}, ...fixture().events.map((e: { changes: object }) => e.changes));
+  const expected = state.final.headlines.result_strip;
+  await expect(strip).toContainText(`Result: ${expected.label}.`);
+  await expect(strip).toContainText(expected.text);
+  await expect(page.getByTestId("result-link")).toHaveAttribute("href", "#verdict");
+  await page.getByTestId("result-link").click();
+  await expect(page.getByTestId("verdict-title")).toBeInViewport();
 });
 
 for (const c of CASES) {
-  test(`the hero shows the server's words for: ${c.name}`, async ({ page }) => {
-    const base = finalOf().accuracy;
-    const accuracy = { ...base, broadcaster: { ...base.broadcaster, average_miss: c.expected.scoreboard.tv_miss } };
-    await serveWithHeadlines(page, c.expected, accuracy);
-    await open(page);
-    await expect(page.getByTestId("hero-title")).toHaveText(c.expected.hero_h1);
-    await expect(page.getByTestId("hero-lead")).toHaveText(c.expected.lead);
-    await expect(page.getByTestId("scoreboard-agent")).toHaveText(c.expected.scoreboard.subject_miss.toFixed(1));
-    await expect(page.getByTestId("scoreboard-tv")).toHaveText(c.expected.scoreboard.tv_miss.toFixed(1));
-    await expect(page.getByTestId("scoreboard-card")).toContainText(c.expected.scoreboard.subject_label);
-    expect(await page.getByTestId("scoreboard-facts").locator("li").allTextContents()).toEqual(c.expected.scoreboard.facts.map((f) => f.text));
+  test(`the strip and the verdict show the server's words for: ${c.name}`, async ({ page }) => {
+    await serveWithHeadlines(page, c.expected, c.expected.scoreboard.tv_miss);
+    await open(page, "?interval=40");
+    await finishRun(page);
+    await expect(page.getByTestId("result-strip")).toContainText(`Result: ${c.expected.result_strip.label}.`);
+    await expect(page.getByTestId("result-strip")).toContainText(c.expected.result_strip.text);
+    await expect(page.getByTestId("verdict-title")).toHaveText(c.expected.verdict_h2);
+    await expect(page.getByTestId("hero-title")).toHaveText("Can an AI agent build its own prediction model and beat the TV?");     // the question never changes
   });
 }
 
-test("the hero's Commentary is closed until Show me everything: the TV's accuracy, the goal and who does what", async ({ page }) => {
+test("the hero's Commentary is closed until Show me everything: the TV's accuracy, the unseen season and who does what", async ({ page }) => {
   await open(page);
   await expect(page.getByTestId("hero-commentary")).toBeHidden();
   await page.getByTestId("view-switch").click();
@@ -82,24 +63,18 @@ test("the hero's Commentary is closed until Show me everything: the TV's accurac
   await expect(page.getByTestId("tv-sentence")).toHaveText(ref.hero.panel);
   await expect(page.getByTestId("tv-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);
   await expect(page.getByTestId("tv-footnote")).toHaveText(ref.hero.footnote);
+  await expect(page.getByTestId("why-unseen")).toContainText(`${ref.test.year} stays locked until the agent has picked its model`);
   await expect(page.getByTestId("who-does-what")).toContainText("AI agent chooses the clues");
 });
 
-test("when the reference figures fail the Commentary says so and shows no number", async ({ page }) => {
+test("when the reference figures fail the page still asks the question, says so, and shows no number", async ({ page }) => {
   await page.route("**/api/reference", (route) => route.fulfill({ status: 500, body: "no" }));
   await open(page, "?view=everything");
+  await expect(page.getByTestId("hero-title")).toContainText("build its own prediction model and beat the TV?");
   await expect(page.getByTestId("hero-unavailable")).toHaveText("The accuracy figures could not be loaded.");
   await expect(page.getByTestId("tv-miss")).toHaveCount(0);
-  await expect(page.getByTestId("scoreboard-agent")).toBeVisible();                 // the run's own card is unaffected
-});
-
-test("without a recorded run the hero says so, claims no result and points to running it live", async ({ page }) => {
-  await page.route("**/recorded-run.json", (route) => route.fulfill({ status: 404, body: "" }));
-  await open(page);
-  await expect(page.getByTestId("hero-title")).toHaveText("Can an AI agent beat the TV projection?");
-  await expect(page.getByTestId("hero-missing")).toContainText("recorded run could not be loaded");
-  await expect(page.getByTestId("hero-missing")).toContainText("Run it live");
-  await expect(page.getByTestId("scoreboard-agent")).toHaveCount(0);
+  await expect(page.getByTestId("goal-tv-figure")).toHaveCount(0);
+  await expect(page.getByTestId("start-experiment")).toBeVisible();
 });
 
 test("the footer carries the credit line and the feedback line", async ({ page }) => {

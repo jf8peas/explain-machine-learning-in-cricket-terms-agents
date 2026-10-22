@@ -111,6 +111,13 @@
         }
       }
     },
+    "doing": {
+      "type": "object",
+      "description": "Optional (feature 022). A plain-words line for each node, saying what it is doing, keyed by node id.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "rows": {
       "type": "array",
       "description": "Optional (feature 020). The ordered display rows the graph is drawn in; each node names its row in `row`.",

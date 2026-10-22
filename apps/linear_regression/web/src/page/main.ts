@@ -1,40 +1,60 @@
-// The main page (app-specific): one scrolling page led by the agent. This file wires the sections together; each section has
-// its own module. The recorded run is loaded once and is what the page shows until a live run reaches its final test.
+// The main page (feature 022, app-specific): the reader states the goal, presses play, watches the graph and sees the result when their
+// run finishes. This file holds the page's one run state and wires the sections to it; each section has its own module. Nothing about
+// a run is stored: a reload starts idle.
 import "./legacy.css";
 import "./commentary.css";
 import "./simple.css";
 import "../graph-replay/graph-replay";
 import { setupHeader } from "../detail-level/site-header";
-import { loadRecorded } from "./recorded";
 import { resolveAnchor } from "./anchors";
-import { renderHero } from "./hero";
-import { setupScorebook } from "./scorebook";
+import { renderHero, type Hero } from "./hero";
+import { lockedCard, TRY_LOCKED } from "./locked";
 import { renderProblem } from "./problem";
+import { loadReference } from "./reference";
+import type { Reference } from "./reference-types";
+import { initialRunState, lock, resultStrip, type RunState } from "./run-state";
+import { setupScorebook } from "./scorebook";
 import { agentModel, setupTryIt } from "./tryit";
 import { renderVerdict } from "./verdict";
 import { setupWatch } from "./watch";
-import { loadReference } from "./reference";
-import type { Reference } from "./reference-types";
-import { currentRun, initialSource, type SourceState } from "./run-source";
 
 const section = (id: string) => document.getElementById(id) as HTMLElement;
 
 setupHeader();
 
-let source: SourceState = initialSource(null);
+let run: RunState = initialRunState();
 let reference: Reference | null = null;
+let hero: Hero | null = null;
 
-/** Draw everything that shows the results of the run now on the page. */
-const scorebook = setupScorebook(section("scorebook"), () => currentRun(source));
-const setTryModel = setupTryIt(document.querySelector("[data-testid=tryit]") as HTMLElement);
+const tryRoot = document.querySelector("[data-testid=tryit]") as HTMLElement;
+const setTryModel = setupTryIt(tryRoot);
+const tryLocked = lockedCard({ id: "try-locked", testid: "try-locked", title: TRY_LOCKED, link: { href: "#watch", label: "Go to the player" } });
+tryRoot.before(tryLocked);
 
-function showResults() {
-  const run = currentRun(source);
-  renderHero(section("hero"), run, reference);
-  renderProblem(section("problem"), reference);
-  renderVerdict(section("verdict"), run);
-  setTryModel(agentModel(run?.state ?? null));
-  scorebook.refresh();
+const scorebook = setupScorebook(section("scorebook"), () => run.last);
+const watch = setupWatch(section("watch"), { state: () => run, set });
+
+/** What the verdict section was last drawn from, so it is redrawn only when its content changes (a toggle the reader opened stays open). */
+let drawnVerdict: { last: unknown; key: string } | null = null;
+
+function set(next: RunState) {
+  run = next;
+  draw();
+}
+
+function draw() {
+  const locked = lock(run);
+  watch.render(run);
+  hero?.setStrip(resultStrip(run));
+  const key = locked.locked ? `${locked.variant}|${run.message ?? ""}` : "open";
+  if (!drawnVerdict || drawnVerdict.last !== run.last || drawnVerdict.key !== key) {
+    drawnVerdict = { last: run.last, key };
+    renderVerdict(section("verdict"), run, reference?.test?.year ?? null);
+  }
+  tryLocked.hidden = !locked.locked;
+  tryRoot.hidden = locked.locked;
+  setTryModel(agentModel(run.last?.state ?? null));
+  scorebook.setLocked(locked.locked);
 }
 
 /** Old links (#working, #found, #final-test, #try-your-own, #data) land on their new places; #data opens the data panel. */
@@ -47,19 +67,13 @@ function followAnchor() {
 }
 window.addEventListener("hashchange", followAnchor);
 
-const watch = setupWatch(section("watch"), {
-  source: () => source,
-  update(next) {
-    const before = currentRun(source);
-    source = next;
-    if (currentRun(source) !== before) showResults();
-  },
-});
+draw();
 
-void Promise.all([loadRecorded(), loadReference()]).then(([recorded, ref]) => {
+void loadReference().then((ref) => {
   reference = ref;
-  source = initialSource(recorded && { kind: "recorded", modelName: recorded.modelName, recordedOn: recorded.recordedOn, events: recorded.events, state: recorded.state });
-  showResults();
-  watch.setRecorded(currentRun(source));
+  hero = renderHero(section("hero"), ref, () => watch.focusPicker());
+  renderProblem(section("problem"), ref);
+  drawnVerdict = null;
+  draw();
   followAnchor();
 });

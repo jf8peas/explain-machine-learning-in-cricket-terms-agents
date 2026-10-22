@@ -52,6 +52,12 @@ export function plainWords(text: string): string {
     .replace(/\bvalidation\b/gi, swap("check seasons"));
 }
 
+/** The feed's one line keeps the point of a repeat's reason: "That idea was already tried: the same clues, window, weighting and training
+ *  innings." reads as "That idea was already tried." (the full reason is the server's, shown in the graph's event panel). */
+export function shortReason(text: string): string {
+  return text.replace(/: the same (?:clues|features), window, weighting and training innings\.$/, ".");
+}
+
 function statusOf(r: RoundView): { status: FeedStatus; text: string } {
   switch (r.kind) {
     case "fitted": {
@@ -59,7 +65,7 @@ function statusOf(r: RoundView): { status: FeedStatus; text: string } {
       return { status, text: STATUS_WORDS[status] };
     }
     case "pending": return { status: "scoring", text: STATUS_WORDS.scoring };
-    case "rejected": return { status: "rejected", text: `code rejected: ${plainWords(r.message)}` };
+    case "rejected": return { status: "rejected", text: `code rejected: ${shortReason(plainWords(r.message))}` };
     case "finished": return { status: "finished", text: STATUS_WORDS.finished };
     default: return { status: "failed", text: `stopped: ${plainWords(r.message)}` };
   }

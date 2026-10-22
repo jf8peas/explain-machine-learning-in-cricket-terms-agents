@@ -114,3 +114,20 @@ def build_hero(figures: Mapping[str, Mapping[str, Any]], training: Mapping[str, 
         "footnote": footnote(training["first_year"], training["last_year"], training["innings"]),
         "chart_text": chart_text(example, tv["average_miss"], average_total) if example else None,
     }
+
+
+def goal_card(margin_runs: float, tv_miss: float | None = None, training: Mapping[str, int] | None = None,
+              test: Mapping[str, int] | None = None) -> dict[str, Any]:
+    """The words of the goal card on the main page's hero (feature 022). The kicker and the goal sentence always; the TV's usual
+    miss on past innings (with the years it was worked out on), the target and the "Judged on" line when the figures are known."""
+    shown = int(margin_runs) if float(margin_runs).is_integer() else margin_runs
+    card: dict[str, Any] = {"kicker": "THE GOAL",
+                            "sentence": f"Beat the TV's projection by at least {shown} runs on average."}
+    if tv_miss is not None and training:
+        card["tv"] = {"miss": tv_miss, "label": f"runs: how far out the TV usually is, on past innings "
+                                                f"({training['first_year']}–{training['last_year']})"}
+        card["target"] = {"runs": f"{shown}+", "label": "runs closer: what the agent must do"}
+    if test:
+        card["judged"] = (f"Judged on {test['innings']:,} innings from {test['year']}, a season the agent never sees "
+                          "while it works.")
+    return card

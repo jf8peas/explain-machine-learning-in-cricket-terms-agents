@@ -173,3 +173,74 @@
 .on-dark .lead { color: var(--band-muted); }
 .card .pill-link { background: var(--bg); }
 .vcard .exam-card { background: var(--bg); }
+
+/* ---- feature 022: goal first ---- */
+/* the hero: the goal card (kicker, sentence, two figures, the line about the unseen season) and the result strip at its foot */
+.goal-card { padding: 16px; border: 1px solid var(--band-line); border-radius: 14px; background: rgba(255, 255, 255, .06); }
+.goal-kicker { margin: 0; font-size: .6875rem; font-weight: 700; letter-spacing: .08em; color: var(--band-muted); }
+.goal-sentence { margin: 6px 0 10px; font-size: 1.25rem; line-height: 1.3; font-weight: 700; }
+.goal-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 8px 0; }
+.goal-figure { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.goal-figure .num { font-size: 2.25rem; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+.goal-figure:last-child .num { color: #7ee2a8; }
+.goal-figure .what { font-size: .8125rem; color: var(--band-muted); overflow-wrap: anywhere; }
+.goal-judged { margin: 8px 0 0; font-size: .875rem; color: var(--band-muted); }
+.result-strip { margin: 12px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(126, 226, 168, .14); border: 1px solid #7ee2a8; font-size: .9375rem; }
+.result-strip a { color: var(--band-accent); }
+.hero-links .btn.start { min-height: 48px; }
+@media (min-width: 760px) {
+  .hero-inner > .goal-card { grid-column: 2; grid-row: 1 / span 5; }
+}
+/* the player: the picker, the buttons, the lines under them */
+.player-controls { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(80, 90, 220, .08); border: 1px solid rgba(80, 90, 220, .45); }
+.player-controls .field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; }
+.player-controls select { font: inherit; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); max-width: 100%; }
+.player-controls .model-note { margin: 0; font-size: .875rem; }
+.player-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.player-actions .btn { min-height: 48px; }
+.player-actions .btn:disabled { opacity: .55; cursor: default; }
+.run-line { margin: 0; font-size: .8125rem; color: var(--muted); }
+.player-status { margin: 0; font-weight: 600; min-height: 1.5em; }
+.run-message { margin: 0; color: var(--lose); font-weight: 600; }
+.run-message:empty { display: none; }
+/* what makes it an agent, and its legend */
+.agent-question { margin: 16px 0 4px; font-size: 1.0625rem; }
+.agent-legend { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin: 6px 0 10px; font-size: .8125rem; color: var(--muted); }
+.agent-legend .lg { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--border); color: var(--text); }
+.agent-legend .lg-ai { background: rgba(122, 63, 192, .12); border: 2px dashed #7a3fc0; }
+.agent-legend .lg-done { background: var(--win-bg); border-color: var(--win); }
+.agent-legend .lg-now { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent); }
+/* the graph, with the Right now card beside it (below it on a phone) */
+.run-stage { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
+@media (min-width: 900px) { .run-stage { grid-template-columns: minmax(0, 1.6fr) minmax(220px, 1fr); align-items: start; } }
+.right-now { padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.right-now h3 { margin: 0 0 6px; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.right-now dl { margin: 0; display: grid; gap: 4px; }
+.rn-row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 8px; }
+.rn-row dt { color: var(--muted); font-size: .875rem; }
+.rn-row dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.rn-stopped { margin: 8px 0 0; padding: 6px 8px; border-radius: 6px; border: 2px solid var(--lose); color: var(--lose); font-weight: 700; }
+.see-result { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+/* a locked card: dashed, with a lock */
+.locked-card { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border: 2px dashed var(--border); border-radius: 14px; background: var(--surface); }
+.locked-card .lock-icon { font-size: 1.5rem; line-height: 1; }
+.locked-card .locked-title { margin: 0; font-size: 1.125rem; font-weight: 700; }
+.locked-card .locked-body { margin: 4px 0 8px; }
+.try-card .locked-card { background: rgba(255, 255, 255, .06); border-color: var(--band-line); }
+.try-card .locked-card .muted { color: var(--band-muted); }
+/* the Scorebook cards that need a run */
+.sb-card[data-locked] { opacity: .65; cursor: default; border-style: dashed; }
+/* on a phone the button comes straight after the goal card, so the question, the goal and the button share the first screen */
+@media (max-width: 759px) {
+  .hero-inner > .hero-lead { order: 1; }
+  .hero-inner > .commentary { order: 2; }
+}
+
+.btn[hidden], .see-result[hidden] { display: none; }
+.locked-card[hidden] { display: none; }
+body[data-view="everything"] .run-stage { grid-template-columns: minmax(0, 1fr); }   /* the legend and the panels need the width: Right now goes below */
+.player-controls .btn.outlined { color: var(--text); }
+
+/* the simple view keeps its words few: the Scorebook cards' one-line descriptions are read out but not shown (unless one says the card is locked), and the loop strip,
+   which the agent explanation and the graph repeat, comes with Show me everything */
+body[data-view="simple"] .loop-strip { display: none; }

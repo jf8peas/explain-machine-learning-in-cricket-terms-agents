@@ -201,3 +201,15 @@ MISS_CASES = json.loads((Path(__file__).parent.parent / "web" / "tests" / "fixtu
 @pytest.mark.parametrize("case", MISS_CASES, ids=lambda c: f"{c['actual']}v{c['tv']}")
 def test_miss_words_matches_the_shared_cases_the_page_is_tested_on(case):
     assert hero_text.miss_words(case["actual"], case["tv"]) == case["words"]
+
+
+def test_the_goal_card_without_figures_is_the_kicker_and_the_goal_sentence_only():
+    assert hero_text.goal_card(3) == {"kicker": "THE GOAL", "sentence": "Beat the TV's projection by at least 3 runs on average."}
+    assert hero_text.goal_card(2.5)["sentence"].endswith("at least 2.5 runs on average.")
+
+
+def test_the_goal_card_with_figures_names_the_years_and_the_test_season():
+    card = hero_text.goal_card(3, 22.5, {"first_year": 2005, "last_year": 2022}, {"year": 2026, "innings": 1234})
+    assert card["tv"]["label"] == "runs: how far out the TV usually is, on past innings (2005–2022)" and card["tv"]["miss"] == 22.5
+    assert card["target"]["runs"] == "3+"
+    assert card["judged"] == "Judged on 1,234 innings from 2026, a season the agent never sees while it works."

@@ -40,7 +40,7 @@ def independent(path=DEFAULT_PATH):
 def test_the_response_has_the_goal_the_four_methods_the_training_years_and_both_references():
     body = client.get("/api/reference").json()
     assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message",
-                         "average_total", "example", "hero", "terms", "definitions", "banned", "terms_version"}
+                         "average_total", "example", "hero", "goal_card", "test", "terms", "definitions", "banned", "terms_version"}
     assert body["goal"] == goal()
     assert body["methods"] == method_defs()
     assert set(body["figures"]) == {"know_nothing", "broadcaster"}
@@ -121,6 +121,8 @@ def test_when_the_data_cannot_be_read_the_goal_and_methods_are_still_sent(tmp_pa
         assert body[key] is None
     assert "could not be loaded" in body["message"]
     assert len(body["terms"]) == 10 and body["definitions"]["brute_force"] and body["banned"] and body["terms_version"]
+    assert body["goal_card"] == {"kicker": "THE GOAL", "sentence": "Beat the TV's projection by at least 3 runs on average."}
+    assert body["test"] is None
 
 
 def test_the_result_is_worked_out_once_but_a_failure_is_tried_again(monkeypatch):
@@ -224,3 +226,15 @@ def test_a_missing_overs_file_gives_no_example_but_keeps_the_rest(tmp_path, capl
     assert body["example"] is None and body["hero"]["caption"] is None and body["hero"]["chart_text"] is None
     assert body["figures"] and body["hero"]["panel"] and body["hero"]["footnote"] and body["average_total"]
     assert "example innings" in caplog.text
+
+
+def test_the_goal_card_has_the_tvs_miss_with_its_years_the_target_and_the_judged_line():
+    body = client.get("/api/reference").json()
+    card, tv, training = body["goal_card"], body["figures"]["broadcaster"], body["training"]
+    assert card["kicker"] == "THE GOAL" and card["sentence"] == "Beat the TV's projection by at least 3 runs on average."
+    assert card["tv"] == {"miss": tv["average_miss"],
+                          "label": f"runs: how far out the TV usually is, on past innings ({training['first_year']}–{training['last_year']})"}
+    assert card["target"] == {"runs": "3+", "label": "runs closer: what the agent must do"}
+    assert body["test"]["year"] == training["last_year"] + 4 and body["test"]["innings"] > 100
+    assert card["judged"] == (f"Judged on {body['test']['innings']:,} innings from {body['test']['year']}, "
+                              "a season the agent never sees while it works.")

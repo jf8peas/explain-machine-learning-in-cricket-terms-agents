@@ -47,5 +47,9 @@ export interface Reference extends TermsPayload {
   average_total: number | null;
   example: Example | null;
   hero: HeroText | null;
+  /** The goal card's words (feature 022): the kicker and sentence always, the figures and the "Judged on" line when known. */
+  goal_card?: { kicker: string; sentence: string; tv?: { miss: number; label: string }; target?: { runs: string; label: string }; judged?: string };
+  /** The test season's year and its number of innings (counts only), or null when the data could not be read. */
+  test?: { year: number; innings: number } | null;
   message: string | null;
 }

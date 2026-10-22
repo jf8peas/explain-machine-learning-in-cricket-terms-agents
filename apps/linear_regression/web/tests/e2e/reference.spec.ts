@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { runToEnd } from "./helpers";
 
 // How good the references are and the goal's wording (the hero's own tests are in hero.spec.ts). Every figure on the page is
 // compared with what the server sent, never with a number typed in here.
@@ -14,7 +15,7 @@ interface Reference {
 const reference = async (page: Page) => (await (await page.request.get("/api/reference")).json()) as Reference;
 
 test("the pick's verdict reads in the goal's words, with the runs, and says whether the goal was reached", async ({ page }) => {
-  await page.goto("/?view=everything");
+  await runToEnd(page, "?view=everything&interval=40");
   const ref = await reference(page);
   const verdict = page.getByTestId("pick-verdict");
   await expect(verdict).toContainText(/reaches the goal|short of the goal|did not beat/);
@@ -22,9 +23,10 @@ test("the pick's verdict reads in the goal's words, with the runs, and says whet
 });
 
 test("the goal's margin in the hero's panel is the server's, and the pick's verdict names the same margin", async ({ page }) => {
-  await page.goto("/?view=everything");
+  await runToEnd(page, "?view=everything&interval=40");
   const ref = await reference(page);
   await expect(page.getByTestId("tv-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);
+  await expect(page.getByTestId("goal-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);
   await expect(page.getByTestId("pick-verdict")).toContainText(`at least ${ref.goal.margin_runs} runs`);
 });
 

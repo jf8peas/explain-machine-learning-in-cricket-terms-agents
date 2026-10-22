@@ -14,4 +14,6 @@ export interface Structure {
   nodes: StructureNode[]; edges: StructureEdge[];
   /** Optional: the ordered display rows, the stage set, the loop to emphasise, app notes and display-only items. */
   rows?: RowDef[]; stages?: StageDef[]; loop?: Loop; notes?: Notes; items?: StructureItem[];
+  /** Optional: a plain-words line for each node saying what it is doing, keyed by node id (the app's words). */
+  doing?: Record<string, string>;
 }

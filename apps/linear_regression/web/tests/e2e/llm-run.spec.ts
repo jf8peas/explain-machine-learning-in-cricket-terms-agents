@@ -1,5 +1,5 @@
 // The language-model run, against the scripted fake model: what the visitor sees in the round feed and the graph, and how a live
-// run behaves when the model is chosen, slow, refused, unreliable or wrong. (The panel itself is in live-panel.spec.ts.)
+// run behaves when the model is chosen, slow, refused, unreliable or wrong. (The controls themselves are in player.spec.ts.)
 import { expect, test, type Page } from "./fixtures";
 import { open, playToEnd, timelineItems } from "./helpers";
 
@@ -10,16 +10,23 @@ const FIRST_REASON = "Runs at the halfway mark is the obvious place to start for
 
 const select = (page: Page) => page.getByTestId("model-select");
 const rows = (page: Page) => page.getByTestId("round-item");
-const start = (page: Page) => page.getByTestId("live-start");
-const watchLabel = (page: Page) => page.getByTestId("watch-button");
+const start = (page: Page) => page.getByTestId("play-button");
+const status = (page: Page) => page.getByTestId("player-status");
 
-/** Choose a model in the live panel (open with everything) and start a live run. */
+/** The page, loaded, with nothing run yet (everything open, a fast replay pace). */
+async function load(page: Page, interval = 40) {
+  await page.goto(`/?interval=${interval}&view=everything`);
+  await expect(select(page)).toBeVisible();
+  await expect(page.locator("graph-replay [data-node]").first()).toBeVisible();
+}
+
+/** Choose an AI (if one is named) and press Play. */
 async function startLive(page: Page, model?: string) {
   if (model) await select(page).selectOption({ label: model });
   await start(page).click();
 }
 const liveDone = async (page: Page) => {
-  await expect(watchLabel(page)).toHaveText("▶ Watch your run again", { timeout: 60_000 });
+  await expect(status(page)).toHaveText(/^Finished with/, { timeout: 90_000 });
   await expect(start(page)).toBeEnabled();
 };
 
@@ -62,39 +69,37 @@ test("the agent finishing is a round of its own, and the best idea is named", as
   await expect(page.getByTestId("best-idea")).toContainText("Best idea:");
 });
 
-// --- choosing the language model for a live run ---
+// --- choosing the AI for a live run ---
 
 test("a live run with the default model says which model ran, and the round feed follows it", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page);
   await liveDone(page);
-  await expect(page.getByTestId("run-origin")).toHaveText("From your live run with Fast.");
-  await expect(page.getByTestId("run-label")).toHaveText("Your live run · Fast");
+  await expect(status(page)).toHaveText(/^Finished with Fast · /);
   await expect(rows(page)).toHaveCount(5);                              // three fitted rounds, one rejected repeat and the finish
 });
 
 test("choosing another model changes the run and the page says so", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page, "Quick");
   await liveDone(page);
-  await expect(page.getByTestId("run-label")).toHaveText("Your live run · Quick");
+  await expect(status(page)).toHaveText(/^Finished with Quick · /);
   await expect(rows(page)).toHaveCount(2);                              // two rounds: the quick model finishes early
 });
 
-test("changing the model while a run is going does not affect that run", async ({ page }) => {
-  await open(page, 100);
+test("the choice cannot be changed while a run is going, so it cannot affect that run", async ({ page }) => {
+  await load(page, 100);
   await select(page).selectOption({ label: "Thorough" });                // the slow scripted model
   await start(page).click();
-  await expect(start(page)).toBeDisabled();
-  await select(page).selectOption({ label: "Quick" });                   // too late for this run
+  await expect(select(page)).toBeDisabled();
   await liveDone(page);
-  await expect(page.getByTestId("run-label")).toHaveText("Your live run · Thorough");
+  await expect(status(page)).toHaveText(/^Finished with Thorough · /);
   await expect(rows(page)).toHaveCount(5);
-  await expect(select(page)).toHaveValue(await select(page).locator("option", { hasText: "Quick" }).getAttribute("value") as string);
+  await expect(select(page)).toBeEnabled();
 });
 
 test("the model's reason is shown as plain text, never as markup", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page, "Markup");
   await liveDone(page);
   const reason = page.getByTestId("model-reason").first();
@@ -106,56 +111,61 @@ test("the model's reason is shown as plain text, never as markup", async ({ page
 });
 
 test("a model the server no longer lists is refused with a clear message and the default is selected again", async ({ page }) => {
-  await open(page);
+  await load(page);
   await select(page).selectOption({ label: "Quick" });
   await page.route("**/api/run?model=m2", (route) => route.fulfill({
     status: 400, contentType: "application/json",
-    body: JSON.stringify({ reason: "model_not_allowed", message: "That model is no longer available. The default model has been selected for you; press Start live run again to use it." }),
+    body: JSON.stringify({ reason: "model_not_allowed", message: "That model is no longer available. The default model has been selected for you; press Play again to use it." }),
   }));
   await start(page).click();
-  await expect(page.getByTestId("live-message")).toContainText("no longer available");
+  await expect(page.getByTestId("run-message")).toContainText("no longer available");
   await expect.poll(async () => select(page).evaluate((el) => (el as HTMLSelectElement).selectedOptions[0].textContent)).toContain("Fast");
   await expect(start(page)).toBeEnabled();
+  await expect(start(page)).toHaveText("▶ Play");
   await page.unroute("**/api/run?model=m2");
-  await startLive(page);                                                   // and Start now works with the default
+  await startLive(page);                                                   // and Play now works with the default
   await liveDone(page);
-  await expect(page.getByTestId("run-label")).toHaveText("Your live run · Fast");
+  await expect(status(page)).toHaveText(/^Finished with Fast · /);
 });
 
 // --- one run at a time, and the limits ---
 
-test("Start is disabled while a run is in progress and comes back when it ends", async ({ page }) => {
-  await open(page, 100);
+test("Play is disabled while a run is in progress and comes back when it ends", async ({ page }) => {
+  await load(page, 100);
   await startLive(page, "Thorough");
   await expect(start(page)).toBeDisabled();
+  await expect(start(page)).toHaveText("Running…");
   await liveDone(page);
   await expect(start(page)).toBeEnabled();
-  await expect(page.getByTestId("run-label")).toContainText("Thorough");
+  await expect(start(page)).toHaveText("▶ Run again");
 });
 
 test("a refused start shows the gate's message and keeps the earlier results", async ({ page }) => {
-  test.setTimeout(180_000);                                               // five or six whole runs: slow when the suite shares one server
-  await open(page);
-  await playToEnd(page);
+  test.setTimeout(180_000);                                               // five whole runs: slow when the suite shares one server
+  await load(page);
+  await startLive(page);
+  await liveDone(page);
   const before = await rows(page).count();
   expect(before).toBeGreaterThan(3);
-  for (let i = 0; i < 5; i++) expect((await page.request.get("/api/run")).status()).toBe(200);   // the five allowed an hour
+  for (let i = 0; i < 4; i++) expect((await page.request.get("/api/run")).status()).toBe(200);   // with this one, the five allowed an hour
   await start(page).click();                                              // the sixth start
-  await expect(page.getByTestId("live-message")).toContainText("You can start another run", { timeout: 15_000 });
-  await expect(page.getByTestId("live-message")).toContainText("minute");
+  await expect(page.getByTestId("run-message")).toContainText("You can start another run", { timeout: 15_000 });
+  await expect(page.getByTestId("run-message")).toContainText("minute");
+  await expect(page.getByTestId("run-message")).toHaveAttribute("role", "alert");
   await expect(start(page)).toBeEnabled();
   expect(await rows(page).count()).toBe(before);                          // the earlier results are untouched
-  await expect(page.getByTestId("run-label")).toContainText("Recorded");
+  await expect(page.getByTestId("verdict-bars")).toBeVisible();
+  await expect(status(page)).toHaveText(/^Finished with Fast · /);
 });
 
 test("the limit is per visitor: another visitor can still run", async ({ page, browser }) => {
   test.setTimeout(180_000);
-  await open(page);
+  await load(page);
   for (let i = 0; i < 5; i++) expect((await page.request.get("/api/run")).status()).toBe(200);
   expect((await page.request.get("/api/run")).status()).toBe(429);
   const other = await browser.newContext({ extraHTTPHeaders: { "X-Forwarded-For": "198.51.100.200" } });
   const p2 = await other.newPage();
-  await open(p2);
+  await load(p2);
   await startLive(p2);
   await liveDone(p2);
   await other.close();
@@ -164,22 +174,23 @@ test("the limit is per visitor: another visitor can still run", async ({ page, b
 // --- when the model misbehaves ---
 
 test("an unreliable model: a clear notice, the search still completes, and the page says so", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page, "Unreliable");
   await liveDone(page);
   await expect(page.getByTestId("llm-notice")).toContainText("did not take part");
   await expect(page.getByTestId("llm-notice")).toContainText("provider");     // the reason, in plain words
+  await expect(status(page)).toHaveText(/^Finished with the brute-force search alone/);
+  await openPathOf(page);
   await timelineItems(page).nth(FIRST_PROPOSE).click();
   await expect(page.getByTestId("event-actor")).toHaveText("language model step");
   await expect(page.getByTestId("event-summary")).toContainText("could not take part");
-  await expect(page.getByTestId("hero-title")).toHaveText("The AI agent couldn't run, so the brute-force search ran alone.");
+  await expect(page.getByTestId("result-strip")).toContainText("Result: search only.");
   await expect(page.getByTestId("verdict-bar").first()).toContainText("not run");
-  await expect(page.getByTestId("run-label")).toHaveText("Your live run · Unreliable");
   await expect(page.getByTestId("tryit-model-label")).toHaveText("Predicting with the brute-force search's model.");
 });
 
 test("a model that times out is explained in plain words", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page, "Sluggish");
   await liveDone(page);
   await expect(page.getByTestId("llm-notice")).toContainText("did not reply in time");
@@ -187,11 +198,16 @@ test("a model that times out is explained in plain words", async ({ page }) => {
 });
 
 test("the unreliable model's run can be followed by a normal one", async ({ page }) => {
-  await open(page);
+  await load(page);
   await startLive(page, "Unreliable");
   await liveDone(page);
   await startLive(page, "Fast (default)");
-  await expect(page.getByTestId("run-origin")).toHaveText("From your live run with Fast.", { timeout: 60_000 });
+  await expect(status(page)).toHaveText(/^Finished with Fast · /, { timeout: 90_000 });
   await expect(page.getByTestId("llm-notice")).toBeHidden();                  // the new run replaced the old one
-  await expect(page.getByTestId("hero-title")).toHaveText(/AI agent built its own prediction model/);
+  await expect(page.getByTestId("result-strip")).not.toContainText("search only");
 });
+
+/** The graph's "Path taken" list is closed until asked for. */
+async function openPathOf(page: Page) {
+  await page.locator("graph-replay [data-testid=path] > summary").click();
+}

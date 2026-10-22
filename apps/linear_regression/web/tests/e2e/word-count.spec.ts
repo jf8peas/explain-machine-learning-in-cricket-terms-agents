@@ -1,6 +1,7 @@
-// The size of the pages (feature 020, FR-015, SC-002): few words in the simple view, a bounded number with everything open. The text
-// counted is what a visitor can see inside <main> on a 390 px screen (LinkedIn's in-app browser), with the recorded run played to its
-// end, the Scorebook closed, and the agent's quoted reasoning left out (it is the agent's own words, whatever their length).
+// The size of the pages (features 020 and 022, FR-015/FR-020, SC-002/SC-006): few words in the simple view, a bounded number with everything
+// open, before a run and after a fake-model run. The text counted is what a visitor can see inside <main> on a 390 px screen (LinkedIn's
+// in-app browser) with the Scorebook closed. Left out of the count: the agent's quoted reasoning (its own words, whatever their length) and
+// the graph's diagram labels (node names, badges, row notes), which are not prose.
 import { expect, test, type Page } from "./fixtures";
 import { finishRun, visibleMainText, wordCount } from "./helpers";
 
@@ -9,9 +10,12 @@ test.use({ viewport: { width: 390, height: 844 } });
 const MAIN = { simple: 500, everything: 1200 };
 const BUILT = { simple: 500, everything: 1200 };
 
-async function mainText(page: Page, everything: boolean) {
+/** The main page's text, before a run or after a fake-model run has finished. */
+async function mainText(page: Page, everything: boolean, afterRun: boolean) {
   await page.goto(`/?interval=40${everything ? "&view=everything" : ""}`);
-  await finishRun(page);
+  await expect(page.getByTestId("hero-title")).toBeVisible();
+  if (afterRun) await finishRun(page);
+  else await expect(page.getByTestId("player-status")).toHaveText("Ready. Choose the AI and press play.");
   return visibleMainText(page);
 }
 async function builtText(page: Page, everything: boolean) {
@@ -21,21 +25,24 @@ async function builtText(page: Page, everything: boolean) {
   return visibleMainText(page);
 }
 
-test("the main page in the simple view has at most 500 words", async ({ page }) => {
-  const words = wordCount(await mainText(page, false));
-  console.info(`WORDS main simple ${words}`);
-  expect(words).toBeGreaterThan(200);                       // it is measuring the page, not an empty one
-  expect(words).toBeLessThanOrEqual(MAIN.simple);
-});
+for (const afterRun of [false, true]) {
+  const when = afterRun ? "after a fake-model run" : "before a run";
+  test(`the main page in the simple view has at most 500 words ${when}`, async ({ page }) => {
+    const words = wordCount(await mainText(page, false, afterRun));
+    console.info(`WORDS main simple ${when} ${words}`);
+    expect(words).toBeGreaterThan(150);                      // it is measuring the page, not an empty one
+    expect(words).toBeLessThanOrEqual(MAIN.simple);
+  });
 
-test("the main page with Show me everything has at most 1,200 words, the Scorebook closed", async ({ page }) => {
-  const simple = wordCount(await mainText(page, false));
-  const words = wordCount(await mainText(page, true));
-  console.info(`WORDS main everything ${words}`);
-  await expect(page.getByTestId("scorebook-panel")).toBeHidden();
-  expect(words).toBeGreaterThan(simple);
-  expect(words).toBeLessThanOrEqual(MAIN.everything);
-});
+  test(`the main page with Show me everything has at most 1,200 words ${when}, the Scorebook closed`, async ({ page }) => {
+    const simple = wordCount(await mainText(page, false, afterRun));
+    const words = wordCount(await mainText(page, true, afterRun));
+    console.info(`WORDS main everything ${when} ${words}`);
+    await expect(page.getByTestId("scorebook-panel")).toBeHidden();
+    expect(words).toBeGreaterThan(simple);
+    expect(words).toBeLessThanOrEqual(MAIN.everything);
+  });
+}
 
 test("How this app was built in the simple view has at most 500 words", async ({ page }) => {
   const words = wordCount(await builtText(page, false));
@@ -59,16 +66,16 @@ test("the agent's quoted reasoning is left out of the count, and nothing else is
   const reasoning = await page.getByTestId("model-reason").first().textContent();
   expect(reasoning!.length).toBeGreaterThan(20);
   expect(text).not.toContain(reasoning!.trim().slice(0, 30));
-  expect(text).toContain("Each round, the agent proposes an idea.");
+  expect(text).toContain("Choose the AI, press play, and watch it work.");
 });
 
 test("the simple view uses the plain words, and keeps the technical terms for Commentary and the Scorebook", async ({ page }) => {
-  for (const text of [await mainText(page, false), await builtText(page, false)]) {
+  for (const text of [await mainText(page, false, true), await builtText(page, false)]) {
     for (const term of [/\bfeatures?\b/i, /\bvalidation\b/i, /candidate model/i, /forward selection/i, /know-nothing/i, /cross-validation/i]) {
       expect(text, `${term} is a technical term`).not.toMatch(term);
     }
   }
-  const plain = await mainText(page, false);
+  const plain = await mainText(page, false, true);
   expect(plain).toMatch(/check seasons/);
   expect(plain).toMatch(/Brute-force search/);
   expect(plain).toMatch(/Average-total guess/);

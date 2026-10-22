@@ -22,7 +22,7 @@ class Check:
     features: list[str]            # the features the outcome is about (the set to fit, or the offending ones)
 
 
-# The one wording of a repeated proposal (the recorded run is reworded from it).
+# The one wording of a repeated proposal.
 ALREADY_TRIED = "That idea was already tried: the same features, window, weighting and training innings."
 
 

@@ -153,3 +153,23 @@ def test_with_the_data_unreadable_there_is_no_general_note_at_all(tmp_path):
     assert "general" not in structure_extras(data_path=bad)["notes"]
     assert "general" not in structure_extras(data_path=tmp_path / "nope.csv")["notes"]
     assert "stages" in structure_extras(data_path=bad)["notes"]            # the stage notes do not depend on the data
+
+
+# ---- what each node is doing (feature 022) ----
+
+def test_every_node_of_the_graph_has_a_doing_line_and_none_uses_a_banned_name():
+    from linreg import methods
+    from linreg.graph import NODE_STAGES
+    doing = structure_extras()["doing"]
+    assert set(doing) == set(NODE_STAGES)                                   # one line for every node, no extra
+    for node, line in doing.items():
+        assert line.strip() and methods.banned_in(line) == [], (node, line)
+
+
+def test_the_final_test_line_names_the_test_year_from_the_data_and_falls_back_without_it():
+    from linreg import wording
+    from linreg.season_split import rolling_checks
+    from linreg.data_loading import load_innings
+    year = rolling_checks(load_innings(None, required=["match_date", "in_test_population"])).test_year
+    assert structure_extras()["doing"]["final_test"] == f"Unlocking {year} and scoring once"
+    assert wording.doing_lines(None)["final_test"] == "Unlocking the test season and scoring once"

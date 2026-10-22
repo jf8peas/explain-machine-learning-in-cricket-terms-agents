@@ -23,8 +23,8 @@ export interface BarView {
   widthPct: number;
 }
 
-export function barViews(accuracy: Record<string, { average_miss: number }> | undefined): BarView[] {
-  const order = barOrder();
+export function barViews(accuracy: Record<string, { average_miss: number }> | undefined, modelName?: string): BarView[] {
+  const order = barOrder().map((b) => (b.id === "llm" && modelName ? { ...b, label: `${b.label} (${modelName})` } : b));
   const misses = order.map((b) => accuracy?.[b.id]?.average_miss ?? null);
   const longest = Math.max(...misses.filter((m): m is number => m !== null), 0);
   return order.map((b, i) => {

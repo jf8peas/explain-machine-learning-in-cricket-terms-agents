@@ -101,6 +101,9 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 .node.active { background: var(--gr-accent-soft); border-color: var(--gr-accent); box-shadow: 0 0 0 3px var(--gr-accent); }
 .node.actor-llm { background: var(--gr-llm-bg); border: 2.2px dashed var(--gr-llm); }
 .node.actor-llm.active { border-style: solid; }
+/* a node that was working when the run stopped part-way: a different border and a mark as well as a colour */
+.node.failed { background: var(--gr-bg); border: 2.2px solid var(--gr-error); box-shadow: 0 0 0 3px var(--gr-error); }
+.node.failed .node-name::after { content: " ¹5"; color: var(--gr-error); font-weight: 700; }
 .actor-tag { padding: 0 6px; border-radius: 999px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; background: var(--gr-llm); color: var(--gr-stage-text); }
 .actor-pill { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--gr-llm); color: var(--gr-stage-text); }
 .actor-pill.code { background: var(--gr-surface); color: var(--gr-muted); border: 1px solid var(--gr-border); }
@@ -160,6 +163,14 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 :host([view="structure"]) .side { display: none; }
 :host([view="structure"]) .wrap { border: 0; padding: 0; background: none; }
 :host([view="structure"]) .legend-note { display: none; }
+/* the main page's run view: the rows, and the legend when it is not hidden; the run controls, the event and state panels and the path
+   come back when the page removes the compact attribute (Show me everything, after a run) */
+:host([compact]) .toolbar, :host([compact]) .status, :host([compact]) .path,
+:host([compact]) .event-panel, :host([compact]) .state-panel { display: none; }
+:host([compact]) .wrap { border: 0; padding: 0; background: none; }
+/* with the legend and the side panels away the rows have the whole width */
+:host([compact][hide-legend]) .main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "rows" "side"; }
+:host([hide-legend]) .legend { display: none; }
 /* on a phone every control is at least 44 px tall (last, so it wins against the sizes above) */
 @media (max-width: 760px) {
   button, select, .timeline button, .legend-stage, .item-node, .raw > summary, .path > summary, .stage-line-note-box > summary { min-height: 44px; }

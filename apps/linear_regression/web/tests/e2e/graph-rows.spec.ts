@@ -88,6 +88,8 @@ test("a language-model step has a dashed outline and an AI tag; code steps have 
 test("the step the replay has reached has a 3 px ring, and only one step has it", async ({ page }) => {
   await open(page, 60);
   await playToEnd(page);
+  await expect(page.locator(".node.active")).toHaveCount(0);                  // the run is over: nothing is working
+  await page.locator("graph-replay [data-testid=back]").click();              // step back into the finished run: that step is the one on show
   await expect(page.locator(".node.active")).toHaveCount(1);
   const ring = await page.locator(".node.active").evaluate((el) => getComputedStyle(el).boxShadow);
   expect(ring).toMatch(/0px 0px 0px 3px/);

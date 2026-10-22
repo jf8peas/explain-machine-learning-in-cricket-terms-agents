@@ -175,6 +175,23 @@
     "chart_text": "Runs by over for Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs are shown in grey as context and the last 10 in the prediction area. Australia were 82 for 2 after 10 overs. The TV projection said 164. The average-total guess said 162. The innings finished on 186. A zoom on the finish shows where each prediction landed at 20 overs: the actual total 186, the TV projection 164 (22 runs short) and the average-total guess 162. The TV's usual miss is 22.5 runs either way, shown as a band around its projection. The agent's prediction is not known."
   },
   "message": null,
+  "goal_card": {
+    "kicker": "THE GOAL",
+    "sentence": "Beat the TV's projection by at least 3 runs on average.",
+    "tv": {
+      "miss": 22.5,
+      "label": "runs: how far out the TV usually is, on past innings (2005–2022)"
+    },
+    "target": {
+      "runs": "3+",
+      "label": "runs closer: what the agent must do"
+    },
+    "judged": "Judged on 171 innings from 2026, a season the agent never sees while it works."
+  },
+  "test": {
+    "year": 2026,
+    "innings": 171
+  },
   "terms": [
     {
       "id": "agent",

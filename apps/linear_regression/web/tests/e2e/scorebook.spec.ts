@@ -1,17 +1,20 @@
-// The Scorebook (feature 020): the full reference views, never inline. Four cards; one full-width panel at a time; the data is
+// The Scorebook (features 020 and 022; the run-dependent cards need a finished run, see locks.spec.ts): the full reference views, never inline. Four cards; one full-width panel at a time; the data is
 // fetched only when its panel is first opened; the ranked list and the brute-force search's grids keep today's content.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
+import { runToEnd } from "./helpers";
 
-const recorded = () => JSON.parse(readFileSync("tests/fixtures/recorded-run.fake.json", "utf8"));
-const stateOf = () => Object.assign({}, ...recorded().events.map((e: { changes: object }) => e.changes));
+// The scripted fake run is deterministic, so it is what a live run with the default AI shows.
+const fakeRunFile = () => JSON.parse(readFileSync("tests/fixtures/fake-run.json", "utf8"));
+const stateOf = () => Object.assign({}, ...fakeRunFile().events.map((e: { changes: object }) => e.changes));
 
 interface Cell { training_innings: string; window: string; weighting: string; allowed: boolean; validation_mae: number | null }
 const card = (page: Page, id: string) => page.getByTestId(`scorebook-card-${id}`);
 const panel = (page: Page) => page.getByTestId("scorebook-panel");
 
+/** Run the fake model to its end (the run-dependent cards unlock), with a fast replay pace. */
 async function open(page: Page, query = "") {
-  await page.goto(`/${query}`);
+  await runToEnd(page, query || "?interval=40");
   await expect(page.getByTestId("scorebook-cards")).toBeVisible();
 }
 function dataRequests(page: Page) {
@@ -116,14 +119,13 @@ test("The data: /api/data is fetched only when the panel is first opened, once, 
   expect(requests()).toBe(1);                                                    // kept in memory by the grid
 });
 
-test("The agent graph opens the full graph in Watch it think and scrolls to it", async ({ page }) => {
+test("The agent graph card scrolls to the graph in Watch it think, which is the same graph, not a copy", async ({ page }) => {
   await open(page);
-  await expect(page.getByTestId("graph-panel")).toBeHidden();
+  await page.getByTestId("scorebook").scrollIntoViewIfNeeded();
   await card(page, "graph").click();
-  await expect(page.getByTestId("graph-panel")).toBeVisible();
-  await expect(page.getByTestId("graph-toggle")).toHaveAttribute("aria-expanded", "true");
-  await expect(panel(page)).toBeHidden();                                        // it is the same panel as in Watch it think, not a copy
-  await expect.poll(async () => (await page.getByTestId("graph-panel").boundingBox())!.y).toBeLessThan(400);
+  await expect(panel(page)).toBeHidden();
+  await expect.poll(async () => (await page.getByTestId("run-graph").boundingBox())!.y).toBeLessThan(400);
+  await expect(page.locator("graph-replay")).toHaveCount(1);
 });
 
 test("the Scorebook stays closed with Show me everything", async ({ page }) => {
@@ -134,6 +136,7 @@ test("the Scorebook stays closed with Show me everything", async ({ page }) => {
 
 test("every card is a real button or link, at least 44 px tall, with a visible focus outline", async ({ page }) => {
   await open(page);
+  await page.keyboard.press("Shift");                                              // the last input was the keyboard, as :focus-visible needs
   for (const id of ["models", "graph", "data", "built"]) {
     const c = card(page, id);
     expect((await c.boundingBox())!.height).toBeGreaterThanOrEqual(44);

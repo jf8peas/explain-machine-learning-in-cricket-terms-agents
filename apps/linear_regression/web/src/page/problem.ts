@@ -32,7 +32,7 @@ export function renderProblem(root: HTMLElement, ref: Reference | null): void {
         tile("The final total", String(example.final_total), "final-total"))
     : null;
   const caption = example
-    ? h("p", { class: "cap-line", "data-testid": "problem-caption" }, `${example.batting_team} v ${example.bowling_team}, ${example.venue}, ${example.date_label}`)
+    ? h("p", { class: "cap-line visually-hidden", "data-testid": "problem-caption" }, `${example.batting_team} v ${example.bowling_team}, ${example.venue}, ${example.date_label}`)
     : null;
   const commentary = h("div", { "data-region": "commentary", class: "commentary", id: "problem-commentary", "data-testid": "problem-commentary" },
     h("span", { class: "commentary-label" }, "Commentary"));

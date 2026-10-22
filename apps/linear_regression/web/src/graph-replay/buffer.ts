@@ -39,6 +39,12 @@ export class ReplayBuffer {
   finished = false;
   playing = false;
   intervalMs = DEFAULT_INTERVAL_MS;
+  /** True while a live run streams in: the display follows arrival (no pacing) and the node that has started is the one working. */
+  follow = false;
+  /** The node that has started and not yet completed (a live run only). */
+  inProgress: string | null = null;
+  /** The node that was working when the run stopped part-way. */
+  failedNode: string | null = null;
   private timer: unknown = null;
 
   constructor(private clock: Clock = realClock, private onChange: () => void = () => {}) {}
@@ -46,12 +52,40 @@ export class ReplayBuffer {
   // ---- receiving ----
   push(e: StepEvent): void {
     this.events.push(e);
-    // The first step shows as soon as it arrives while playing; later steps follow the pace.
-    if (this.playing && this.cursor === -1) this.setCursor(0);
+    if (this.follow) {                                   // a live run: show each step as it arrives
+      this.setCursor(this.events.length - 1);
+      if (this.inProgress === e.node) this.inProgress = null;
+    } else if (this.playing && this.cursor === -1) {     // the first step shows as soon as it arrives while playing; later steps follow the pace
+      this.setCursor(0);
+    }
+    this.onChange();
+  }
+
+  /** A live run's node began (the server's `start` event). */
+  start(node: string): void {
+    this.inProgress = node;
+    this.onChange();
+  }
+
+  /** A live run is about to stream in: clear the old run and follow arrival. */
+  beginLive(): void {
+    this.reset();
+    this.follow = true;
+    this.onChange();
+  }
+
+  /** The run stopped part-way: the node that was working keeps an error mark; what arrived stays. */
+  fail(): void {
+    this.failedNode = this.inProgress;
+    this.inProgress = null;
+    this.follow = false;
+    this.finished = true;
     this.onChange();
   }
 
   finish(): void {
+    this.follow = false;
+    this.inProgress = null;
     this.finished = true;
     if (this.playing && this.cursor >= this.events.length - 1) this.stopTimer(true);
     this.onChange();
@@ -65,6 +99,9 @@ export class ReplayBuffer {
     this.maxCursor = -1;
     this.finished = false;
     this.playing = false;
+    this.follow = false;
+    this.inProgress = null;
+    this.failedNode = null;
     this.onChange();
   }
 

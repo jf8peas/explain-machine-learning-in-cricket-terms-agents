@@ -338,5 +338,19 @@
         }
       }
     }
-  ]
+  ],
+  "doing": {
+    "load_data": "Code is loading the innings",
+    "split": "Code is splitting the seasons: learn, check, test",
+    "explore": "Code is summarising the past seasons for the AI agent",
+    "baseline": "Code is scoring the TV projection and the average-total guess",
+    "propose_features": "The AI agent is choosing its clues",
+    "check_proposal": "Code is checking the idea",
+    "fit_model": "Code fits the regression",
+    "evaluate": "Code scores it on the check seasons",
+    "grid_search": "The brute-force search tries every combination of settings",
+    "final_test": "Unlocking 2026 and scoring once",
+    "explain_in_cricket_terms": "Code builds the facts for the explanation",
+    "write_in_cricket_terms": "The AI agent words the explanation; code fills in every number"
+  }
 }

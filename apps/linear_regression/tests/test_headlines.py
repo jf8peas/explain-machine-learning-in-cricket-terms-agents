@@ -46,3 +46,14 @@ def test_the_hero_does_not_depend_on_the_pick():
     b = headlines.build(agent_miss=19.0, search_miss=25.0, tv_miss=20.5, tries=5)
     assert (a["hero_h1"], a["verdict_h2"], a["scoreboard"]) == (b["hero_h1"], b["verdict_h2"], b["scoreboard"])
     assert a["vs_search"] != b["vs_search"]
+
+
+def test_the_result_strip_gives_the_case_and_the_two_misses_from_the_same_figures_as_the_verdict():
+    assert headlines.build(agent_miss=17.9, search_miss=17.7, tv_miss=21.4, tries=7)["result_strip"] == {
+        "label": "goal reached", "text": "The agent was 17.9 runs out, the TV 21.4."}
+    assert headlines.build(agent_miss=19.2, search_miss=18.0, tv_miss=21.4, tries=7)["result_strip"]["label"] == "short of the goal"
+    assert headlines.build(agent_miss=22.0, search_miss=18.0, tv_miss=21.4, tries=7)["result_strip"] == {
+        "label": "goal missed", "text": "The agent was 22 runs out, the TV 21.4."}
+    assert headlines.build(agent_miss=None, search_miss=17.7, tv_miss=21.4, tries=0)["result_strip"] == {
+        "label": "search only", "text": "The brute-force search was 17.7 runs out, the TV 21.4."}
+    assert headlines.build(agent_miss=None, search_miss=None, tv_miss=21.4, tries=0)["result_strip"]["text"] == "The TV was 21.4 runs out."

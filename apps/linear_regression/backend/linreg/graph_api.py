@@ -1,6 +1,6 @@
 """Structure and stream endpoints for any compiled LangGraph app. Shared-library candidate.
 
-GET /structure -> {nodes, edges}; GET /run -> Server-Sent Events, one `step` per completed node.
+GET /structure -> {nodes, edges}; GET /run -> Server-Sent Events: a `start` when each node begins and a `step` when it completes.
 Knows nothing about the specific agent: pass it a compiled graph.
 """
 from __future__ import annotations
@@ -65,14 +65,19 @@ def sse(event: str, data: Any) -> str:
 
 def run_events(app, initial: dict[str, Any], recursion_limit: int, configurable: dict[str, Any] | None = None,
                redact: Callable[[str], str] | None = None, release: Callable[[], None] | None = None) -> Iterator[str]:
-    """One `step` event per completed node, then `done`; `error` on failure."""
+    """A `start` event when each node begins and a `step` event when it completes, then `done`; `error` on failure.
+    A `start` carries the number its `step` will have and no state, so a page can show which node is working."""
     step = 0
     pending: tuple[str, dict] | None = None
     try:
-        for mode, chunk in app.stream(initial, stream_mode=["updates", "values"],
+        for mode, chunk in app.stream(initial, stream_mode=["updates", "values", "tasks"],
                                       config={"recursion_limit": recursion_limit,
                                               "configurable": configurable or {}}):
-            if mode == "updates":
+            if mode == "tasks":
+                # a task chunk is its start (it has the node's `input`) or its end (it has a `result` or an `error`)
+                if "input" in chunk and "result" not in chunk and "error" not in chunk:
+                    yield sse("start", {"step": step + 1, "node": chunk["name"]})
+            elif mode == "updates":
                 (node, update), = chunk.items()
                 pending = (node, update or {})
             elif mode == "values" and pending is not None:

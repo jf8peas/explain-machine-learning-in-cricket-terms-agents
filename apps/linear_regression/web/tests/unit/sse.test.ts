@@ -6,6 +6,7 @@ function handlers() {
   const h: StreamHandlers = {
     onOpen: () => calls.push("open"),
     onRefused: (info) => calls.push(`refused:${info.status}:${info.reason}:${info.message}:${info.retryAfterSeconds ?? ""}`),
+    onStart: (e) => calls.push(`start:${e.node}`),
     onStep: (e) => calls.push(`step:${e.node}`),
     onDone: () => calls.push("done"),
     onError: (m) => calls.push(`error:${m}`),
@@ -70,5 +71,38 @@ describe("streamRun", () => {
     const { calls, h } = handlers();
     await streamRun("/api/run", controller.signal, h);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("the start event (feature 022)", () => {
+  it("reports each start before its step", async () => {
+    vi.stubGlobal("fetch", async () => stream(
+      `event: start
+data: {"step":1,"node":"a"}
+
+event: step
+data: {"step":1,"node":"a","summary":"","changes":{}}
+
+event: done
+data: {"steps":1}
+
+`));
+    const { calls, h } = handlers();
+    await streamRun("/api/run", new AbortController().signal, h);
+    expect(calls).toEqual(["open", "start:a", "step:a", "done"]);
+  });
+
+  it("a stream with no start events still works", async () => {
+    vi.stubGlobal("fetch", async () => stream(`event: step
+data: {"step":1,"node":"a","summary":"","changes":{}}
+
+event: done
+data: {"steps":1}
+
+`));
+    const { calls, h } = handlers();
+    const { onStart: _unused, ...withoutStart } = h;
+    await streamRun("/api/run", new AbortController().signal, withoutStart as typeof h);
+    expect(calls).toEqual(["open", "step:a", "done"]);
   });
 });

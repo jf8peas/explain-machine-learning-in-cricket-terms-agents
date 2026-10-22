@@ -31,6 +31,10 @@
             "text": "3.5 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal reached",
+        "text": "The agent was 17 runs out, the TV 20.5."
       }
     }
   },
@@ -66,6 +70,10 @@
             "text": "3 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal reached",
+        "text": "The agent was 17.5 runs out, the TV 20.5."
       }
     }
   },
@@ -101,6 +109,10 @@
             "text": "2 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "short of the goal",
+        "text": "The agent was 18.5 runs out, the TV 20.5."
       }
     }
   },
@@ -136,6 +148,10 @@
             "text": "0.1 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "short of the goal",
+        "text": "The agent was 20.4 runs out, the TV 20.5."
       }
     }
   },
@@ -171,6 +187,10 @@
             "text": "level with the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal missed",
+        "text": "The agent was 20.5 runs out, the TV 20.5."
       }
     }
   },
@@ -206,6 +226,10 @@
             "text": "1.5 runs behind the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal missed",
+        "text": "The agent was 22 runs out, the TV 20.5."
       }
     }
   },
@@ -233,6 +257,10 @@
             "text": "3 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "search only",
+        "text": "The brute-force search was 17.5 runs out, the TV 20.5."
       }
     }
   },
@@ -268,6 +296,10 @@
             "text": "3.5 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal reached",
+        "text": "The agent was 17 runs out, the TV 20.5."
       }
     }
   },
@@ -303,6 +335,10 @@
             "text": "1.5 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "short of the goal",
+        "text": "The agent was 19 runs out, the TV 20.5."
       }
     }
   },
@@ -338,6 +374,10 @@
             "text": "3.5 runs closer than the TV"
           }
         ]
+      },
+      "result_strip": {
+        "label": "goal reached",
+        "text": "The agent was 17 runs out, the TV 20.5."
       }
     }
   }

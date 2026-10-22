@@ -129,3 +129,11 @@ describe("the Scoreboard's plain words", () => {
     expect(r.statusText).toBe("code rejected: That idea was already tried.");
   });
 });
+
+describe("the feed's short reason", () => {
+  it("keeps the point of a repeat and leaves other reasons whole", async () => {
+    const { shortReason } = await import("../../src/page/round-feed");
+    expect(shortReason("That idea was already tried: the same clues, window, weighting and training innings.")).toBe("That idea was already tried.");
+    expect(shortReason("Nine is too many.")).toBe("Nine is too many.");
+  });
+});
