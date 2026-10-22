@@ -1,8 +1,8 @@
-// The problem (app-specific): what the TV projection does and how far out it usually is, with one real innings as three tiles.
+// The problem (app-specific): what the broadcaster's projection does and how far out it usually is, with one real innings as three tiles.
 // The run-by-over chart with the zoom on the finish sits in Commentary. Every number comes from /api/reference; the only words
 // typed here are fixed copy.
 import { h, fmt } from "./dom";
-import { cap, term } from "./terms";
+import { bareShortTerm, cap, term } from "./terms";
 import type { Reference } from "./reference-types";
 import { mountWorm } from "./worm";
 
@@ -28,7 +28,7 @@ export function renderProblem(root: HTMLElement, ref: Reference | null): void {
   const tiles = example
     ? h("ul", { class: "tiles", "data-testid": "problem-tiles" },
         tile("Score after 10 overs", `${example.runs_at_10}/${example.wickets_at_10}`, "score-at-10"),
-        tile("What the TV said", String(example.tv_projection), "tv-said"),
+        tile(`${cap(bareShortTerm("tv"))} said`, String(example.tv_projection), "tv-said"),
         tile("The final total", String(example.final_total), "final-total"))
     : null;
   const caption = example

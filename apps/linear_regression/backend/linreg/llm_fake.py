@@ -66,20 +66,21 @@ def writing_reply(blocks: dict | None = None) -> str:
     return json.dumps({"blocks": blocks or {}})
 
 
-def valid_writing(request: LlmRequest, *, markup: bool = False) -> str:
+def valid_writing(request: LlmRequest, *, markup: bool = False, old_name: bool = False) -> str:
     """Good wording for whatever blocks and facts the request names: placeholders only, no digit, no direction word,
-    within the limits."""
+    within the limits. `old_name` keeps the pre-023 name "the TV", which the reply check must reject (feature 023)."""
     blocks = writing_block_ids(request)
-    tv_sentence = "The TV projection guesses {tv_bias_runs} runs {tv_bias_direction} on average."
+    name = "the TV" if old_name else "the broadcaster"
+    tv_sentence = f"{name[:1].upper() + name[1:]} guesses {{tv_bias_runs}} runs {{tv_bias_direction}} on average."
     if markup:
-        tv_sentence = '<b>bold</b> <script>x</script> & "q": the TV guesses {tv_bias_direction}.'
+        tv_sentence = f'<b>bold</b> <script>x</script> & "q": {name} guesses {{tv_bias_direction}}.'
     wording: dict[str, dict] = {
         "takeaway_run_rate": {"title": "What the run rate is worth", "sentences": [
-            "The TV projection misses by {tv_test_miss} runs, against {know_nothing_miss} for the average total."]},
+            f"{name[:1].upper() + name[1:]} misses by {{tv_test_miss}} runs, against {{know_nothing_miss}} for the average total."]},
         "takeaway_drivers": {"title": "What moves the total", "sentences": [
             "Most of the movement comes from {biggest_factor}, worth about {biggest_factor_effect} runs for a typical "
             "difference."]},
-        "takeaway_tv": {"title": "Where the TV goes wrong", "sentences": [tv_sentence]},
+        "takeaway_tv": {"title": f"Where {name} goes wrong", "sentences": [tv_sentence]},
     }
     return writing_reply({b: w for b, w in wording.items() if b in blocks})
 

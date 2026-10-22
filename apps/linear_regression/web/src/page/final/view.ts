@@ -78,7 +78,7 @@ export interface ExamView {
   years: ExamYears;
   innings: number;
   candidateModels: number;         // the AI's fitted attempts plus the grid's allowed cells
-  tv: number | null;               // the TV projection's and the average-total guess's test misses (tenths)
+  tv: number | null;               // the broadcaster's projection's and the average-total guess's test misses (tenths)
   knowNothing: number | null;
 }
 

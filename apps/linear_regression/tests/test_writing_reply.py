@@ -15,7 +15,7 @@ AVAILABLE = [b["id"] for b in blocks_for(state_for())[1] if b["id"] not in CODE_
 
 
 def block(title="A title", *sentences):
-    return {"title": title, "sentences": list(sentences) or ["The TV missed by {tv_test_miss} runs."]}
+    return {"title": title, "sentences": list(sentences) or ["The broadcaster missed by {tv_test_miss} runs."]}
 
 
 def parse(reply: str):
@@ -27,13 +27,13 @@ def test_the_available_blocks_are_the_three_takeaways():
 
 
 def test_a_valid_reply_is_used_as_written():
-    w = parse(writing_reply({"takeaway_run_rate": block("The run rate helps"), "takeaway_tv": block("TV leans", "It leans {tv_bias_direction}.")}))
-    assert w.blocks["takeaway_run_rate"] == {"title": "The run rate helps", "sentences": ["The TV missed by {tv_test_miss} runs."]}
+    w = parse(writing_reply({"takeaway_run_rate": block("The run rate helps"), "takeaway_tv": block("Broadcaster leans", "It leans {tv_bias_direction}.")}))
+    assert w.blocks["takeaway_run_rate"] == {"title": "The run rate helps", "sentences": ["The broadcaster missed by {tv_test_miss} runs."]}
     assert w.blocks["takeaway_tv"]["sentences"] == ["It leans {tv_bias_direction}."]
 
 
 @pytest.mark.parametrize("text", [
-    "The TV missed by 18 runs.", "About 2 wickets matter.", "It was the 10th over.", "Two-thirds ½ of it.",
+    "The broadcaster missed by 18 runs.", "About 2 wickets matter.", "It was the 10th over.", "Two-thirds ½ of it.",
     "Fullwidth １０ runs.", "Roman Ⅷ runs.", "Superscript runs².",
 ])
 def test_any_digit_or_numeric_character_written_by_the_model_rejects_the_whole_reply(text):
@@ -44,7 +44,7 @@ def test_any_digit_or_numeric_character_written_by_the_model_rejects_the_whole_r
 
 
 @pytest.mark.parametrize("text", [
-    "The TV guesses too low.", "The TV guesses too high every time.", "It guesses TOO LOW.", "It guesses too-low.",
+    "The broadcaster guesses too low.", "The broadcaster guesses too high every time.", "It guesses TOO LOW.", "It guesses too-low.",
     "Add a few runs to it.", "It adds runs.", "Adding runs helps.", "Take off a few runs.", "Taking off runs helps.",
     "Take-off a few runs.", "It tends to underestimate the total.", "It will overestimate things.",
     "It underestimates sides.", "Sides over the line.", "It sits under the line.", "Lower than it should be.",
@@ -64,9 +64,9 @@ def test_the_rejection_message_never_repeats_the_models_own_words():
 
 
 @pytest.mark.parametrize("text", [
-    "The TV guesses {tv_bias_runs} runs {tv_bias_direction}.", "Overall the TV does fine.", "Sides address the oversight.",
+    "The broadcaster guesses {tv_bias_runs} runs {tv_bias_direction}.", "Overall the broadcaster does fine.", "Sides address the oversight.",
     "It covers the overs after the break.", "The address was sent at the weekend.", "A tough task, adequately done.",
-    "Sides speed up late, and the TV forgets it.", "The run rate alone is not enough.", "Understanding the game helps.",
+    "Sides speed up late, and the broadcaster forgets it.", "The run rate alone is not enough.", "Understanding the game helps.",
 ])
 def test_ordinary_words_and_direction_placeholders_are_accepted(text):
     assert parse(writing_reply({"takeaway_tv": block("Fine", text)})).blocks["takeaway_tv"]["sentences"] == [text]

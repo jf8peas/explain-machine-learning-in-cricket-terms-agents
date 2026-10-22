@@ -21,7 +21,7 @@ def test_every_method_has_its_own_name_note_and_marker():
 
 def test_the_projection_is_called_the_tv_projection_and_its_note_says_what_it_is():
     m = BY_ID["broadcaster"]
-    assert m.name == "the TV projection"
+    assert m.name == "the broadcaster's projection"
     assert "current run rate" in m.note and "20 overs" in m.note
 
 
@@ -38,7 +38,7 @@ def test_the_goal_is_built_from_the_margin_and_says_what_it_is_measured_against(
     g = goal()
     assert g["reference"] == "broadcaster" and g["margin_runs"] == 3
     assert "at least 3 runs of average miss" in g["text"]
-    assert "TV projection" in g["text"] and "nothing was trained or chosen on" in g["text"]
+    assert "broadcaster's projection" in g["text"] and "nothing was trained or chosen on" in g["text"]
 
 
 def test_changing_the_margin_changes_the_goal_text_everywhere_it_is_built(monkeypatch):
@@ -115,21 +115,21 @@ def test_the_finding_copes_with_a_know_nothing_miss_of_zero():
 
 def test_a_win_that_reaches_the_goal_says_so_with_the_runs_and_the_percentage():
     text = verdict_sentence(verdict(21.0, 17.0, "llm"))
-    assert "beat the TV projection by 4.0 runs (19.0%)" in text and "reaches the goal of at least 3 runs" in text
+    assert "beat the broadcaster's projection by 4.0 runs (19.0%)" in text and "reaches the goal of at least 3 runs" in text
 
 
 def test_a_win_short_of_the_goal_says_so_plainly():
     text = verdict_sentence(verdict(20.9, 18.9, "forward"))
-    assert "beat the TV projection by 2.0 runs (9.6%)" in text and "short of the goal of at least 3 runs" in text
+    assert "beat the broadcaster's projection by 2.0 runs (9.6%)" in text and "short of the goal of at least 3 runs" in text
 
 
 def test_a_loss_says_it_did_not_beat_the_projection_and_by_how_much_worse():
     text = verdict_sentence(verdict(20.0, 22.5, "forward"))
-    assert "did not beat the TV projection" in text and "2.5 runs" in text and "worse" in text
+    assert "did not beat the broadcaster's projection" in text and "2.5 runs" in text and "worse" in text
 
 
 def test_a_tie_is_not_a_win():
-    assert "did not beat the TV projection" in verdict_sentence(verdict(20.0, 20.0, "forward"))
+    assert "did not beat the broadcaster's projection" in verdict_sentence(verdict(20.0, 20.0, "forward"))
 
 
 def test_the_goal_in_the_verdict_follows_the_margin(monkeypatch):

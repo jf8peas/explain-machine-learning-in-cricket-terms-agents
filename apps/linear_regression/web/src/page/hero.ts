@@ -1,5 +1,5 @@
 // The hero (feature 022, app-specific): the question and the goal, not a result. A dark band with the kicker, the question, the lead,
-// one button that starts the experiment, the goal card and a Commentary panel (how good the TV is on past innings, why a season the
+// one button that starts the experiment, the goal card and a Commentary panel (how good the broadcaster's projection is on past innings, why a season the
 // agent never sees, who does what). Every number and data-dependent sentence is the server's (/api/reference); the only words typed
 // here are fixed copy. Everything goes in as text, never as markup.
 import { h, fmt } from "./dom";
@@ -7,12 +7,15 @@ import { renderGoalCard, showResultStrip, type GoalCard } from "./goal-card";
 import type { ResultStrip } from "./headlines";
 import { UNAVAILABLE } from "./reference";
 import type { Reference } from "./reference-types";
-import { hasTerms, term } from "./terms";
+import { definition, hasTerms, NOT_AVAILABLE, term } from "./terms";
 
-// Without the server's words (its reference could not be loaded) the page still asks its question, with a plain "agent".
+// Without the server's words (its reference could not be loaded) the page still asks its question, with a plain "agent" and "the projected score".
 export const kicker = (): string => (hasTerms() ? `An ${term("agent")} experiment` : "An agent experiment").toUpperCase();
-export const question = (): string => `Can ${hasTerms() ? `an ${term("agent")}` : "an agent"} build its own prediction model and beat the TV?`;
-export const LEAD = "Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it is tested on a season it has never seen.";
+export const question = (): string => {
+  const score = hasTerms() ? definition("projected_score") : NOT_AVAILABLE;
+  return `Can ${hasTerms() ? `an ${term("agent")}` : "an agent"} build a regression model that beats ${score === NOT_AVAILABLE ? "the projected score" : score}?`;
+};
+export const LEAD = "Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it's tested on a season it has never seen.";
 export const START_LABEL = "▶ Start the experiment";
 export const whoDoesWhat = (): string => `The ${term("agent")} chooses the ${term("clues")}; code does the rest.`;
 

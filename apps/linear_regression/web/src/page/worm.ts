@@ -1,11 +1,11 @@
 // The hero's "worm" chart (app-specific, feature 017): one real innings as a chart card with two panels. The line graph
 // shows all 20 overs evenly spaced, the first 10 as grey context and the last 10 as the white prediction area; the zoom
-// magnifies the totals at 20 overs, where the TV projection, the know-nothing guess and what actually happened land. Hand-built
+// magnifies the totals at 20 overs, where the broadcaster's projection, the average-total guess and what actually happened land. Hand-built
 // SVG, no library; nothing animates. Every value comes from the server (the example innings and the reference figures);
 // wormPlan only turns them into places on the chart and drawWorm draws the plan. Wide: one SVG, the plot split 60/40, so
 // the lens lines are drawn in the same drawing. Narrow: two SVGs, the zoom stacked under the line graph. Colours are the page's
 // CSS variables, and the series are also told apart by shape, line style and label, never by colour alone.
-import { cap, term } from "./terms";
+import { bareShortTerm, cap, term } from "./terms";
 import { fmt } from "./dom";
 import type { Example } from "./reference-types";
 import { layoutMode, missWords, NARROW_BELOW, spreadLabels, yAxis, zoomRange, type Mode, type YAxis, type ZoomRange } from "./worm-layout";
@@ -92,7 +92,7 @@ export function zoomPlan(input: WormInput, g: ZoomGeometry): ZoomPlan {
   const wished = [
     { id: "actual" as const, text: `Actual ${actual}`, y: scale(actual) + g.label * 0.35 },
     { id: "miss" as const, text: words, y: wishedMid + g.label * 0.35 },
-    { id: "tv" as const, text: `TV ${tv}`, y: scale(tv) + g.label * 0.35 },
+    { id: "tv" as const, text: `${cap(bareShortTerm("tv"))} ${tv}`, y: scale(tv) + g.label * 0.35 },
     { id: "nothing" as const, text: `${cap(term("average_total"))} ${nothing}`, y: scale(nothing) + g.label * 0.35 },
   ];
   const placed = spreadLabels(wished.map((w) => ({ id: w.id, y: w.y })), LABEL_GAP, bandTop + g.label * 0.8, bandBottom - 2);
@@ -107,7 +107,7 @@ export function zoomPlan(input: WormInput, g: ZoomGeometry): ZoomPlan {
     ruler: { x: rulerX, top: scale(range.hi), bottom: scale(range.lo), ticks: range.ticks.map((value) => ({ value, y: scale(value) })) },
     markers: { actual: { x: rulerX, y: scale(actual) }, tv: { x: rulerX, y: scale(tv) }, nothing: { x: rulerX, y: scale(nothing) } },
     usualMiss: { x: rulerX + 7, width: 9, top: scale(tv + averageMiss), bottom: scale(tv - averageMiss), from: tv - averageMiss, to: tv + averageMiss,
-      text: `TV's usual miss, ±${fmt(averageMiss)}` },
+      text: `Usual miss, ±${fmt(averageMiss)}` },
     bracket: { x: bracketX, top: scale(Math.max(actual, tv)), bottom: scale(Math.min(actual, tv)), words, direction },
     labels, agent, key,
     title: ["ZOOM ON THE FINISH", "total after 20 overs"],
@@ -215,7 +215,7 @@ function drawLine(svg: SVGSVGElement, p: LinePlan): void {
     el("polyline", { points: points(p.actualLast10), fill: "none", stroke: "var(--text)", "stroke-width": 3, "stroke-linejoin": "round", "stroke-linecap": "round", "data-series": "actual-last-10", "data-testid": "worm-series-actual" }),
     el("text", { x: round(labelX), y: round(midPt.y) - 16, "text-anchor": "middle", "font-size": g.note, fill: "var(--muted)", ...HALO, "data-testid": "worm-actual-label" }, "what actually happened"));
 
-  // the know-nothing guess (dotted) and the TV projection (dashed), from the 10-over dot to over 20
+  // the average-total guess (dotted) and the broadcaster's projection (dashed), from the 10-over dot to over 20
   add(el("line", { x1: round(p.dot.x), y1: round(p.dot.y), x2: round(p.nothing.x), y2: round(p.nothing.y), stroke: "var(--muted)", "stroke-width": 2.5, "stroke-dasharray": "2 5", "stroke-linecap": "round", "data-series": "nothing", "data-testid": "worm-series-nothing" }),
     el("line", { x1: round(p.dot.x), y1: round(p.dot.y), x2: round(p.tv.x), y2: round(p.tv.y), stroke: "var(--tv)", "stroke-width": 2.5, "stroke-dasharray": "9 6", "data-series": "tv", "data-testid": "worm-series-tv" }));
 
@@ -255,12 +255,12 @@ function drawZoom(svg: SVGSVGElement, z: ZoomPlan): void {
       el("text", { x: round(z.ruler.x) - 8, y: round(t.y) + 4, "text-anchor": "end", "font-size": g.small, fill: "var(--muted)", "data-testid": "worm-zoom-tick", "data-value": t.value }, String(t.value)));
   }
 
-  // the TV's usual miss: a pale bar from TV - miss to TV + miss, right of the ruler
+  // the broadcaster's usual miss: a pale bar from projection - miss to projection + miss, right of the ruler
   const u = z.usualMiss;
   add(el("rect", { x: round(u.x), y: round(u.top), width: u.width, height: round(u.bottom - u.top), fill: "var(--tv)", "fill-opacity": 0.22, stroke: "var(--tv)", "stroke-opacity": 0.5, "stroke-width": 1,
     "data-testid": "worm-zoom-miss", "data-from": u.from, "data-to": u.to }));
 
-  // the miss: a bracket from the TV's value to the actual total (none when spot on); its words are placed with the labels
+  // the miss: a bracket from the broadcaster's value to the actual total (none when spot on); its words are placed with the labels
   const b = z.bracket;
   if (b.direction !== "spot on") {
     add(el("path", { d: `M${round(b.x - 7)},${round(b.top)} H${round(b.x)} V${round(b.bottom)} H${round(b.x - 7)}`, fill: "none", stroke: "var(--tv)", "stroke-width": 2.5, "stroke-linejoin": "round",
@@ -269,7 +269,7 @@ function drawZoom(svg: SVGSVGElement, z: ZoomPlan): void {
     add(el("line", { x1: round(b.x - 7), y1: round(z.markers.tv.y), x2: round(b.x), y2: round(z.markers.tv.y), stroke: "var(--tv)", "stroke-width": 2.5, "data-testid": "worm-zoom-bracket", "data-direction": "spot on" }));
   }
 
-  // the markers on the ruler: a diamond (actual), the TV's filled dot, the know-nothing guess's open dot
+  // the markers on the ruler: a diamond (actual), the broadcaster's filled dot, the average-total guess's open dot
   add(el("circle", { cx: round(z.markers.nothing.x), cy: round(z.markers.nothing.y), r: 6, fill: "var(--surface)", stroke: "var(--muted)", "stroke-width": 2.5, "data-testid": "worm-zoom-marker", "data-series": "nothing" }),
     el("circle", { cx: round(z.markers.tv.x), cy: round(z.markers.tv.y), r: 6.5, fill: "var(--tv)", "data-testid": "worm-zoom-marker", "data-series": "tv" }),
     diamond(z.markers.actual, 14, { fill: "var(--text)", "data-testid": "worm-zoom-marker", "data-series": "actual" }));

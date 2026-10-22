@@ -36,7 +36,7 @@ export type Field =
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** The base measurements a model needs. Runs at 10 overs always comes first: the TV projection needs it too. */
+/** The base measurements a model needs. Runs at 10 overs always comes first: the broadcaster's projection needs it too. */
 export function fieldsFor(features: string[], catalogue: Catalogue): Field[] {
   const byId = new Map(catalogue.features.map((f) => [f.id, f]));
   const needed = ["runs_at_10"];

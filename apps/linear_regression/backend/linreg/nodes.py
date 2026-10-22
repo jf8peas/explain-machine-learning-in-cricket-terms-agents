@@ -169,7 +169,7 @@ def _average_figures(per_check: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def baseline(state: RunState) -> dict[str, Any]:
-    """The TV projection and the know-nothing guess scored on the three check years (the test year is not touched here)."""
+    """The broadcaster's projection and the average-total guess scored on the three check years (the test year is not touched here)."""
     rolling = _context(state).rolling
     by_check = []
     for spec in rolling.checks:

@@ -1,4 +1,4 @@
-// The problem (feature 020): the TV projection is usually about so many runs out, shown with one real innings; the run-by-over
+// The problem (feature 020): the broadcaster's projection is usually about so many runs out, shown with one real innings; the run-by-over
 // chart with the zoom on the finish is in Commentary.
 import { expect, test, type Page } from "./fixtures";
 
@@ -12,7 +12,7 @@ test("the heading, the question and the three tiles come from the reference figu
   await open(page);
   const ref = await reference(page);
   await expect(page.locator("#problem .kicker").first()).toHaveText("THE PROBLEM");
-  await expect(page.getByTestId("problem-title")).toHaveText(`The TV projection is usually about ${ref.figures.broadcaster.average_miss.toFixed(1)} runs out.`);
+  await expect(page.getByTestId("problem-title")).toHaveText(`The broadcaster's projection is usually about ${ref.figures.broadcaster.average_miss.toFixed(1)} runs out.`);
   await expect(page.getByTestId("problem-lead")).toHaveText(
     `It just multiplies the run rate by 20. Can an agent, left to itself, learn something smarter from ${ref.training.innings.toLocaleString("en-GB")} past innings?`);
   const e = ref.example;

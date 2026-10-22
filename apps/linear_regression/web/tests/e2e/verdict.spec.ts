@@ -31,7 +31,7 @@ test("the headline and the agent-against-search sentence are the server's words"
 test("four bars in the design's order, each the displayed average miss on the test season, shorter is better", async ({ page }) => {
   await open(page);
   const names = await page.getByTestId("verdict-bar").locator(".vname").allTextContents();
-  expect(names).toEqual([`AI agent (${fakeRunFile().model_name})`, "Brute-force search", "TV projection", "Average-total guess"]);
+  expect(names).toEqual([`AI agent (${fakeRunFile().model_name})`, "Brute-force search", "Broadcaster's projection", "Average-total guess"]);
   const acc = final().accuracy;
   const values = await page.getByTestId("verdict-value").allTextContents();
   expect(values).toEqual([acc.llm, acc.forward, acc.broadcaster, acc.know_nothing].map((a: { average_miss: number }) => a.average_miss.toFixed(1)));
@@ -50,7 +50,7 @@ test("with no language model the agent's bar says not run and the other three st
   step.changes.final = {
     ...step.changes.final, accuracy,
     headlines: { ...step.changes.final.headlines, case: "no_llm", vs_search: null,
-      verdict_h2: "On a season it never saw, the plain search missed by 17.8 runs; the TV missed by 21.4 runs." },
+      verdict_h2: "On a season it never saw, the plain search missed by 17.8 runs; the broadcaster missed by 21.4 runs." },
   };
   await serve(page, run);
   await open(page);

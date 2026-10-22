@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Can an AI agent beat the broadcaster's projected score?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F8FAFC}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+button{font-family:inherit;cursor:pointer}
+button:disabled,select:disabled{cursor:default;opacity:0.6}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #0F172A; background: #F8FAFC; min-height: 100vh">
+
+  <!-- Top bar (unchanged from the App view) -->
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E2E8F0">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between">
+      <div style="font-size: 14px; color: #475569">ML in Cricket Terms <span aria-hidden="true">›</span> <strong style="color: #0F172A">Linear regression</strong></div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+        <button onClick="{{ toggleAll }}" aria-pressed="{{ allOpen }}" style="{{ allBtnStyle }}">{{ allLabel }}</button>
+        <a href="Built.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 6px">How it was built</a>
+        <a href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)" style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 6px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Feedback<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"></path></svg></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. HERO: the question and the goal (no result until a run finishes) -->
+  <section style="background: #0B1220; color: #FFFFFF">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 52px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
+      <div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #A5B4FC">AN AI AGENT EXPERIMENT</div>
+        <h1 style="margin: 0; font-size: 48px; line-height: 1.08; font-weight: 800; letter-spacing: -0.02em">Can an AI agent build a regression model that beats the broadcaster's projected score?</h1>
+        <p style="margin: 0; font-size: 19px; line-height: 1.5; color: #CBD5E1">Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it's tested on a season it has never seen.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 4px">
+          <a href="#watch" style="background: #6366F1; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px; padding: 14px 22px; border-radius: 10px">▶ Start the experiment</a>
+        </div>
+      </div>
+
+      <!-- The goal -->
+      <div style="flex: 1 1 380px; min-width: 0; background: #111A2E; border: 1px solid #1E293B; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #94A3B8">THE GOAL</div>
+        <div style="font-size: 26px; line-height: 1.25; font-weight: 800">Beat the broadcaster's projection by at least <span style="color: #A5B4FC">3 runs</span> on average.</div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; color: #FDBA74">22.5</div>
+            <div style="font-size: 14px; color: #CBD5E1">runs: how far out the broadcaster usually is, on past innings (2005–2022)</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; color: #A5B4FC">3+</div>
+            <div style="font-size: 14px; color: #CBD5E1">runs closer: what the agent must do</div>
+          </div>
+        </div>
+        <div style="border-top: 1px solid #1E293B; padding-top: 14px; font-size: 14px; color: #CBD5E1">Judged on 171 innings from 2026, a season the agent never sees while it works.</div>
+        <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #052E1C; border: 1px solid #065F46; border-radius: 10px; padding: 12px 14px; font-size: 15px; color: #A7F3D0"><strong style="color: #FFFFFF">Result: goal reached.</strong> The agent was 17.9 runs out, the broadcaster 21.4. <a href="#verdict" style="color: #6EE7B7">See the verdict ↓</a></div>
+        </sc-if>
+      </div>
+    </div>
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px 48px">
+        <div style="background: #111A2E; border: 1px dashed #334155; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+          <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #0B1220; background: #A5B4FC; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; font-size: 15px; line-height: 1.55; color: #CBD5E1">
+            <div><strong style="color: #FFFFFF">How good is the broadcaster?</strong> Over 2,133 past innings (2005–2022) its projection was 22.5 runs off on average. Always guessing the average total was 23.9 runs off, so the run rate barely helps. The broadcaster guesses too low by 14.3 runs on average.</div>
+            <div><strong style="color: #FFFFFF">Why a season it never sees?</strong> Any model looks good on the data it chose from. 2026 stays locked until the agent has picked its model, then it is used once.</div>
+            <div><strong style="color: #FFFFFF">Who does what.</strong> A language model picks the clues. Code fits a linear regression to past innings. Code scores it against the broadcaster's projection and the average-total guess.</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- 2. THE PROBLEM (unchanged) -->
+  <section id="problem" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px">
+    <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: center">
+      <div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #475569">THE PROBLEM</div>
+        <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">The broadcaster's projection is usually about 22 runs out.</h2>
+        <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #475569">It just multiplies the run rate by 20. Can an agent, left to itself, learn something smarter from 5,209 past innings?</p>
+      </div>
+      <div style="flex: 1 1 420px; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">After 10 overs</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700">82/2</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">Broadcaster said</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; color: #C2410C">164</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">They made</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700">186</div>
+        </div>
+        <div style="grid-column: 1 / -1; font-size: 13px; color: #475569">Australia v India, SCG, December 2020</div>
+      </div>
+    </div>
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: 24px; background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center">
+          <div style="flex: 1 1 520px; min-width: 0; height: 240px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: 15px; color: #475569">[Today's run-by-over chart: the first 10 overs in grey, the broadcaster's straight line, and the zoom on the finish]</div>
+          <div style="flex: 1 1 280px; min-width: 0; font-size: 15px; line-height: 1.55; color: #334155">Australia went from 82/2 to 186. The broadcaster's straight line said 164 and was 22 runs short, which is about its typical miss. The agent learns from every innings like this one to see what the straight line misses.</div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- 3. WATCH IT THINK: press play, watch the graph -->
+  <section id="watch" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 720px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #4338CA">WATCH IT THINK</div>
+      <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">Choose the AI, press play, and watch it work.</h2>
+    </div>
+
+    <!-- Loop strip -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+      <div style="background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; border-radius: 999px; padding: 10px 16px; font-weight: 700; font-size: 15px">1 · Agent proposes clues</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">2 · Code checks</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">3 · Code fits a regression</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">4 · Code scores it</div>
+      <div aria-hidden="true" style="color: #94A3B8">↺ repeat until no better</div>
+    </div>
+
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+        <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; color: #334155">
+            <strong style="color: #0F172A">What the agent decides</strong>
+            <div>Each idea has four parts: the clues (up to 8 of 19), how many past seasons to learn from, whether recent seasons count more, and which innings to learn from. Code rejects an idea that is off the menu, already tried, or repeats a clue in disguise.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; color: #334155">
+            <strong style="color: #0F172A">How each idea is scored</strong>
+            <div>Each idea predicts three past seasons it hasn't learned from. Its score is the average miss across the three.</div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.3fr; gap: 4px; font-size: 12px; font-weight: 600; text-align: center">
+              <div style="background: #E2E8F0; border-radius: 6px; padding: 8px 4px">2005–22<br>learn</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2023<br>check</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2024<br>check</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2025<br>check</div>
+              <div style="background: #0F172A; color: #FFFFFF; border-radius: 6px; padding: 8px 4px">2026<br>locked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Player -->
+    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden">
+
+      <!-- Controls: choose the AI and press play -->
+      <div style="display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-end; padding: 18px 20px; border-bottom: 1px solid #E2E8F0; background: #EEF2FF">
+        <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+          <label for="model" style="font-size: 14px; font-weight: 700; color: #312E81">Choose the AI</label>
+          <select id="model" aria-describedby="model-note" onChange="{{ pickModel }}" value="{{ modelValue }}" disabled="{{ isRunning }}" style="font-family: inherit; font-size: 16px; padding: 10px 12px; min-height: 44px; border: 1px solid #A5B4FC; border-radius: 8px; background: #FFFFFF; color: #0F172A">
+            <sc-for list="{{ models }}" as="m" hint-placeholder-count="5">
+              <option value="{{ m.value }}">{{ m.label }}</option>
+            </sc-for>
+          </select>
+          <div id="model-note" style="font-size: 13px; color: #3730A3">{{ modelNote }}</div>
+        </div>
+        <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button onClick="{{ play }}" disabled="{{ isRunning }}" style="background: #4338CA; color: #FFFFFF; border: 0; border-radius: 10px; padding: 12px 22px; font-weight: 800; font-size: 16px; min-height: 48px">{{ playLabel }}</button>
+            <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ replay }}" style="background: #FFFFFF; color: #0F172A; border: 1px solid #A5B4FC; border-radius: 10px; padding: 12px 18px; font-weight: 600; font-size: 15px; min-height: 48px">Watch it again</button>
+            </sc-if>
+          </div>
+          <div style="font-size: 13px; color: #334155">A live run · about a minute · runs can differ each time</div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #E2E8F0; background: #F8FAFC; font-size: 14px; color: #475569">
+        <span aria-live="polite">{{ progress }}</span>
+        <span>Lower score = closer predictions</span>
+      </div>
+
+      <!-- What makes it an agent? -->
+      <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 10px">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 800">What makes it an agent?</h3>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #334155; max-width: 820px">A language model working in a loop: it looks at the results so far, decides what to try next, and stops when it can't do better. Here the AI makes those decisions in the purple steps; code does everything else.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: #475569">
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="display: inline-block; width: 22px; height: 14px; border-radius: 4px; background: #F5F3FF; border: 1.5px dashed #7C3AED"></span>Purple dashed: the AI decides</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="display: inline-block; width: 22px; height: 14px; border-radius: 4px; background: #FFFFFF; border: 1px solid #CBD5E1"></span>Solid: code</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="display: inline-block; width: 22px; height: 14px; border-radius: 4px; background: #F0FDF4; border: 1px solid #86EFAC"></span>Green: done</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span aria-hidden="true" style="display: inline-block; width: 22px; height: 14px; border-radius: 4px; background: #FFFFFF; border: 1px solid #4338CA; box-shadow: 0 0 0 2px #4338CA"></span>Ringed: happening now</span>
+        </div>
+        <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+            <div style="font-size: 14px; line-height: 1.55; color: #334155">Built with LangGraph. Each box is a node, a Python function, and each arrow is an edge. Some edges are conditional: after <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">check_proposal</code> and <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">evaluate</code>, the graph reads its state and chooses where to go next: back to <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">propose_features</code>, on to <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">fit_model</code>, or out to the yardstick. The state carries the data, every idea tried and every score from one step to the next.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- The graph, shown by default -->
+      <div style="padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid #E2E8F0">
+        <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <sc-for list="{{ graphRows }}" as="g" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px">
+              <div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569"><span>{{ g.title }}</span><span style="font-weight: 500; letter-spacing: 0">{{ g.note }}</span></div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+                <sc-for list="{{ g.nodes }}" as="n" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <sc-if value="{{ n.arrowBefore }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="color: #64748B">→</span></sc-if>
+                    <div style="{{ n.pillStyle }}">
+                      <span style="{{ n.badgeStyle }}">{{ n.stage }}</span>
+                      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px">{{ n.name }}</span>
+                      <sc-if value="{{ n.ai }}" hint-placeholder-val="{{ false }}"><span style="font-size: 10px; font-weight: 700; color: #5B21B6; background: #EDE9FE; border-radius: 4px; padding: 1px 5px">AI</span></sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ g.hasLoop }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #4338CA; font-weight: 600">{{ g.loop }}</span></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+            <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569">RIGHT NOW</div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px">
+              <span style="color: #475569">Step</span><span style="font-family: 'JetBrains Mono', monospace">{{ st.node }}</span>
+              <span style="color: #475569">Doing</span><span>{{ st.doing }}</span>
+              <span style="color: #475569">Round</span><span>{{ st.round }}</span>
+              <span style="color: #475569">Best so far</span><span style="font-family: 'JetBrains Mono', monospace">{{ st.best }}</span>
+            </div>
+          </div>
+          <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1px dashed #CBD5E1; background: #F8FAFC; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+              <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569">THE 8 ML STAGES</div>
+              <sc-for list="{{ stages }}" as="sg" hint-placeholder-count="8">
+                <div style="display: flex; gap: 8px; align-items: center; font-size: 13px"><span style="{{ sg.badgeStyle }}">{{ sg.n }}</span><span>{{ sg.name }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- Round feed -->
+      <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}">
+        <div style="padding: 28px 20px; text-align: center; font-size: 15px; color: #475569">The agent's ideas appear here, one round at a time, once you press play.</div>
+      </sc-if>
+      <div style="display: flex; flex-direction: column">
+        <sc-for list="{{ visibleRounds }}" as="r" hint-placeholder-count="2">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 18px 20px; border-bottom: 1px solid #F1F5F9">
+            <div style="flex: 0 0 72px; font-size: 13px; font-weight: 700; color: #475569; padding-top: 3px">ROUND {{ r.n }}</div>
+            <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+              <div style="font-size: 16px; font-weight: 700">{{ r.idea }}</div>
+              <div style="font-size: 15px; line-height: 1.5; color: #3730A3; font-style: italic">“{{ r.quote }}”</div>
+              <sc-if value="{{ r.showSetup }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 13px; line-height: 1.5; color: #475569; background: #F1F5F9; border-radius: 8px; padding: 6px 10px; align-self: flex-start">{{ r.setup }}</div>
+              </sc-if>
+            </div>
+            <div style="flex: 0 0 150px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700">{{ r.score }}</div>
+              <div style="{{ r.tagStyle }}">{{ r.tag }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; background: #F8FAFC">
+          <div style="font-size: 15px">Best idea: <strong>runs at halfway + wickets in hand</strong>, learning from the last 10 seasons.</div>
+          <a href="#verdict" style="font-weight: 700; font-size: 15px; text-decoration: none; padding: 10px 0">See how it did on 2026 ↓</a>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <!-- 4. THE VERDICT: revealed when the run finishes -->
+  <section id="verdict" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px; display: flex; flex-direction: column; gap: 24px">
+    <sc-if value="{{ locked }}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #047857">THE VERDICT</div>
+        <div style="background: #FFFFFF; border: 1px dashed #94A3B8; border-radius: 16px; padding: 32px 24px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+          <div style="font-size: 20px; font-weight: 800">{{ lockedTitle }}</div>
+          <div style="font-size: 15px; color: #475569; max-width: 520px">2026 stays locked until the agent has chosen its model. Then it is used once, to judge it against the goal.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 24px">
+        <div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+          <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #047857">THE VERDICT</div>
+          <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">Goal reached. On a season it never saw, the agent beat the broadcaster by 3.5 runs.</h2>
+          <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #475569">It also matched a brute-force search of 24 combinations, using just 5 tries.</p>
+        </div>
+
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="4">
+            <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+              <div style="flex: 0 0 200px; font-size: 15px; font-weight: 600">{{ b.label }}</div>
+              <div style="flex: 1 1 300px; min-width: 0; display: flex; align-items: center; gap: 10px">
+                <div style="flex: 1 1 auto; height: 22px; background: #F1F5F9; border-radius: 6px; overflow: hidden">
+                  <div style="{{ b.barStyle }}"></div>
+                </div>
+                <div style="flex: 0 0 52px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px; text-align: right">{{ b.value }}</div>
+              </div>
+            </div>
+          </sc-for>
+          <div style="font-size: 13px; color: #475569">Average runs off the real total, 171 innings from 2026. Shorter is better.</div>
+        </div>
+
+        <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px">
+            <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+                <strong style="font-size: 15px">Check seasons vs the final test</strong>
+                <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 6px 12px; font-size: 14px">
+                  <div style="color: #475569">Runs off</div><div style="color: #475569; font-weight: 600">2023–25</div><div style="color: #475569; font-weight: 600">2026</div>
+                  <div>AI agent</div><div style="font-family: 'JetBrains Mono', monospace">17.8</div><div style="font-family: 'JetBrains Mono', monospace; font-weight: 700">17.9</div>
+                  <div>Brute-force search</div><div style="font-family: 'JetBrains Mono', monospace">17.0</div><div style="font-family: 'JetBrains Mono', monospace; font-weight: 700">17.8</div>
+                </div>
+                <div style="font-size: 14px; line-height: 1.5; color: #475569">The best of 27 tries always looks a little lucky, so it slips on a new season. The 2026 score is the honest one.</div>
+              </div>
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+                <strong style="font-size: 15px">How often is it close?</strong>
+                <sc-for list="{{ closeness }}" as="c" hint-placeholder-count="3">
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px"><span>{{ c.label }}</span><span style="color: #475569">{{ c.bias }}</span></div>
+                    <div style="height: 10px; background: #E2E8F0; border-radius: 5px; overflow: hidden"><div style="{{ c.barStyle }}"></div></div>
+                  </div>
+                </sc-for>
+                <div style="font-size: 13px; color: #475569">Share of innings within 10 runs of the real total.</div>
+              </div>
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+                <strong style="font-size: 15px">What moves the final total</strong>
+                <sc-for list="{{ effects }}" as="e" hint-placeholder-count="6">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span>{{ e.label }}</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: {{ e.color }}">{{ e.value }}</span></div>
+                </sc-for>
+                <div style="font-size: 13px; color: #475569">Runs added by a typical difference in each clue, in the winning model.</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px">
+          <div style="flex: 1 1 340px; min-width: 0; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #047857">RULE OF THUMB FOR THE NEXT MATCH</div>
+            <div style="font-size: 18px; font-weight: 700; line-height: 1.4">Take the broadcaster's projection, then add about 6 runs for every extra wicket in hand.</div>
+          </div>
+          <div style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+            <button onClick="{{ toggleTrust }}" aria-expanded="{{ trustOpen }}" style="text-align: left; background: transparent; border: 0; padding: 0; font-size: 17px; font-weight: 700; color: #0F172A; min-height: 44px">{{ trustLabel }}</button>
+            <sc-if value="{{ trustOpen }}" hint-placeholder-val="{{ false }}">
+              <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5; color: #334155">
+                <li>The agent chose its model using 2023–2025 only.</li>
+                <li>2026 stayed locked until the end and was used once.</li>
+                <li>A plain grid search ran alongside as a yardstick.</li>
+              </ul>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- 5. YOUR TURN: uses the model the run built -->
+  <section id="try" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px">
+    <div style="background: #0B1220; color: #FFFFFF; border-radius: 20px; padding: 32px; display: flex; flex-wrap: wrap; gap: 32px; align-items: center">
+      <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #A5B4FC">YOUR TURN</div>
+        <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">Give it a halfway score.</h2>
+        <p style="margin: 0; font-size: 16px; color: #CBD5E1">See the agent's prediction next to the broadcaster's.</p>
+      </div>
+      <sc-if value="{{ locked }}" hint-placeholder-val="{{ true }}">
+        <div style="flex: 1 1 420px; min-width: 0; font-size: 15px; line-height: 1.5; color: #CBD5E1; border: 1px dashed #334155; border-radius: 12px; padding: 18px">Run the experiment first. Your turn uses the model the agent builds. <a href="#watch" style="color: #A5B4FC">Go to Watch it think ↑</a></div>
+      </sc-if>
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+          <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 110px">
+            <label for="runs" style="font-size: 13px; color: #CBD5E1">Runs</label>
+            <input id="runs" value="82" style="background: #111A2E; color: #FFFFFF; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 18px; font-family: 'JetBrains Mono', monospace">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 110px">
+            <label for="wkts" style="font-size: 13px; color: #CBD5E1">Wickets</label>
+            <input id="wkts" value="2" style="background: #111A2E; color: #FFFFFF; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 18px; font-family: 'JetBrains Mono', monospace">
+          </div>
+          <button style="flex: 1 1 140px; background: #6366F1; color: #FFFFFF; border: 0; border-radius: 8px; padding: 14px; font-weight: 700; font-size: 16px; min-height: 48px">Predict</button>
+          <div style="flex: 1 1 100%; display: flex; gap: 24px; flex-wrap: wrap; font-size: 15px; color: #CBD5E1; padding-top: 6px">
+            <div>Agent: <strong style="color: #A5B4FC; font-family: 'JetBrains Mono', monospace">[prediction]</strong></div>
+            <div>Broadcaster: <strong style="color: #FDBA74; font-family: 'JetBrains Mono', monospace">164</strong></div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <!-- 6. THE SCOREBOOK (unchanged; filled in after a run) -->
+  <section id="deeper" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 72px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #475569">THE SCOREBOOK</div>
+      <h2 style="margin: 0; font-size: 26px; font-weight: 800">For the data scientists: every detail.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+      <sc-for list="{{ deeper }}" as="d" hint-placeholder-count="4">
+        <a href="{{ d.href }}" style="text-decoration: none; color: #0F172A; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 16px; font-weight: 700">{{ d.title }}</span>
+          <span style="font-size: 14px; line-height: 1.5; color: #475569">{{ d.body }}</span>
+        </a>
+      </sc-for>
+    </div>
+    <div style="font-size: 13px; color: #475569; padding-top: 16px; border-top: 1px solid #E2E8F0">Built by John Fong · Tested by Alesja Tanabe · Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> · Questions or ideas? <a href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener">Leave feedback</a></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startAll":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":3600}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { stage: 'idle', step: -1, trust: false, model: 'm2', ranModel: 'Balanced', all: !!p.startAll };
+    this.timer = null;
+    this.seq = [
+      { n: 'load_data', doing: 'Loading 5,209 innings', round: '—' },
+      { n: 'split', doing: 'Setting aside check seasons and locking 2026', round: '—' },
+      { n: 'explore', doing: 'Summarising the data for the agent', round: '—' },
+      { n: 'baseline', doing: 'Scoring the broadcaster and the average-total guess', round: '—' },
+      { n: 'propose_features', doing: 'The AI is choosing its clues', round: '1', ai: true },
+      { n: 'check_proposal', doing: 'Code checks the idea', round: '1' },
+      { n: 'fit_model', doing: 'Code fits the regression', round: '1' },
+      { n: 'evaluate', doing: 'Code scores it on the check seasons', round: '1', show: 1 },
+      { n: 'propose_features', doing: 'The AI is choosing its clues', round: '2', ai: true },
+      { n: 'check_proposal', doing: 'Code checks the idea', round: '2' },
+      { n: 'fit_model', doing: 'Code fits the regression', round: '2' },
+      { n: 'evaluate', doing: 'Code scores it on the check seasons', round: '2', show: 2 },
+      { n: 'propose_features', doing: 'The AI is choosing its clues', round: '3', ai: true },
+      { n: 'check_proposal', doing: 'Code checks the idea', round: '3' },
+      { n: 'fit_model', doing: 'Code fits the regression', round: '3' },
+      { n: 'evaluate', doing: 'Code scores it on the check seasons', round: '3', show: 3 },
+      { n: 'propose_features', doing: 'The AI is choosing its clues', round: '4', ai: true },
+      { n: 'check_proposal', doing: 'Code rejects it: already tried', round: '4', show: 4 },
+      { n: 'propose_features', doing: 'The AI decides it is finished', round: '5', ai: true, show: 5 },
+      { n: 'grid_search', doing: 'The brute-force search runs as a yardstick', round: '—' },
+      { n: 'final_test', doing: 'Unlocking 2026 and scoring once', round: '—' },
+      { n: 'explain_in_cricket_terms', doing: 'Code writes up the facts', round: '—' },
+      { n: 'write_in_cricket_terms', doing: 'The AI words the takeaways', round: '—', ai: true }
+    ];
+  }
+  componentWillUnmount() { if (this.timer) clearTimeout(this.timer); }
+  advance() {
+    const next = this.state.step + 1;
+    if (next >= this.seq.length) { this.timer = null; this.setState({ stage: 'done', step: this.seq.length }); return; }
+    this.setState({ step: next });
+    this.timer = setTimeout(() => this.advance(), this.seq[next].ai ? 2200 : 650);
+  }
+  run(model) {
+    if (this.timer) clearTimeout(this.timer);
+    this.setState({ stage: 'running', step: -1, ranModel: model || this.state.ranModel });
+    this.timer = setTimeout(() => this.advance(), 300);
+  }
+  renderVals() {
+    const s = this.state;
+    const trustOpen = s.all || s.trust;
+    const running = s.stage === 'running';
+    const done = s.stage === 'done';
+    const tag = (kind) => {
+      const c = { best: ['#ECFDF5', '#047857'], first: ['#F1F5F9', '#334155'], none: ['#F1F5F9', '#475569'], rej: ['#FEF2F2', '#B91C1C'], stop: ['#EEF2FF', '#3730A3'] }[kind];
+      return 'font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: ' + c[0] + '; color: ' + c[1];
+    };
+    const rounds = [
+      { n: 1, idea: 'Runs at halfway', quote: 'Runs at the halfway mark is the obvious place to start for a final total.', score: '18.2', tag: 'first score', tagStyle: tag('first') },
+      { n: 2, idea: '+ Wickets in hand · last 10 seasons', quote: 'A side with wickets in hand can swing harder in the last ten overs, and the last ten seasons are closer to today’s game.', score: '17.8', tag: 'new best', tagStyle: tag('best') },
+      { n: 3, idea: '+ Sixes hit · last 5 seasons', quote: 'Sixes already hit suggest the batters are set to go big.', score: '18.0', tag: 'no better', tagStyle: tag('none') },
+      { n: 4, idea: 'Same idea again', quote: 'Let me try that once more.', score: '✕', tag: 'code rejected: already tried', tagStyle: tag('rej') },
+      { n: 5, idea: 'Stops', quote: 'I think that is as good as it gets.', score: '17.8', tag: 'agent finished', tagStyle: tag('stop') }
+    ];
+    const setups = [
+      'All seasons · every season counts equally · league and full-member innings',
+      'Last 10 seasons · recent seasons count a little more · league and full-member innings',
+      'Last 5 seasons · recent seasons count a little more · all innings, including associate nations',
+      'Same clues, seasons, weighting and innings as round 3',
+      'Runs at halfway + wickets in hand · all seasons · equal weighting'
+    ];
+    rounds.forEach((r, i) => { r.setup = setups[i]; r.showSetup = s.all; });
+
+    // how far the run has got
+    const passed = this.seq.slice(0, Math.max(0, s.step + 1));
+    const shown = passed.reduce((m, x) => (x.show ? Math.max(m, x.show) : m), 0);
+    const visited = {};
+    passed.forEach((x) => { visited[x.n] = true; });
+    const current = running && s.step >= 0 ? this.seq[s.step] : null;
+    const bestByShown = ['—', '18.2', '17.8', '17.8', '17.8', '17.8'];
+
+    const stageColor = ['', '#8A5300', '#4D6B00', '#0E7490', '#86437A', '#C2410C', '#A21C5C', '#0F5F4F', '#7C4A3A'];
+    const badge = (n) => 'display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #FFFFFF; flex: 0 0 auto; background: ' + stageColor[n];
+    const stageNames = ['Prepare the data', 'Split the data', 'Understand the data', 'Frame the problem', 'Choose the candidate model', 'Fit the model', 'Final assessment', 'Interpret and communicate'];
+    const stages = stageNames.map((name, i) => ({ n: i + 1, name, badgeStyle: badge(i + 1) }));
+    const node = (name, stage, opts) => {
+      const o = opts || {};
+      let pill = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; transition: box-shadow 0.2s; ';
+      if (o.ai) pill += 'background: #F5F3FF; border: 1.5px dashed #7C3AED';
+      else pill += (visited[name] || done ? 'background: #F0FDF4; border: 1px solid #86EFAC' : 'background: #FFFFFF; border: 1px solid #CBD5E1');
+      if (current && current.n === name) pill += '; box-shadow: 0 0 0 3px #4338CA';
+      return { name, stage, ai: !!o.ai, arrowBefore: !o.first, pillStyle: pill, badgeStyle: badge(stage) };
+    };
+    const graphRows = [
+      { title: 'ONCE, AT THE START', note: 'data preparation script ran beforehand', hasLoop: false, loop: '', nodes: [
+        node('load_data', 1, { first: true }), node('split', 2), node('explore', 3), node('baseline', 4) ] },
+      { title: 'EACH ROUND', note: 'up to 6 rounds; rejected ideas count', hasLoop: true, loop: '↺ continue · rejected → back to propose', nodes: [
+        node('propose_features', 5, { first: true, ai: true }), node('check_proposal', 5), node('fit_model', 6), node('evaluate', 5) ] },
+      { title: 'THE YARDSTICK', note: 'runs when the agent stops', hasLoop: false, loop: '', nodes: [
+        node('grid_search', 5, { first: true }) ] },
+      { title: 'ONCE, AT THE END', note: '2026 unlocked here', hasLoop: false, loop: '', nodes: [
+        node('final_test', 7, { first: true }), node('explain_in_cricket_terms', 8), node('write_in_cricket_terms', 8, { ai: true }) ] }
+    ];
+
+    const close = (label, pct, bias, color) => ({ label, bias, barStyle: 'height: 100%; border-radius: 5px; background: ' + color + '; width: ' + pct + '%' });
+    const closeness = [
+      close('AI agent · 34%', 34, '4.0 runs too low', '#4F46E5'),
+      close('Brute-force search · 37%', 37, '1.1 runs too low', '#0F766E'),
+      close('Broadcaster\'s projection · 34%', 34, '7.2 runs too low', '#C2410C'),
+      close('Average-total guess · 23%', 23, '20.0 runs too low', '#94A3B8')
+    ];
+    const up = '#047857', down = '#B91C1C';
+    const effects = [
+      { label: 'Runs at halfway', value: '+28.8', color: up },
+      { label: 'Wickets in hand', value: '+12.1', color: up },
+      { label: 'Played in the IPL', value: '+7.0', color: up },
+      { label: 'Wickets lost, overs 7–10', value: '−4.8', color: down },
+      { label: 'Sixes hit', value: '+3.5', color: up },
+      { label: 'Current partnership', value: '−2.7', color: down }
+    ];
+    const modelList = [
+      { value: 'm0', name: 'Fast', note: 'Quick and cheap; a good first try.' },
+      { value: 'm1', name: 'Fast, Chinese maker', note: 'A quick, cheap model from MiniMax (China), to compare styles.' },
+      { value: 'm2', name: 'Balanced', note: 'Quickest here and reliable, with careful reasons.', isDefault: true },
+      { value: 'm3', name: 'More thorough', note: 'Slower and more careful; costs more.' },
+      { value: 'm4', name: 'Frontier, Chinese maker', note: "Moonshot AI's (China) top model; quick, but the priciest here." }
+    ];
+    const chosen = modelList.find((m) => m.value === s.model) || modelList[2];
+    const bar = (v, color) => 'height: 100%; border-radius: 6px; background: ' + color + '; width: ' + (v / 36 * 100).toFixed(1) + '%';
+    const bars = [
+      { label: 'AI agent (' + s.ranModel + ')', value: '17.9', barStyle: bar(17.9, '#4F46E5') },
+      { label: 'Brute-force search', value: '17.8', barStyle: bar(17.8, '#0F766E') },
+      { label: 'Broadcaster\'s projection', value: '21.4', barStyle: bar(21.4, '#C2410C') },
+      { label: 'Average-total guess', value: '34.5', barStyle: bar(34.5, '#94A3B8') }
+    ];
+    const deeper = [
+      { title: 'Every model tried', body: 'All 27 candidates, ranked, with the 24-cell grid search.', href: '#deeper' },
+      { title: 'The agent graph, step by step', body: 'Step back and forth through the run, node by node.', href: '#watch' },
+      { title: 'The data', body: '5,209 innings: sort, filter, download as CSV.', href: '#deeper' },
+      { title: 'How this app was built', body: 'LangGraph, FastAPI, Vercel, and the specs behind it.', href: 'Built.dc.html' }
+    ];
+    const progress = s.stage === 'idle' ? 'Ready. Choose the AI and press play.'
+      : done ? 'Finished with ' + s.ranModel + ' · 5 tries · best 17.8 on the check seasons'
+      : (current ? 'Live with ' + s.ranModel + ' · ' + current.doing : 'Starting a live run with ' + s.ranModel + '…');
+    const st = done
+      ? { node: 'done', doing: 'Run finished', round: '5 tries', best: '17.8' }
+      : current
+        ? { node: current.n, doing: current.doing, round: current.round === '—' ? '—' : current.round + ' of up to 6', best: bestByShown[shown] }
+        : { node: '—', doing: 'Waiting for you to press play', round: '—', best: '—' };
+    return {
+      rounds, visibleRounds: rounds.slice(0, shown), bars, deeper, closeness, effects, graphRows, stages, st,
+      trustOpen, allOpen: s.all,
+      isIdle: s.stage === 'idle', isRunning: running, isDone: done, locked: !done,
+      lockedTitle: running ? 'The result appears when the agent finishes.' : 'Press play to see how it does.',
+      progress,
+      models: modelList.map((m) => ({ value: m.value, label: m.name + (m.isDefault ? ' (default)' : '') })),
+      modelValue: chosen.value, modelNote: chosen.note,
+      playLabel: running ? 'Running…' : (done ? '▶ Run again' : '▶ Play'),
+      play: () => { if (!running) this.run(chosen.name); },
+      replay: () => this.run(s.ranModel),
+      pickModel: (e) => this.setState({ model: e.target.value }),
+      trustLabel: (trustOpen ? '− ' : '+ ') + 'Why you can trust this score',
+      allLabel: s.all ? 'Simple view' : 'Show me everything',
+      allBtnStyle: 'min-height: 44px; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; ' + (s.all ? 'background: #0F172A; color: #FFFFFF; border: 1px solid #0F172A' : 'background: #FFFFFF; color: #0F172A; border: 1px solid #CBD5E1'),
+      toggleTrust: () => this.setState({ trust: !trustOpen, all: false }),
+      toggleAll: () => this.setState({ all: !s.all, trust: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

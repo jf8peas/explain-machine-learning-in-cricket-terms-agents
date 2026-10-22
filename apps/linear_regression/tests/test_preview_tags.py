@@ -16,7 +16,7 @@ def meta(attr: str, name: str) -> str:
 
 
 def test_the_tags_are_fixed_text_the_question_and_have_no_image():
-    assert meta("property", "og:title") == "Can an AI agent beat the TV at predicting a T20 score?"
+    assert meta("property", "og:title") == "Can an AI agent beat the broadcaster's projected score?"
     assert meta("property", "og:description").startswith("Halfway through a T20 innings, where will it finish?")
     assert "Choose an AI, press play and watch it try" in meta("property", "og:description")
     assert meta("property", "og:type") == "website"

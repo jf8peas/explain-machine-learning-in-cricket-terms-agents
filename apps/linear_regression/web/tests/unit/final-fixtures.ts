@@ -7,7 +7,7 @@ const fig = (f: Fig) => ({ n: 214, miss_percent: 12, ...f });
 const phrase = (bias: number) => (Math.abs(bias) < 0.05 ? "guesses about right on average"
   : `guesses ${Math.abs(bias).toFixed(1)} runs too ${bias > 0 ? "high" : "low"} on average`);
 
-/** An ordinary spread of four methods: the rival's model leads, then the AI's, the TV and the know-nothing guess. */
+/** An ordinary spread of four methods: the rival's model leads, then the AI's, the broadcaster and the know-nothing guess. */
 export const ordinary: Record<string, Fig> = {
   know_nothing: { average_miss: 30.4, within_10: 22.0, within_20: 44.2, bias: 0.0 },
   broadcaster: { average_miss: 21.4, within_10: 31.5, within_20: 58.6, bias: -12.2 },
@@ -26,7 +26,7 @@ export function finalState(figs: Record<string, Fig> = ordinary, winner: "llm" |
   };
 }
 
-/** The design's run: validation rival 17.0, AI 17.4; test 2026 AI 17.7, rival 17.8, TV 21.4, know-nothing 34.5. */
+/** The design's run: validation rival 17.0, AI 17.4; test 2026 AI 17.7, rival 17.8, broadcaster 21.4, know-nothing 34.5. */
 export const designFigs: Record<string, Fig> = {
   know_nothing: { average_miss: 34.5, within_10: 22.0, within_20: 40.0, bias: -20.0 },
   broadcaster: { average_miss: 21.4, within_10: 31.5, within_20: 58.6, bias: -7.2 },
@@ -61,17 +61,17 @@ export function explanation(facts: Record<string, Fact> = {}, blocks: Block[] = 
 
 export const verdictBlock = (variant: "reached" | "missed_beat" | "missed_worse"): Block => ({
   id: "verdict", title: variant === "reached" ? "Goal reached" : "Goal missed",
-  sentences: ["The rival's model beat the TV projection by 3.5 runs on average."],
+  sentences: ["The rival's model beat the broadcaster's projection by 3.5 runs on average."],
   visual: { variant, shape: variant === "reached" ? "tick" : variant === "missed_beat" ? "dash" : "cross" }, from_model: [],
 });
 
 export const takeawayBlocks = (): Block[] => [
-  { id: "takeaway_run_rate", title: "The run rate alone is a real help", sentences: ["The TV misses by 21.4 runs."], visual: {}, from_model: [] },
+  { id: "takeaway_run_rate", title: "The run rate alone is a real help", sentences: ["The broadcaster misses by 21.4 runs."], visual: {}, from_model: [] },
   { id: "takeaway_drivers", title: "A lost wicket costs about 7.0 runs", sentences: ["Each wicket costs 7.0 runs.", "Runs at 10 moves it most."],
     visual: { rows: [
       { feature: "wickets_at_10", label: "wickets lost", fact_id: "e1", effect_runs: -7.0, display: "7.0" },
       { feature: "runs_at_10", label: "runs at 10 overs", fact_id: "e2", effect_runs: 28.8, display: "28.8" },
     ], wicket: null }, from_model: [] },
-  { id: "takeaway_tv", title: "Sides speed up, and the TV forgets it", sentences: ["The TV guesses 12.2 runs too low."], visual: {}, from_model: [] },
-  { id: "rule_of_thumb", title: "A rule of thumb for watching", sentences: ["When the TV shows a projected score, add about 12.2 runs."], visual: {}, from_model: [] },
+  { id: "takeaway_tv", title: "Sides speed up, and the broadcaster forgets it", sentences: ["The broadcaster guesses 12.2 runs too low."], visual: {}, from_model: [] },
+  { id: "rule_of_thumb", title: "A rule of thumb for watching", sentences: ["When the broadcaster shows a projected score, add about 12.2 runs."], visual: {}, from_model: [] },
 ];

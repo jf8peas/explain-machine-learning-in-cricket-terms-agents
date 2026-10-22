@@ -97,7 +97,7 @@ def test_the_margin_comes_from_the_argument(margin, words):
     (0, 22.5, False),        # spot on the line is far from a typical miss
 ])
 def test_the_typical_miss_clause_appears_only_when_true(miss, avg, says):
-    example = {**EXAMPLE, "tv_projection": EXAMPLE["final_total"] - miss}       # the TV said less than the total by `miss`
+    example = {**EXAMPLE, "tv_projection": EXAMPLE["final_total"] - miss}       # the broadcaster said less than the total by `miss`
     assert ("about its typical miss" in hero_text.caption(example, avg)) is says
 
 
@@ -112,7 +112,7 @@ CONTEXT = "The first 10 overs, in grey, are context; the white part is what ever
 def test_the_caption_is_built_from_the_example_with_the_tv_short():
     assert hero_text.caption(EXAMPLE, 22.5) == (
         f"A real innings: Australia v India, Sydney Cricket Ground, December 2020. {CONTEXT} Australia went from 82/2 to 186. "
-        "The TV's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.")
+        "The broadcaster's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.")
 
 
 def test_the_caption_says_over_when_the_tv_was_above_the_total():
@@ -161,7 +161,7 @@ def test_the_chart_text_has_every_number_the_chart_shows_and_says_the_agent_is_u
 def test_the_chart_text_describes_the_zoom_the_miss_and_the_tvs_usual_miss():
     text = hero()["chart_text"]
     assert "zoom on the finish" in text.lower()
-    assert "the actual total 186" in text and "the TV projection 164 (22 runs short)" in text and "the average-total guess 162" in text
+    assert "the actual total 186" in text and "the broadcaster's projection 164 (22 runs short)" in text and "the average-total guess 162" in text
     assert "usual miss is 22.5 runs either way" in text and "band around its projection" in text
     assert "grey as context" in text
 
@@ -204,12 +204,12 @@ def test_miss_words_matches_the_shared_cases_the_page_is_tested_on(case):
 
 
 def test_the_goal_card_without_figures_is_the_kicker_and_the_goal_sentence_only():
-    assert hero_text.goal_card(3) == {"kicker": "THE GOAL", "sentence": "Beat the TV's projection by at least 3 runs on average."}
+    assert hero_text.goal_card(3) == {"kicker": "THE GOAL", "sentence": "Beat the broadcaster's projection by at least 3 runs on average."}
     assert hero_text.goal_card(2.5)["sentence"].endswith("at least 2.5 runs on average.")
 
 
 def test_the_goal_card_with_figures_names_the_years_and_the_test_season():
     card = hero_text.goal_card(3, 22.5, {"first_year": 2005, "last_year": 2022}, {"year": 2026, "innings": 1234})
-    assert card["tv"]["label"] == "runs: how far out the TV usually is, on past innings (2005–2022)" and card["tv"]["miss"] == 22.5
+    assert card["tv"]["label"] == "runs: how far out the broadcaster usually is, on past innings (2005–2022)" and card["tv"]["miss"] == 22.5
     assert card["target"]["runs"] == "3+"
     assert card["judged"] == "Judged on 1,234 innings from 2026, a season the agent never sees while it works."

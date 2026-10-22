@@ -25,8 +25,8 @@ export const ZOOM_STEP = 10;   // tick spacing on the zoom's ruler, in runs
 
 export interface ZoomRange { lo: number; hi: number; ticks: number[] }
 
-/** The totals the zoom's ruler covers: from the nearest 10 below the lowest of (actual, TV, know-nothing, TV - miss) to the
- *  nearest 10 above the highest of (those and TV + miss), with ZOOM_PAD runs of room so no marker sits on an edge, and at
+/** The totals the zoom's ruler covers: from the nearest 10 below the lowest of (actual, broadcaster, average-total, broadcaster - miss) to the
+ *  nearest 10 above the highest of (those and broadcaster + miss), with ZOOM_PAD runs of room so no marker sits on an edge, and at
  *  least one tick interval. Ticks every 10 runs, ends included. Layout only: it works out no statistic. */
 export function zoomRange(values: { actual: number; tv: number; nothing: number }, averageMiss: number): ZoomRange {
   const all = [values.actual, values.tv, values.nothing, values.tv - averageMiss, values.tv + averageMiss];
@@ -38,7 +38,7 @@ export function zoomRange(values: { actual: number; tv: number; nothing: number 
   return { lo, hi, ticks };
 }
 
-/** How far the TV was from the total, in words, from the displayed whole numbers: "22 runs short" when it said less than
+/** How far the broadcaster's projection was from the total, in words, from the displayed whole numbers: "22 runs short" when it said less than
  *  the total, "21 runs over" when it said more, "1 run" for one, "spot on" when equal. The server's caption uses the same rule. */
 export function missWords(actual: number, tv: number): string {
   const n = Math.round(actual) - Math.round(tv);

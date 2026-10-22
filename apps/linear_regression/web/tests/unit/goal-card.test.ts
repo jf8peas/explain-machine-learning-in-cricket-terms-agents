@@ -6,8 +6,8 @@ import type { GoalCard } from "../../src/page/goal-card";
 import { resultStrip, initialRunState } from "../../src/page/run-state";
 
 const full: GoalCard = {
-  kicker: "THE GOAL", sentence: "Beat the TV's projection by at least 3 runs on average.",
-  tv: { miss: 22.5, label: "runs: how far out the TV usually is, on past innings (2005–2022)" },
+  kicker: "THE GOAL", sentence: "Beat the broadcaster's projection by at least 3 runs on average.",
+  tv: { miss: 22.5, label: "runs: how far out the broadcaster usually is, on past innings (2005–2022)" },
   target: { runs: "3+", label: "runs closer: what the agent must do" }, judged: "Judged on 171 innings from 2026, a season the agent never sees while it works.",
 };
 

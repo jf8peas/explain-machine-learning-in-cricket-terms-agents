@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/022-goal-first/plan.md](specs/022-goal-first/plan.md)
+Current feature plan: [specs/023-broadcaster-projection/plan.md](specs/023-broadcaster-projection/plan.md)
 <!-- SPECKIT END -->

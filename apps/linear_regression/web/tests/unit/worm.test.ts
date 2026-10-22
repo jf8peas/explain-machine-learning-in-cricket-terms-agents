@@ -44,7 +44,7 @@ describe("the line graph", () => {
     expect(l.dotLabel).toBe("82/2");
   });
 
-  it("puts the TV and the know-nothing markers on the finish line at their totals", () => {
+  it("puts the broadcaster and the know-nothing markers on the finish line at their totals", () => {
     const l = wormPlan(current(), "wide").line;
     const sy = (r: number) => l.geometry.bottom - (r / l.axis.max) * (l.geometry.bottom - l.geometry.top);
     expect(l.tv).toEqual({ x: l.finishX, y: sy(164) });
@@ -67,7 +67,7 @@ describe("the line graph", () => {
     expect(wormPlan(input({}, { averageTotal: 230 }), "wide").line.axis.max).toBe(250);
   });
 
-  it("includes the top of the TV's miss band when extending the axis", () => {
+  it("includes the top of the broadcaster's miss band when extending the axis", () => {
     expect(wormPlan(input({ tv_projection: 190 }, { averageMiss: 30 }), "wide").line.axis.max).toBe(250);   // 190 + 30 = 220
   });
 
@@ -159,16 +159,16 @@ describe("zoomPlan", () => {
         for (const b of labelBoxes(z)) expect(overlap(b, { top: z.agent.y, bottom: z.agent.y + z.agent.height })).toBe(false);
       });
 
-      it("spans the TV's usual miss exactly from TV - miss to TV + miss on the zoom's scale", () => {
+      it("spans the broadcaster's usual miss exactly from projection - miss to projection + miss on the zoom's scale", () => {
         expect(z.usualMiss.top).toBeCloseTo(z.scale(e.tv_projection + inp.averageMiss), 9);
         expect(z.usualMiss.bottom).toBeCloseTo(z.scale(e.tv_projection - inp.averageMiss), 9);
         expect(z.usualMiss.from).toBeCloseTo(e.tv_projection - inp.averageMiss, 9);
         expect(z.usualMiss.to).toBeCloseTo(e.tv_projection + inp.averageMiss, 9);
-        expect(z.usualMiss.text).toBe(`TV's usual miss, ±${inp.averageMiss.toFixed(1)}`);
+        expect(z.usualMiss.text).toBe(`Usual miss, ±${inp.averageMiss.toFixed(1)}`);
         expect(z.usualMiss.top).toBeLessThan(z.usualMiss.bottom);
       });
 
-      it("words the bracket from the displayed whole numbers and spans the TV's value to the actual total", () => {
+      it("words the bracket from the displayed whole numbers and spans the broadcaster's value to the actual total", () => {
         const words = missWords(e.final_total, e.tv_projection);
         expect(z.bracket.words).toBe(words);
         expect(z.labels.find((l) => l.id === "miss")!.text).toBe(words);
@@ -192,21 +192,21 @@ describe("zoomPlan", () => {
       it("labels the three predictions with their totals", () => {
         const text = (id: string) => z.labels.find((l) => l.id === id)!.text;
         expect(text("actual")).toBe(`Actual ${e.final_total}`);
-        expect(text("tv")).toBe(`TV ${e.tv_projection}`);
+        expect(text("tv")).toBe(`Broadcaster ${e.tv_projection}`);
         expect(text("nothing")).toBe(`Average-total guess ${Math.round(inp.averageTotal)}`);
         expect(z.title).toEqual(["ZOOM ON THE FINISH", "total after 20 overs"]);
       });
     });
   }
 
-  it("reads the current innings as in the design: 22 runs short, labels Actual 186, TV 164 and Average-total guess 162", () => {
+  it("reads the current innings as in the design: 22 runs short, labels Actual 186, Broadcaster 164 and Average-total guess 162", () => {
     const z = wormPlan(current(), "wide").zoom;
     expect(z.bracket.words).toBe("22 runs short");
-    expect(z.labels.map((l) => l.text).sort()).toEqual(["22 runs short", "Actual 186", "Average-total guess 162", "TV 164"]);
+    expect(z.labels.map((l) => l.text).sort()).toEqual(["22 runs short", "Actual 186", "Average-total guess 162", "Broadcaster 164"]);
     expect(z.range).toEqual(zoomRange({ actual: 186, tv: 164, nothing: 162 }, 22.5));
   });
 
-  it("keeps the TV and the know-nothing guess apart when they are within 2 runs, and says over when the TV is above the total", () => {
+  it("keeps the broadcaster and the know-nothing guess apart when they are within 2 runs, and says over when the broadcaster is above the total", () => {
     const c = wormPlan(close(), "wide").zoom;
     const tv = c.labels.find((l) => l.id === "tv")!, kn = c.labels.find((l) => l.id === "nothing")!;
     expect(Math.abs(tv.y - kn.y)).toBeGreaterThanOrEqual(22 - 1e-9);

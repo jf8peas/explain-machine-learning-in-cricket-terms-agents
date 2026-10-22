@@ -7,7 +7,7 @@ const tag = (html: string, attr: string, name: string) => new RegExp(`<meta ${at
 
 test("the tags are in the raw HTML with no script run, and are the question", async ({ request }) => {
   const html = await (await request.get("/")).text();
-  expect(tag(html, "property", "og:title")).toBe("Can an AI agent beat the TV at predicting a T20 score?");
+  expect(tag(html, "property", "og:title")).toBe("Can an AI agent beat the broadcaster's projected score?");
   expect(tag(html, "property", "og:description")).toMatch(/^Halfway through a T20 innings, where will it finish\?/);
   expect(tag(html, "property", "og:description")).toContain("Choose an AI, press play and watch it try");
   expect(tag(html, "property", "og:type")).toBe("website");
@@ -21,5 +21,5 @@ test("the tags are in the raw HTML with no script run, and are the question", as
 test("the tags do not change with the run: after a run the title is still the question", async ({ page }) => {
   await page.goto("/?interval=40");
   await finishRun(page);
-  expect(await page.locator('meta[property="og:title"]').getAttribute("content")).toBe("Can an AI agent beat the TV at predicting a T20 score?");
+  expect(await page.locator('meta[property="og:title"]').getAttribute("content")).toBe("Can an AI agent beat the broadcaster's projected score?");
 });

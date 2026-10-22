@@ -60,7 +60,7 @@ test("Every idea tried: the ranked list and the brute-force search's two grids, 
   const misses = (await rows.locator(".rank-miss").allTextContents()).map(Number);
   expect(misses).toEqual([...misses].sort((x, y) => x - y));                      // ranked by average miss
   await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Idea", "Found by", "Average miss on check seasons (runs)"]);
-  await expect(page.getByTestId("ranking-tv")).toContainText("The TV projection missed by");
+  await expect(page.getByTestId("ranking-tv")).toContainText("The broadcaster's projection missed by");
 
   await expect(page.getByTestId("grid-table")).toHaveCount(2);
   await expect(page.getByTestId("grid-cell")).toHaveCount(24);

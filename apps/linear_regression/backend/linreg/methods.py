@@ -5,6 +5,8 @@ verdicts, the node summaries) reads from here. `TERMS` is the glossary (feature 
 level, and a technical term shown in brackets after it at its first use in a Commentary or Scorebook panel. `METHODS` are the
 four ways of predicting a final total, in display order; their names come from `TERMS`. The two the agent builds are `llm` and
 `forward`; the other two are references. Method ids, marker shapes and state keys are identifiers and are not renamed.
+The broadcaster's projection has a plain term ("broadcaster's projection"), a short form ("the broadcaster") and its possessive;
+sentences take the form they need from here and never append "'s" themselves (feature 023).
 """
 from __future__ import annotations
 
@@ -22,6 +24,8 @@ class Term:
     meaning: str                # one line, for the "Words we use" list
     order: int
     alt_plain: str | None = None
+    short: str | None = None              # the form for running text ("the broadcaster"); the plain term is the name of the method
+    short_possessive: str | None = None   # that form's possessive ("the broadcaster's"), written here so no sentence appends "'s"
 
 
 TERMS: tuple[Term, ...] = (
@@ -29,8 +33,9 @@ TERMS: tuple[Term, ...] = (
          "The program in which a language model chooses ideas and code checks every number.", 1),
     Term("brute_force", "brute-force search", "grid search with forward selection",
          "Plain code, no AI: it tries every combination of settings and builds the best clues for each.", 2),
-    Term("tv", "TV projection", "run rate × 20 overs",
-         "The broadcaster's forecast: the runs per over so far, times 20.", 3),
+    Term("tv", "broadcaster's projection", "run rate × 20 overs",
+         "The broadcaster's forecast: the runs per over so far, times 20.", 3,
+         short="the broadcaster", short_possessive="the broadcaster's"),
     Term("average_total", "average-total guess", "baseline (the training seasons' average total)",
          "Always guess the typical final total, whatever the score at 10 overs.", 4),
     Term("idea", "idea", "candidate model",
@@ -60,6 +65,23 @@ def with_technical(term_id: str) -> str:
     return f"{t.plain} ({t.technical})"
 
 
+def short(term_id: str) -> str:
+    """The form for running text ("the broadcaster"); the plain term when a concept has no short form."""
+    t = TERM_BY_ID[term_id]
+    return t.short or t.plain
+
+
+def short_possessive(term_id: str) -> str:
+    """The short form's possessive ("the broadcaster's"); the plain term when a concept has none."""
+    t = TERM_BY_ID[term_id]
+    return t.short_possessive or t.plain
+
+
+def bare(text: str) -> str:
+    """Without a leading "the " ("the broadcaster" -> "broadcaster"), for a label that stands on its own."""
+    return text[4:] if text.lower().startswith("the ") else text
+
+
 def meaning(term_id: str) -> str:
     return TERM_BY_ID[term_id].meaning
 
@@ -83,6 +105,10 @@ BANNED: tuple[Banned, ...] = (
     Banned(r"mechanical search", ()),
     Banned(r"\bsetups?\b", ()),
     Banned(r"forward selection", ("commentary", "scorebook", "definition")),
+    # feature 023: the yardstick is the broadcaster's projection, never "TV" (word-bounded, so "television" is not caught)
+    Banned(r"\bTV projection\b", ()),
+    Banned(r"\bthe TV\b", ()),
+    Banned(r"\bTV\b", ()),
 )
 
 
@@ -142,6 +168,7 @@ def definitions() -> dict[str, str]:
         "brute_force_technical": (f"Technically it is a grid search over {combinations} combinations of three hyperparameters "
                                   f"(which innings, how many seasons, how much recent seasons count), with greedy forward "
                                   f"selection of features in each cell."),
+        "projected_score": "the broadcaster's projected score",
         "brute_force_honest": (f"\"{cap(term('brute_force').split()[0])}\" refers to the settings only: it does not try every possible "
                                f"set of {term('clues')} (2^{clues}, about {subsets:,})."),
     }
@@ -149,7 +176,8 @@ def definitions() -> dict[str, str]:
 
 def terms_payload() -> list[dict]:
     return [{"id": t.id, "plain": t.plain, "technical": t.technical, "meaning": t.meaning, "order": t.order,
-             "alt_plain": t.alt_plain} for t in sorted(TERMS, key=lambda t: t.order)]
+             "alt_plain": t.alt_plain, "short": t.short, "short_possessive": t.short_possessive}
+            for t in sorted(TERMS, key=lambda t: t.order)]
 
 
 def banned_payload() -> list[dict]:

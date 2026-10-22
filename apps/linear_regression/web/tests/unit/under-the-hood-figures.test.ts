@@ -62,7 +62,7 @@ describe("the page's figures from the served responses", () => {
     expect(figures.goalMargin).toBe(String(reference.goal!.margin_runs));
   });
 
-  it("word the TV's bias from its sign", () => {
+  it("word the broadcaster's bias from its sign", () => {
     const low = buildFigures(data, { figures: { broadcaster: { bias: -14.3 } } });
     expect([low.tvBias, low.tvBiasWords]).toEqual(["14.3", "too low"]);
     const high = buildFigures(data, { figures: { broadcaster: { bias: 2.04 } } });

@@ -176,7 +176,7 @@ export function rightNow(s: RunState, doing: Record<string, string>, roundCap: n
   return describeStep(node, run.state, doing, roundCap, s.phase === "failed" ? `Stopped: ${s.message ?? ""}`.trim() : null);
 }
 
-/** The result strip's words ("goal reached", "The agent was 17.9 runs out, the TV 21.4."), from the run whose results are shown. */
+/** The result strip's words ("goal reached", "The agent was 17.9 runs out, the broadcaster 21.4."), from the run whose results are shown. */
 export function resultStrip(s: RunState): { label: string; text: string } | null {
   const strip = ((s.last?.state.final as { headlines?: { result_strip?: { label: string; text: string } } } | undefined)?.headlines ?? {}).result_strip;
   return strip ?? null;

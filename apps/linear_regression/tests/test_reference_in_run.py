@@ -123,7 +123,7 @@ def test_the_reference_finding_uses_the_test_year_figures_and_has_a_sentence(run
     kn, tv = f["accuracy"]["know_nothing"]["average_miss"], f["accuracy"]["broadcaster"]["average_miss"]
     rf = f["reference_finding"]
     assert {k: rf[k] for k in ("finding", "gap_runs", "gap_percent")} == reference_finding(kn, tv)
-    assert rf["sentence"].strip() and "TV projection" in rf["sentence"]
+    assert rf["sentence"].strip() and "broadcaster's projection" in rf["sentence"]
 
 
 def test_the_final_test_no_longer_emits_chart_points(run_graph, path):

@@ -1,6 +1,6 @@
 // Your turn: client-side only, enabled once a run has finished. The inputs are the ones the agent's own final model needs
 // (the brute-force search's model when no language model ran, and the form says so), built from the feature catalogue.
-import { methodModel } from "./terms";
+import { bareShortTerm, cap, methodModel } from "./terms";
 import { loadCatalogue } from "./catalogue";
 import { h } from "./dom";
 import { featureValues, fieldsFor, predict, projection, validate, type Catalogue, type Entered, type Field, type Model } from "./predict";
@@ -89,7 +89,7 @@ export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void 
       h("div", {}, h("span", { class: "big", "data-testid": "tryit-model" }, mine.toFixed(0)),
         h("span", { class: "cap", "data-testid": "tryit-model-cap" }, predictedCaption(model.source))),
       h("div", {}, h("span", { class: "big", "data-testid": "tryit-tv" }, tv.toFixed(0)),
-        h("span", { class: "cap" }, "the TV projected score"))));
+        h("span", { class: "cap" }, cap(bareShortTerm("tv"))))));
   });
 
   let shown = "";   // the model the form was built for; the same model again must not wipe what was typed

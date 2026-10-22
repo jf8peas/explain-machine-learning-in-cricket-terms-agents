@@ -39,7 +39,7 @@ def test_the_fixed_text_has_none_of_the_names_the_glossary_replaced(name):
 
 
 def test_a_glossary_term_in_the_fixed_text_is_spelled_as_the_list_spells_it():
-    """Case does not matter, hyphens do: "average-total guess", "brute-force search", "TV projection"."""
+    """Case does not matter, hyphens do: "average-total guess", "brute-force search", "broadcaster's projection"."""
     for name, path in PAGES.items():
         text = visible_text(path.read_text(encoding="utf-8"))
         for t in methods.TERMS:

@@ -37,7 +37,7 @@ def test_the_feature_limit_the_round_cap_the_stop_rule_and_the_grid_size_in_the_
 
 def test_the_goal_margin_in_the_frame_and_assess_notes():
     notes = stage_notes()
-    assert number_after(notes["frame"], "beat the TV projection by") == state.MARGIN_RUNS
+    assert number_after(notes["frame"], "beat the broadcaster's projection by") == state.MARGIN_RUNS
     assert number_before(notes["assess"], "run goal was met") == state.MARGIN_RUNS
 
 
@@ -46,7 +46,7 @@ def test_changing_a_constant_changes_the_note(monkeypatch, name, value):
     monkeypatch.setattr(state, name, value)
     notes = note_texts()
     where = {"SET_LIMIT": ("choose", "set of clues (up to"), "ROUND_CAP": ("choose", "The loop runs up to"),
-             "NO_IMPROVE_STOP": ("choose", "stops after"), "MARGIN_RUNS": ("frame", "beat the TV projection by")}[name]
+             "NO_IMPROVE_STOP": ("choose", "stops after"), "MARGIN_RUNS": ("frame", "beat the broadcaster's projection by")}[name]
     assert number_after(notes[where[0]], where[1]) == value
 
 

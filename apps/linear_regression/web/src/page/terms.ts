@@ -3,9 +3,10 @@
 // every call gives the page's usual "not available right now" text rather than a made-up name.
 export type TermId =
   | "agent" | "brute_force" | "tv" | "average_total" | "idea" | "clues" | "settings" | "check_seasons" | "test_season" | "pick";
-export type DefinitionKey = "brute_force" | "brute_force_technical" | "brute_force_honest";
+export type DefinitionKey = "brute_force" | "brute_force_technical" | "brute_force_honest" | "projected_score";
 
-export interface Term { id: string; plain: string; technical: string; meaning: string; order: number; alt_plain: string | null }
+export interface Term { id: string; plain: string; technical: string; meaning: string; order: number; alt_plain: string | null;
+  short?: string | null; short_possessive?: string | null }
 export interface BannedPattern { pattern: string; allowed_in: string[] }
 export interface TermsPayload {
   terms?: Term[];
@@ -44,6 +45,24 @@ export function altTerm(id: TermId): string {
   return t ? t.alt_plain ?? t.plain : NOT_AVAILABLE;
 }
 
+/** The form for running text ("the broadcaster"); the plain term where a concept has no short form. */
+export function shortTerm(id: TermId): string {
+  const t = byId.get(id);
+  return t ? t.short ?? t.plain : NOT_AVAILABLE;
+}
+
+/** The short form's possessive ("the broadcaster's"), written in the server's list so the page never appends "'s". */
+export function shortPossessive(id: TermId): string {
+  const t = byId.get(id);
+  return t ? t.short_possessive ?? t.plain : NOT_AVAILABLE;
+}
+
+/** The short form without a leading "the " ("broadcaster"), for a label that stands on its own; capitalise it with `cap`. */
+export function bareShortTerm(id: TermId): string {
+  const s = shortTerm(id);
+  return s.toLowerCase().startsWith("the ") ? s.slice(4) : s;
+}
+
 export function technical(id: TermId): string {
   return byId.get(id)?.technical ?? NOT_AVAILABLE;
 }
@@ -67,7 +86,7 @@ export const cap = (text: string): string => text.charAt(0).toUpperCase() + text
 /** The glossary term for each method id (the ids are identifiers; the words come from the server's list). */
 const METHOD_TERM: Record<string, TermId> = { llm: "agent", forward: "brute_force", broadcaster: "tv", know_nothing: "average_total" };
 
-/** A method as the page names it on its own: "AI agent", "brute-force search", "TV projection", "average-total guess". */
+/** A method as the page names it on its own: "AI agent", "brute-force search", "broadcaster's projection", "average-total guess". */
 export function methodName(id: string): string {
   const t = METHOD_TERM[id];
   return t ? term(t) : NOT_AVAILABLE;

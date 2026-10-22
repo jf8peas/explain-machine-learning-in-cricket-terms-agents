@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = "src/page";
 
 const NAMES = [
-  /\bAI agent\b/i, /brute[- ]force search/i, /TV projection/i, /average[- ]total guess/i, /\bour pick\b/i,
+  /\bAI agent\b/i, /brute[- ]force search/i, /TV projection/i, /broadcaster'?s? projection/i, /TV/, /average[- ]total guess/i, /\bour pick\b/i,
   /\brivals?\b/i, /know[- ]nothing/i, /forward selection/i, /mechanical search/i, /\bsetups?\b/i, /candidate models?/i,
 ];
 

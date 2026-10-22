@@ -42,7 +42,7 @@ describe("missWords", () => {
     for (const c of CASES) expect(missWords(c.actual, c.tv), `${c.actual} v ${c.tv}`).toBe(c.words);
   });
 
-  it("says short when the TV is below the total and over when it is above", () => {
+  it("says short when the broadcaster is below the total and over when it is above", () => {
     expect(missWords(186, 164)).toBe("22 runs short");
     expect(missWords(150, 171)).toBe("21 runs over");
     expect(missWords(180, 180)).toBe("spot on");
@@ -61,24 +61,24 @@ describe("zoomRange", () => {
   const contains = (r: ReturnType<typeof range>, v: number) => v >= r.lo + ZOOM_PAD - 1e-9 && v <= r.hi - ZOOM_PAD + 1e-9;
 
   it("for the current innings runs from the nearest 10 below the lowest value to the nearest 10 above the highest", () => {
-    const r = range(186, 164, 162, 22.5);          // lowest 141.5 (TV - miss), highest 186.5 (TV + miss)
+    const r = range(186, 164, 162, 22.5);          // lowest 141.5 (projection - miss), highest 186.5 (projection + miss)
     expect(r).toEqual({ lo: 130, hi: 190, ticks: [130, 140, 150, 160, 170, 180, 190] });
   });
 
-  it("keeps the TV and the know-nothing guess apart on a magnified ruler when they are within 2 runs", () => {
+  it("keeps the broadcaster and the know-nothing guess apart on a magnified ruler when they are within 2 runs", () => {
     const r = range(186, 164, 163, 22.5);
     expect(r.hi - r.lo).toBeLessThanOrEqual(80);
     for (const v of [186, 164, 163, 164 - 22.5, 164 + 22.5]) expect(contains(r, v), String(v)).toBe(true);
   });
 
-  it("covers the whole TV band when the TV is above the actual total", () => {
+  it("covers the whole broadcaster band when the broadcaster is above the actual total", () => {
     const r = range(150, 171, 162, 22.5);          // band 148.5 to 193.5
     expect(r.lo).toBeLessThanOrEqual(140);
     expect(r.hi).toBeGreaterThanOrEqual(200);
     for (const v of [150, 171, 162, 148.5, 193.5]) expect(contains(r, v), String(v)).toBe(true);
   });
 
-  it("extends past the plotted values when the TV's miss band goes beyond them", () => {
+  it("extends past the plotted values when the broadcaster's miss band goes beyond them", () => {
     const r = range(60, 60, 58, 22.5);              // band 37.5 to 82.5, beyond all three totals
     expect(r.lo).toBeLessThanOrEqual(30);
     expect(r.hi).toBeGreaterThanOrEqual(90);

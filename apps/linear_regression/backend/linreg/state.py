@@ -54,7 +54,7 @@ class RunState(TypedDict, total=False):
     split: dict[str, Any]               # the test year, the three check years and their innings counts
     explore: dict[str, Any]             # training years only
     baseline_validation_mae: float
-    reference_validation: dict[str, Any]   # the know-nothing guess and the TV projection on the validation year
+    reference_validation: dict[str, Any]   # the average-total guess and the broadcaster's projection on the validation year
     proposal: dict[str, Any] | None     # the latest proposal: features, window, weighting, training_innings, reason, finished
     setup: dict[str, str]               # window, weighting and training_innings of the proposal that passed the check
     rounds: Annotated[list[RoundNote], operator.add]

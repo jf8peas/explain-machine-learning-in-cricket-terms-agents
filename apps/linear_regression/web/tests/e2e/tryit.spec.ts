@@ -1,4 +1,4 @@
-// Your turn (features 020 and 022; locked until a run has finished): a halfway score in, the agent's own model's prediction beside the TV's out, worked out in the browser.
+// Your turn (features 020 and 022; locked until a run has finished): a halfway score in, the agent's own model's prediction beside the broadcaster's out, worked out in the browser.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
 import { runToEnd, streamOf } from "./helpers";
@@ -40,7 +40,7 @@ test("the section reads Give it a halfway score, and the form is ready once the 
   await open(page);
   await expect(page.locator("#try .kicker")).toHaveText("YOUR TURN");
   await expect(page.locator("#try-title")).toHaveText("Give it a halfway score.");
-  await expect(page.locator("#try .lead")).toHaveText("See the agent's prediction next to the TV's.");
+  await expect(page.locator("#try .lead")).toHaveText("See the agent's prediction next to the broadcaster's.");
   await expect(predict(page)).toBeEnabled();
   await expect(page.getByTestId("tryit-hint")).toBeHidden();
 });
@@ -76,7 +76,7 @@ test("when no language model ran, the form uses the brute-force search's model a
   await expect(page.getByTestId("tryit-model-cap")).toHaveText("the search's predicted total");
 });
 
-test("valid input shows the agent's prediction beside the TV projection, computed in the browser", async ({ page }) => {
+test("valid input shows the agent's prediction beside the broadcaster's projection, computed in the browser", async ({ page }) => {
   let requests = 0;
   await open(page);
   page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) requests++; });

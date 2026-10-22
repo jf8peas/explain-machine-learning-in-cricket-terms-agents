@@ -6,7 +6,9 @@
       "technical": "language-model agent",
       "meaning": "The program in which a language model chooses ideas and code checks every number.",
       "order": 1,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "brute_force",
@@ -14,15 +16,19 @@
       "technical": "grid search with forward selection",
       "meaning": "Plain code, no AI: it tries every combination of settings and builds the best clues for each.",
       "order": 2,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "tv",
-      "plain": "TV projection",
+      "plain": "broadcaster's projection",
       "technical": "run rate × 20 overs",
       "meaning": "The broadcaster's forecast: the runs per over so far, times 20.",
       "order": 3,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": "the broadcaster",
+      "short_possessive": "the broadcaster's"
     },
     {
       "id": "average_total",
@@ -30,7 +36,9 @@
       "technical": "baseline (the training seasons' average total)",
       "meaning": "Always guess the typical final total, whatever the score at 10 overs.",
       "order": 4,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "idea",
@@ -38,7 +46,9 @@
       "technical": "candidate model",
       "meaning": "One try: a set of clues together with settings.",
       "order": 5,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "clues",
@@ -46,7 +56,9 @@
       "technical": "features",
       "meaning": "The facts about an innings a model may use, such as wickets at 10 overs.",
       "order": 6,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "settings",
@@ -54,7 +66,9 @@
       "technical": "hyperparameters",
       "meaning": "Choices made before learning starts, such as how many seasons to learn from.",
       "order": 7,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "check_seasons",
@@ -62,7 +76,9 @@
       "technical": "validation (rolling cross-validation)",
       "meaning": "Seasons used again and again to choose between ideas.",
       "order": 8,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "test_season",
@@ -70,7 +86,9 @@
       "technical": "hold-out test",
       "meaning": "The one season kept sealed until the end, then scored once.",
       "order": 9,
-      "alt_plain": "final test"
+      "alt_plain": "final test",
+      "short": null,
+      "short_possessive": null
     },
     {
       "id": "pick",
@@ -78,12 +96,15 @@
       "technical": "the model chosen on the check seasons",
       "meaning": "The idea that scored best on the check seasons.",
       "order": 10,
-      "alt_plain": null
+      "alt_plain": null,
+      "short": null,
+      "short_possessive": null
     }
   ],
   "definitions": {
     "brute_force": "The brute-force search is plain code, no AI: it tries every combination of settings and, inside each, adds clues one at a time, keeping whichever cuts the miss most. It is the yardstick: if the agent can't match it, its reasoning isn't adding anything.",
     "brute_force_technical": "Technically it is a grid search over 24 combinations of three hyperparameters (which innings, how many seasons, how much recent seasons count), with greedy forward selection of features in each cell.",
+    "projected_score": "the broadcaster's projected score",
     "brute_force_honest": "\"Brute-force\" refers to the settings only: it does not try every possible set of clues (2^19, about 524,000)."
   },
   "banned": [
@@ -110,7 +131,19 @@
         "scorebook",
         "definition"
       ]
+    },
+    {
+      "pattern": "\\bTV projection\\b",
+      "allowed_in": []
+    },
+    {
+      "pattern": "\\bthe TV\\b",
+      "allowed_in": []
+    },
+    {
+      "pattern": "\\bTV\\b",
+      "allowed_in": []
     }
   ],
-  "terms_version": "w1-c241948d0e43"
+  "terms_version": "w1-e4aa5aa797b5"
 }

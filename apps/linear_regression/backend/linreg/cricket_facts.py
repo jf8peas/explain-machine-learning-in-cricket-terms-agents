@@ -24,7 +24,7 @@ _AVG, _PICK, _CHECKS, _TEST, _CLUES, _TV = (term("average_total"), term("pick"),
 
 Fact = dict[str, Any]
 
-# How the page names a method in a sentence ("The <label> beat the TV projection..."), by method id. From the glossary.
+# How the page names a method in a sentence ("The <label> beat the broadcaster's projection..."), by method id. From the glossary.
 METHOD_LABELS = {"llm": f"{term('agent')}'s model", "forward": f"{term('brute_force')}'s model",
                  "broadcaster": term("tv"), "know_nothing": term("average_total")}
 
@@ -154,7 +154,7 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
 
 
 def _reference_facts(accs: Mapping[str, Mapping[str, float]]) -> dict[str, Fact]:
-    """The TV projection against the average-total guess, and which way the TV leans. Empty when they are missing."""
+    """The broadcaster's projection against the average-total guess, and which way it leans. Empty when they are missing."""
     tv, know = accs.get("broadcaster"), accs.get("know_nothing")
     if not tv or not know:
         return {}

@@ -59,14 +59,14 @@ def test_the_banned_patterns_are_valid_and_forward_selection_is_the_only_one_wit
 
 def test_the_method_names_come_from_the_terms():
     names = {m["id"]: m["name"] for m in methods.method_defs()}
-    assert names == {"know_nothing": "the average-total guess", "broadcaster": "the TV projection",
+    assert names == {"know_nothing": "the average-total guess", "broadcaster": "the broadcaster's projection",
                      "llm": "the AI agent's model", "forward": "the brute-force search's model"}
 
 
 def test_the_reference_response_sends_the_glossary():
     body = TestClient(app).get("/api/reference").json()
     assert [t["id"] for t in body["terms"]] == IDS
-    assert set(body["definitions"]) == {"brute_force", "brute_force_technical", "brute_force_honest"}
+    assert set(body["definitions"]) == {"brute_force", "brute_force_technical", "brute_force_honest", "projected_score"}
     assert body["terms_version"] == methods.terms_version()
     assert {b["pattern"] for b in body["banned"]} == {b.pattern for b in BANNED}
 
@@ -77,3 +77,20 @@ def test_the_pages_unit_test_glossary_is_the_backends_payload():
     fixture = Path(__file__).resolve().parent.parent / "web" / "tests" / "fixtures" / "terms.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == methods.reference_terms(), (
         "web/tests/fixtures/terms.json is out of step: regenerate it from linreg.methods.reference_terms()")
+
+
+def test_the_broadcaster_has_a_long_form_a_short_form_and_a_short_possessive():
+    """Feature 023: sentences take the form they need from the list and never append "'s" themselves."""
+    tv = methods.TERM_BY_ID["tv"]
+    assert (tv.plain, tv.short, tv.short_possessive, tv.technical) == (
+        "broadcaster's projection", "the broadcaster", "the broadcaster's", "run rate × 20 overs")
+    assert methods.term("tv") == "broadcaster's projection" and methods.short("tv") == "the broadcaster"
+    assert methods.short_possessive("tv") == "the broadcaster's" and methods.bare(methods.short("tv")) == "broadcaster"
+    for t in methods.TERMS:
+        if t.id != "tv":
+            assert t.short is None and t.short_possessive is None
+            assert methods.short(t.id) == t.plain and methods.short_possessive(t.id) == t.plain       # a missing form falls back
+
+
+def test_the_projected_score_phrase_for_the_question_comes_from_the_server():
+    assert methods.definitions()["projected_score"] == "the broadcaster's projected score"

@@ -64,7 +64,7 @@ def test_the_gap_percentage_in_the_sentence_is_worked_from_the_displayed_misses(
 ])
 def test_each_finding_has_its_own_plain_sentence_with_the_gap(finding, gap, needle):
     text = t.finding_sentence(finding, gap, 25.9)
-    assert needle in text and "TV projection" in text and "knowing nothing" in text
+    assert needle in text and "broadcaster's projection" in text and "knowing nothing" in text
     assert str(abs(gap)) in text
 
 
@@ -81,7 +81,7 @@ def test_the_projection_bias_sentence_explains_a_low_lean_in_cricket_terms_and_n
 
 def test_the_large_bias_sentence_names_the_direction_and_who_it_covers():
     low = t.large_bias_sentence("low")
-    assert "too low" in low and "TV projection" in low
+    assert "too low" in low and "broadcaster's projection" in low
     assert "too high" in t.large_bias_sentence("high")
 
 

@@ -1,7 +1,7 @@
 """The blocks of the final test tab's "In cricket terms" section and their template wording (features 012 and 015). App-specific.
 
 The section is a fixed sequence of blocks: the verdict, three takeaways (what the run rate alone is worth, what drives the
-final total, why the TV gets it wrong) and a rule of thumb. Each has a title, one or two sentences and the data for its
+final total, why the broadcaster gets it wrong) and a rule of thumb. Each has a title, one or two sentences and the data for its
 visual. The verdict and the rule of thumb are code only: they are always this template wording and never offered to the
 language model, because a wrong direction or verdict there would mislead most. The language model may write only the
 three takeaways' titles and sentences. The wording here is written with {fact_id} placeholders and filled by `fill`, the
@@ -14,7 +14,9 @@ import re
 from typing import Any, Mapping
 
 from .cricket_facts import WICKET_COST_FEATURE, WICKET_HAND_FEATURE, Fact, effect_id
-from .methods import term
+from .methods import cap, short, term
+
+BROADCASTER = short("tv")        # "the broadcaster", for running text; term("tv") is the method's name (feature 023)
 
 PLACEHOLDER = re.compile(r"\{([A-Za-z0-9_]+)\}")
 
@@ -29,9 +31,9 @@ MOVABLE: tuple[str, ...] = ()                       # the takeaways keep their f
 
 # What each block the language model writes shows, in words for the language model's prompt.
 BLOCK_PURPOSE = {
-    "takeaway_run_rate": "takeaway 1: what the TV projection (the run rate alone) is worth next to just guessing the average total",
+    "takeaway_run_rate": "takeaway 1: what the " + term("tv") + " (the run rate alone) is worth next to just guessing the average total",
     "takeaway_drivers": "takeaway 2: what drives the final total, with a small chart of how far each clue moves the prediction",
-    "takeaway_tv": "takeaway 3: which way the TV projection tends to be wrong, and why a fan should care",
+    "takeaway_tv": "takeaway 3: which way the " + term("tv") + " tends to be wrong, and why a fan should care",
 }
 
 
@@ -57,17 +59,17 @@ def _verdict(facts: Mapping[str, Fact]) -> dict[str, Any]:
     reached, beat = facts["goal_reached"]["value"], facts["beat_tv"]["value"]
     if reached:
         variant, shape, title = "reached", "tick", "Goal reached"
-        sentences = ["The {chosen_label} beat the TV projection by {beat_tv_by} runs on average. The goal was to win by "
+        sentences = ["The {chosen_label} beat the " + term("tv") + " by {beat_tv_by} runs on average. The goal was to win by "
                      "at least {goal_margin} runs."]
     elif beat:
         variant, shape, title = "missed_beat", "dash", "Goal missed"
-        sentences = ["The {chosen_label} beat the TV projection, but only by {beat_tv_by} runs. The goal was to win by "
+        sentences = ["The {chosen_label} beat the " + term("tv") + ", but only by {beat_tv_by} runs. The goal was to win by "
                      "at least {goal_margin} runs."]
     else:
         variant, shape, title = "missed_worse", "cross", "Goal missed"
-        sentences = (["The TV projection was {beat_tv_by} runs more accurate than the {chosen_label}."]
+        sentences = (["The " + term("tv") + " was {beat_tv_by} runs more accurate than the {chosen_label}."]
                      if facts["beat_tv_by"]["value"] else
-                     ["The TV projection was exactly as accurate as the {chosen_label}."])
+                     ["The " + term("tv") + " was exactly as accurate as the {chosen_label}."])
     return {"title": title, "sentences": sentences, "visual": {"variant": variant, "shape": shape}}
 
 
@@ -77,18 +79,18 @@ def _takeaway_run_rate(facts: Mapping[str, Fact]) -> dict[str, Any]:
         title = "Scores keep climbing"
         return {"title": title, "visual": {},
                 "sentences": ["Totals keep rising, so the " + term("average_total") + " runs {know_nothing_bias_runs} {know_nothing_bias_direction}.",
-                              "The TV misses by {tv_test_miss} runs, against {know_nothing_miss} for that guess."]}
+                              cap(BROADCASTER) + " misses by {tv_test_miss} runs, against {know_nothing_miss} for that guess."]}
     elif state == "clearly":
         title = "The run rate alone is a real help"
-        sentence = ("The TV misses by {tv_test_miss} runs, {tv_gap} fewer than the " + term("average_total") +
+        sentence = (cap(BROADCASTER) + " misses by {tv_test_miss} runs, {tv_gap} fewer than the " + term("average_total") +
                     " ({know_nothing_miss}).")
     elif state == "barely":
         title = "The run rate alone barely helps"
-        sentence = ("The TV misses by {tv_test_miss} runs, only {tv_gap} fewer than the " + term("average_total") +
+        sentence = (cap(BROADCASTER) + " misses by {tv_test_miss} runs, only {tv_gap} fewer than the " + term("average_total") +
                     " ({know_nothing_miss}).")
     else:
         title = "The run rate alone does not help"
-        sentence = ("The TV misses by {tv_test_miss} runs, no better than the " + term("average_total") +
+        sentence = (cap(BROADCASTER) + " misses by {tv_test_miss} runs, no better than the " + term("average_total") +
                     " ({know_nothing_miss}).")
     return {"title": title, "sentences": [sentence], "visual": {}}
 
@@ -141,18 +143,18 @@ def _takeaway_drivers(facts: Mapping[str, Fact], labels: Mapping[str, Mapping[st
 def _takeaway_tv(facts: Mapping[str, Fact]) -> dict[str, Any]:
     direction = facts["tv_bias_direction"]["value"]
     if direction == "low":
-        title = "Sides speed up, and the TV forgets it"
-        sentence = ("On average the TV guesses {tv_bias_runs} runs {tv_bias_direction}: it assumes the run rate "
-                    "holds, but sides usually speed up late.")
+        title = "Sides speed up, and " + BROADCASTER + " forgets it"
+        sentences = ["On average " + BROADCASTER + " guesses {tv_bias_runs} runs {tv_bias_direction}.",
+                     "It assumes the run rate holds, but sides usually speed up late."]
     elif direction == "high":
-        title = "The TV expects more than sides deliver"
-        sentence = ("On average the TV guesses {tv_bias_runs} runs {tv_bias_direction}: it assumes the run rate "
-                    "holds, and this season it did not.")
+        title = cap(BROADCASTER) + " expects more than sides deliver"
+        sentences = ["On average " + BROADCASTER + " guesses {tv_bias_runs} runs {tv_bias_direction}.",
+                     "It assumes the run rate holds, and this season it did not."]
     else:
-        title = "On average the TV is about right"
-        sentence = ("The TV guesses {tv_bias_direction} on average, but it still misses by {tv_test_miss} runs in a "
-                    "typical innings.")
-    return {"title": title, "sentences": [sentence], "visual": {}}
+        title = "On average " + BROADCASTER + " is about right"
+        sentences = [cap(BROADCASTER) + " guesses {tv_bias_direction} on average, but it still misses by {tv_test_miss} runs in a "
+                     "typical innings."]
+    return {"title": title, "sentences": sentences, "visual": {}}
 
 
 def _rule_of_thumb(facts: Mapping[str, Fact]) -> dict[str, Any]:
@@ -160,19 +162,19 @@ def _rule_of_thumb(facts: Mapping[str, Fact]) -> dict[str, Any]:
     normal = kind in ("cost", "hand")
     verb = facts["rule_verb"]["value"]
     if verb != "none":
-        sentences = ["When the TV shows a projected score, {rule_verb} about {rule_runs} runs."]
+        sentences = ["When " + BROADCASTER + " shows a projected score, {rule_verb} about {rule_runs} runs."]
         if kind == "cost":
             sentences.append("Then allow for wickets: a bit more if few have fallen, a bit less if many have.")
         elif kind == "hand":
             sentences.append("Then allow for wickets: a bit more if wickets are in hand, a bit less if not.")
     else:
         if normal:
-            sentences = ["The TV's projection is about right on average, so use it as it is.",
+            sentences = ["The " + term("tv") + " is about right on average, so use it as it is.",
                          ("Then allow for wickets: each one lost by the halfway mark costs about {wicket_cost} runs."
                           if kind == "cost" else
                           "Then allow for wickets: each extra wicket in hand is worth about {wicket_in_hand_value} runs.")]
         else:
-            sentences = ["The TV's projection is about right on average, so use it as it is, but expect it to miss by "
+            sentences = ["The " + term("tv") + " is about right on average, so use it as it is, but expect it to miss by "
                          "{tv_test_miss} runs in a typical innings."]
     return {"title": "A rule of thumb for watching", "sentences": sentences, "visual": {}}
 

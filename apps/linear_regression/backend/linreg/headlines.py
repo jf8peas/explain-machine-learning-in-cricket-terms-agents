@@ -12,19 +12,20 @@ from typing import Any
 
 from .goal import agent_verdict
 from .hero_text import _plural, _runs
-from .methods import cap, term
+from .methods import cap, short, term
 
 SEARCH = term("brute_force")
 AGENT = term("agent")
+BROADCASTER = short("tv")
 
 TOO_CLOSE_RUNS = 0.5          # two displayed misses less than this far apart are "too close to call" (the page's exam.ts rule)
 
 CASES = ("beat", "edged", "held", "no_llm")
 OPENING = f"An {AGENT} built its own prediction model."
 HERO_H1 = {
-    "beat": f"{OPENING} Then it beat the TV.",
-    "edged": f"{OPENING} It edged the TV, just short of the goal.",
-    "held": f"{OPENING} The TV held on this time.",
+    "beat": f"{OPENING} Then it beat {BROADCASTER}.",
+    "edged": f"{OPENING} It edged {BROADCASTER}, just short of the goal.",
+    "held": f"{OPENING} {cap(BROADCASTER)} held on this time.",
     "no_llm": f"The {AGENT} couldn't run, so the {SEARCH} ran alone.",
 }
 ASKED = "Halfway through a T20 innings, where will it finish?"
@@ -49,7 +50,7 @@ def _runs_text(x: float) -> str:
 
 
 def case_for(agent_miss: float | None, tv_miss: float) -> str:
-    """beat, edged, held or no_llm, from the agent's displayed test miss against the TV's and the goal."""
+    """beat, edged, held or no_llm, from the agent's displayed test miss against the broadcaster's and the goal."""
     if agent_miss is None:
         return "no_llm"
     v = agent_verdict(tv_miss, agent_miss)
@@ -58,16 +59,16 @@ def case_for(agent_miss: float | None, tv_miss: float) -> str:
 
 def verdict_h2(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float) -> str:
     if case == "no_llm":
-        return (f"{SEASON} the {SEARCH} missed by {_runs_text(search_miss)}; the TV missed by {_runs_text(tv_miss)}."
-                if search_miss is not None else f"{SEASON} the TV missed by {_runs_text(tv_miss)}.")
+        return (f"{SEASON} the {SEARCH} missed by {_runs_text(search_miss)}; {BROADCASTER} missed by {_runs_text(tv_miss)}."
+                if search_miss is not None else f"{SEASON} {BROADCASTER} missed by {_runs_text(tv_miss)}.")
     gap = round(tv_miss - agent_miss, 1)
     if case == "beat":
-        return f"{SEASON} the agent beat the TV by {_runs_text(gap)}."
+        return f"{SEASON} the agent beat {BROADCASTER} by {_runs_text(gap)}."
     if case == "edged":
-        return f"{SEASON} the agent edged the TV by {_runs_text(gap)}, short of the goal."
+        return f"{SEASON} the agent edged {BROADCASTER} by {_runs_text(gap)}, short of the goal."
     if gap == 0:
-        return f"{SEASON} the agent and the TV missed by the same amount."
-    return f"{SEASON} the TV beat the agent by {_runs_text(-gap)}."
+        return f"{SEASON} the agent and {BROADCASTER} missed by the same amount."
+    return f"{SEASON} {BROADCASTER} beat the agent by {_runs_text(-gap)}."
 
 
 def vs_search(agent_miss: float | None, search_miss: float | None, tries: int) -> str | None:
@@ -87,10 +88,10 @@ RESULT_LABEL = {"beat": "goal reached", "edged": "short of the goal", "held": "g
 
 def result_strip(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float) -> dict[str, str]:
     """The strip at the foot of the goal card once a run has finished: the case in two or three words and how far out the agent
-    (or, with no language model, the brute-force search) and the TV were, on the same displayed misses as the verdict."""
+    (or, with no language model, the brute-force search) and the broadcaster were, on the same displayed misses as the verdict."""
     subject, who = (agent_miss, "agent") if case != "no_llm" else (search_miss, SEARCH)
-    text = (f"The {who} was {_runs(subject)} runs out, the TV {_runs(tv_miss)}." if subject is not None
-            else f"The TV was {_runs(tv_miss)} runs out.")
+    text = (f"The {who} was {_runs(subject)} runs out, {BROADCASTER} {_runs(tv_miss)}." if subject is not None
+            else f"{cap(BROADCASTER)} was {_runs(tv_miss)} runs out.")
     return {"label": RESULT_LABEL[case], "text": text}
 
 
@@ -103,8 +104,8 @@ def scoreboard(case: str, agent_miss: float | None, search_miss: float | None, t
         facts += [{"id": "tries", "text": _count(tries, "try", "tries")}, {"id": "no_made_up", "text": NO_MADE_UP}]
     if subject is not None:
         gap = round(tv_miss - subject, 1)
-        text = (f"{_runs_text(gap)} closer than the TV" if gap > 0 else
-                f"{_runs_text(-gap)} behind the TV" if gap < 0 else "level with the TV")
+        text = (f"{_runs_text(gap)} closer than {BROADCASTER}" if gap > 0 else
+                f"{_runs_text(-gap)} behind {BROADCASTER}" if gap < 0 else f"level with {BROADCASTER}")
         facts.append({"id": "gap", "text": text})
     return {"subject_label": AGENT if case != "no_llm" else cap(SEARCH), "subject_miss": subject,
             "tv_miss": tv_miss, "facts": facts}

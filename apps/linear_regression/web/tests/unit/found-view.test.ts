@@ -47,7 +47,7 @@ describe("best so far and the rival line", () => {
     expect(after.rival).toBe(197);
     expect(after.groups).toHaveLength(2);
   });
-  it("takes the TV from the baseline", () => {
+  it("takes the broadcaster from the baseline", () => {
     expect(buildView(beforeGrid()).tv).toBe(216);
   });
 });

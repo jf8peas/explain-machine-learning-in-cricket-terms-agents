@@ -1,5 +1,5 @@
 // The hero (feature 022): the question and the goal, not a result. The goal card's figures are the server's; after a run finishes the
-// result strip at its foot gives the case in the server's words; the Commentary about the TV is closed until asked for. (The idle page
+// result strip at its foot gives the case in the server's words; the Commentary about the broadcaster is closed until asked for. (The idle page
 // itself is in idle.spec.ts.)
 import { readFileSync } from "node:fs";
 import { expect, test } from "./fixtures";
@@ -48,11 +48,11 @@ for (const c of CASES) {
     await expect(page.getByTestId("result-strip")).toContainText(`Result: ${c.expected.result_strip.label}.`);
     await expect(page.getByTestId("result-strip")).toContainText(c.expected.result_strip.text);
     await expect(page.getByTestId("verdict-title")).toHaveText(c.expected.verdict_h2);
-    await expect(page.getByTestId("hero-title")).toHaveText("Can an AI agent build its own prediction model and beat the TV?");     // the question never changes
+    await expect(page.getByTestId("hero-title")).toHaveText("Can an AI agent build a regression model that beats the broadcaster's projected score?");     // the question never changes
   });
 }
 
-test("the hero's Commentary is closed until Show me everything: the TV's accuracy, the unseen season and who does what", async ({ page }) => {
+test("the hero's Commentary is closed until Show me everything: the broadcaster's accuracy, the unseen season and who does what", async ({ page }) => {
   await open(page);
   await expect(page.getByTestId("hero-commentary")).toBeHidden();
   await page.getByTestId("view-switch").click();
@@ -70,7 +70,7 @@ test("the hero's Commentary is closed until Show me everything: the TV's accurac
 test("when the reference figures fail the page still asks the question, says so, and shows no number", async ({ page }) => {
   await page.route("**/api/reference", (route) => route.fulfill({ status: 500, body: "no" }));
   await open(page, "?view=everything");
-  await expect(page.getByTestId("hero-title")).toContainText("build its own prediction model and beat the TV?");
+  await expect(page.getByTestId("hero-title")).toHaveText("Can an agent build a regression model that beats the projected score?");     // no server words yet: the neutral question, never a placeholder
   await expect(page.getByTestId("hero-unavailable")).toHaveText("The accuracy figures could not be loaded.");
   await expect(page.getByTestId("tv-miss")).toHaveCount(0);
   await expect(page.getByTestId("goal-tv-figure")).toHaveCount(0);

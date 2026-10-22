@@ -36,7 +36,9 @@ def banned_hits(text: str, allow_forward_in_brackets: bool = False) -> list[str]
 
 
 def test_the_terms_definitions_and_method_defs_use_no_banned_name():
-    for text in strings([methods.terms_payload(), methods.method_defs()]):
+    # the ids ("tv", "broadcaster") are identifiers and keep their names: only the words are checked
+    words = [{k: v for k, v in t.items() if k != "id"} for t in [*methods.terms_payload(), *methods.method_defs()]]
+    for text in strings([words, methods.definitions()]):
         assert [h for h in banned_hits(text) if h.lower() != "forward selection"] == [], text     # a technical term is what goes in brackets
     for key, text in methods.definitions().items():
         assert [h for h in banned_hits(text) if h.lower() != "forward selection"] == [], (key, text)
@@ -83,3 +85,24 @@ def test_the_doing_lines_the_goal_card_and_the_result_strip_use_no_banned_name()
     assert [h for text in strings(goal_card(3, 22.5, {"first_year": 2005, "last_year": 2022}, {"year": 2026, "innings": 171})) for h in banned_hits(text)] == []
     for case in json.loads((FIXTURES / "headline_cases.json").read_text(encoding="utf-8")):
         assert banned_hits(" ".join(strings(headlines.build(**case["inputs"])["result_strip"]))) == []
+
+
+# ---- feature 023: the yardstick is the broadcaster's projection, never "TV" -------------------------------------------------
+
+@pytest.mark.parametrize("text", ["The TV missed by 22 runs.", "Beat the TV.", "the tv said 164", "TV projection", "A tv, a TV's line",
+                                  "The TV-style projection"])
+def test_a_planted_tv_in_visible_text_is_caught(text):
+    assert banned_hits(text), text
+
+
+@pytest.mark.parametrize("text", ["A television audience.", "Two tvs in the pub.", "The broadcaster's projection misses by 22 runs.",
+                                  "tv_gap and tv_test_miss are fact ids"])
+def test_words_that_only_contain_the_letters_are_not_caught(text):
+    assert banned_hits(text) == [], text
+
+
+def test_the_server_sends_the_new_patterns_with_no_allowed_region():
+    sent = {b["pattern"]: b["allowed_in"] for b in methods.banned_payload()}
+    for pattern in (r"\bTV projection\b", r"\bthe TV\b", r"\bTV\b"):
+        assert sent[pattern] == []
+    assert methods.has_banned("The TV guesses too low.") and not methods.has_banned("The broadcaster guesses too low.")

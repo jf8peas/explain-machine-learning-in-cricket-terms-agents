@@ -59,7 +59,7 @@ test("after a run all four unlock, the strip appears, and the bar names the mode
   await expect(page.getByTestId("scorebook-panel")).toBeVisible();
   const strip = page.getByTestId("result-strip");
   await expect(strip).toBeVisible();
-  await expect(strip).toHaveText(/^Result: (goal reached|short of the goal|goal missed|search only)\. The (agent|brute-force search) was [\d.]+ runs out, the TV [\d.]+\. See the verdict ↓$/);
+  await expect(strip).toHaveText(/^Result: (goal reached|short of the goal|goal missed|search only)\. The (agent|brute-force search) was [\d.]+ runs out, the broadcaster [\d.]+\. See the verdict ↓$/);
   await expect(page.getByTestId("result-link")).toHaveAttribute("href", "#verdict");
   await expect(page.getByTestId("see-result")).toBeVisible();
 });

@@ -51,9 +51,9 @@ describe("the chart's method colours", () => {
   });
 });
 
-// The TV colour (feature 013) labels the TV's line, its average miss and its figure, on the page and on the chart's
+// The broadcaster colour (feature 013) labels the broadcaster's line, its average miss and its figure, on the page and on the chart's
 // "future" region (--surface), so it needs 4.5:1 (the WCAG minimum for text) on both in both themes.
-describe("the TV colour", () => {
+describe("the broadcaster colour", () => {
   for (const theme of ["light", "dark"] as const) {
     it(`${theme}: --tv is a real colour with at least 4.5:1 on the page and on the surface`, () => {
       const vars = blocks()[theme];

@@ -49,9 +49,9 @@ def probed(tmp_path_factory):
 
 
 def test_the_labels_and_method_names_follow_the_list(probed):
-    assert probed["labels"] == {"llm": "robot agent's model", "forward": "robot search's model", "broadcaster": "TV projection",
+    assert probed["labels"] == {"llm": "robot agent's model", "forward": "robot search's model", "broadcaster": "broadcaster's projection",
                                 "know_nothing": "mean guess"}
-    assert [d["name"] for d in probed["defs"]] == ["the mean guess", "the TV projection", "the robot agent's model",
+    assert [d["name"] for d in probed["defs"]] == ["the mean guess", "the broadcaster's projection", "the robot agent's model",
                                                     "the robot search's model"]
 
 

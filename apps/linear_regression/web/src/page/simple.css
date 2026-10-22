@@ -24,7 +24,7 @@
 .hero-band { margin-top: 4px; }
 .hero-inner { display: grid; gap: 14px 32px; grid-template-columns: minmax(0, 1fr); }
 .hero-inner > * { min-width: 0; margin: 0; }
-.hero h1, .hero-inner h1 { margin: 0; font-size: 2rem; line-height: 1.12; font-weight: 750; letter-spacing: -.01em; }
+.hero h1, .hero-inner h1 { margin: 0; font-size: 1.75rem; line-height: 1.12; font-weight: 750; letter-spacing: -.01em; }
 .hero-lead { font-size: 1.0625rem; line-height: 1.5; color: var(--band-muted); }
 .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
 .run-origin { font-size: .8125rem; color: var(--band-muted); }

@@ -28,7 +28,7 @@ def run(run_graph, path, writer=None, **config):
 
 
 def block(title="A title", *sentences):
-    return {"title": title, "sentences": list(sentences) or ["The TV missed by {tv_test_miss} runs."]}
+    return {"title": title, "sentences": list(sentences) or ["The broadcaster missed by {tv_test_miss} runs."]}
 
 
 def test_a_valid_reply_is_shown_with_every_placeholder_filled_by_a_fact(run_graph, path):
@@ -65,8 +65,8 @@ def test_the_model_is_given_the_facts_the_blocks_and_the_rules_and_never_the_fin
 
 
 @pytest.mark.parametrize("bad", [
-    writing_reply({"takeaway_tv": block("Fine", "The TV missed by 18 runs.")}),            # a digit
-    writing_reply({"takeaway_tv": block("Fine", "The TV guesses too low.")}),                # a direction word
+    writing_reply({"takeaway_tv": block("Fine", "The broadcaster missed by 18 runs.")}),            # a digit
+    writing_reply({"takeaway_tv": block("Fine", "The broadcaster guesses too low.")}),                # a direction word
     writing_reply({"takeaway_run_rate": block("Add a few runs")}),                          # a direction word in a title
     writing_reply({"takeaway_tv": block("Fine", "It cost {made_up} runs.")}),               # an unknown placeholder
     writing_reply({"takeaway_tv": block("x" * 80)}),                                        # a title over its limit
@@ -86,7 +86,7 @@ def test_a_rejected_reply_is_never_shown_and_the_template_wording_stays(run_grap
 
 
 @pytest.mark.parametrize("bad,words", [
-    (writing_reply({"takeaway_tv": block("Fine", "The TV missed by 18 runs.")}), ["sentence in takeaway_tv", "number written by the model"]),
+    (writing_reply({"takeaway_tv": block("Fine", "The broadcaster missed by 18 runs.")}), ["sentence in takeaway_tv", "number written by the model"]),
     (writing_reply({"takeaway_tv": block("The 10th over")}), ["title of takeaway_tv", "number written by the model"]),
     (writing_reply({"takeaway_tv": block("Fine", "It guesses too high.")}), ["sentence in takeaway_tv", "direction word"]),
     (writing_reply({"takeaway_run_rate": block("Take off a few")}), ["title of takeaway_run_rate", "direction word"]),
@@ -204,3 +204,19 @@ def test_the_section_with_the_models_words_is_not_longer_than_the_limits_allow(r
     _, _, state = run(run_graph, path)
     for b in state["explanation"]["blocks"]:
         assert len(b["sentences"]) <= cricket_blocks.max_sentences(b["id"])
+
+
+def test_a_reply_that_names_the_broadcaster_is_shown(run_graph, path):
+    """Feature 023: the reword prompt's example and the fake model say "the broadcaster", and that wording is accepted."""
+    _, _, state = run(run_graph, path, writer=lambda request: valid_writing(request))
+    expl = state["explanation"]
+    assert expl["source"] == "language model" and expl["fallback_reason"] is None
+    text = explanation_text(expl)
+    assert "The broadcaster guesses" in text and "TV" not in text
+
+
+def test_a_reply_that_still_says_the_tv_is_rejected_and_the_template_wording_stays(run_graph, path):
+    _, _, state = run(run_graph, path, writer=lambda request: valid_writing(request, old_name=True))
+    expl = state["explanation"]
+    assert expl["source"] == "template" and expl["model"] is None and "templates" in expl["fallback_reason"]
+    assert not any(word in explanation_text(expl).split() for word in ("TV", "TV's"))

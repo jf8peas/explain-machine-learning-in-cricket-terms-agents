@@ -102,7 +102,7 @@ describe("compareSentence under the bars", () => {
     const x = v();
     const t = text(x);
     expect(t).toContain("too close to call (17.7 and 17.8 runs).");
-    expect(t).toContain("Both beat the TV projection and the average-total guess.");
+    expect(t).toContain("Both beat the broadcaster's projection and the average-total guess.");
     expect(compareSentence(x).some((s) => s.kind === "tooclose")).toBe(true);
   });
 
@@ -122,15 +122,15 @@ describe("compareSentence under the bars", () => {
   });
 
   it("says who beat the references when they differ", () => {
-    const only = text(v({ figs: figs(17.7, 22.0) }));      // the rival (22.0) does not beat the TV (21.4)
-    expect(only).toContain("Only the AI agent's idea beat the TV projection.");
+    const only = text(v({ figs: figs(17.7, 22.0) }));      // the rival (22.0) does not beat the broadcaster (21.4)
+    expect(only).toContain("Only the AI agent's idea beat the broadcaster's projection.");
     expect(only).toContain("Both beat the average-total guess.");
     const neither = text(v({ figs: figs(25.0, 24.0, 21.4, 22.0) }));
-    expect(neither).toContain("Neither beat the TV projection and the average-total guess.");
+    expect(neither).toContain("Neither beat the broadcaster's projection and the average-total guess.");
   });
 
   it("does not count a tie with a reference as beating it", () => {
-    expect(text(v({ figs: figs(21.4, 21.4) }))).toContain("Neither beat the TV projection.");
+    expect(text(v({ figs: figs(21.4, 21.4) }))).toContain("Neither beat the broadcaster's projection.");
   });
 });
 

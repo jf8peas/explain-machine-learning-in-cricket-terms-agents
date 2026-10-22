@@ -17,7 +17,7 @@ def r2(actual, predicted) -> float:
 
 
 def broadcaster_projection(runs_at_10):
-    """The TV projected score: current run rate x 20 overs = (runs / 10) x 20.
+    """The broadcaster's projected score: current run rate x 20 overs = (runs / 10) x 20.
 
     Works for a single number or a pandas Series.
     """

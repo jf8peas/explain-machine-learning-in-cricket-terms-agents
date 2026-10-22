@@ -8,8 +8,8 @@ test.describe("390 × 664, the screen LinkedIn's in-app browser gives", () => {
   test("the question, the goal sentence and the Start button are on the first screen, with no sideways scroll", async ({ page }) => {
     await page.goto("/");
     const title = page.getByTestId("hero-title");
-    await expect(title).toHaveText("Can an AI agent build its own prediction model and beat the TV?");
-    await expect(page.getByTestId("goal-sentence")).toHaveText("Beat the TV's projection by at least 3 runs on average.");
+    await expect(title).toHaveText("Can an AI agent build a regression model that beats the broadcaster's projected score?");
+    await expect(page.getByTestId("goal-sentence")).toHaveText("Beat the broadcaster's projection by at least 3 runs on average.");
     const start = page.getByTestId("start-experiment");
     await expect(start).toHaveText("▶ Start the experiment");
     for (const el of [title, page.getByTestId("goal-sentence"), start]) {
@@ -25,7 +25,7 @@ test("the hero has the kicker, the lead and the goal card from the server, and n
   await page.goto("/");
   await expect(page.getByTestId("hero-kicker")).toHaveText("AN AI AGENT EXPERIMENT");
   await expect(page.getByTestId("hero-lead")).toHaveText(
-    "Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it is tested on a season it has never seen.");
+    "Halfway through a T20 innings, where will it finish? The agent chooses the clues, code does the maths, and it's tested on a season it has never seen.");
   const ref = await (await page.request.get("/api/reference")).json();
   await expect(page.getByTestId("goal-kicker")).toHaveText("THE GOAL");
   await expect(page.getByTestId("goal-tv-figure")).toHaveText(ref.figures.broadcaster.average_miss.toFixed(1));

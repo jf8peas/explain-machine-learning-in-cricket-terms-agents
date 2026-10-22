@@ -2,8 +2,8 @@
   "goal": {
     "reference": "broadcaster",
     "margin_runs": 3,
-    "text": "beat the TV projection by at least 3 runs of average miss, on the latest calendar year, which nothing was trained or chosen on.",
-    "lead": "At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, and miss by 3 runs less on average."
+    "text": "beat the broadcaster's projection by at least 3 runs of average miss, on the latest calendar year, which nothing was trained or chosen on.",
+    "lead": "At 10 overs, the broadcaster shows a projected score. The agent tries to beat it: predict the final total, and miss by 3 runs less on average."
   },
   "methods": [
     {
@@ -14,7 +14,7 @@
     },
     {
       "id": "broadcaster",
-      "name": "the TV projection",
+      "name": "the broadcaster's projection",
       "note": "the broadcaster's projected score: current run rate x 20 overs",
       "marker": "circle"
     },
@@ -72,9 +72,9 @@
   },
   "sentences": {
     "headline": "Here is how well two simple guesses did against the real final totals in past seasons (2005 to 2022, 2,133 innings). This is the bar the agent has to clear.",
-    "gap": "The TV projection misses by 22.5 runs on average, against 23.9 for the average-total guess, which ignores the score at 10 overs. Knowing the score at 10 overs is worth 1.4 runs (5.9%), and 0.4 more innings in every 100 land within 10 runs.",
-    "finding": "The TV projection is only slightly better than knowing nothing: its average miss is just 1.4 runs (5.9%) lower, so beating it means little.",
-    "bias": "The TV projection guesses 14.3 runs too low on average, because sides tend to score faster in the last 10 overs than their run rate at the halfway mark."
+    "gap": "The broadcaster's projection misses by 22.5 runs on average, against 23.9 for the average-total guess, which ignores the score at 10 overs. Knowing the score at 10 overs is worth 1.4 runs (5.9%), and 0.4 more innings in every 100 land within 10 runs.",
+    "finding": "The broadcaster's projection is only slightly better than knowing nothing: its average miss is just 1.4 runs (5.9%) lower, so beating it means little.",
+    "bias": "The broadcaster's projection guesses 14.3 runs too low on average, because sides tend to score faster in the last 10 overs than their run rate at the halfway mark."
   },
   "meter": {
     "scale": {
@@ -89,7 +89,7 @@
       },
       {
         "id": "broadcaster",
-        "label": "TV projection",
+        "label": "Broadcaster's projection",
         "value": 22.5
       },
       {
@@ -99,7 +99,7 @@
       }
     ],
     "caption": "Average miss, runs · 2005 to 2022, 2,133 innings",
-    "text": "Average miss, lower is better: the average-total guess 23.9, the TV projection 22.5, the goal 19.5 or less."
+    "text": "Average miss, lower is better: the average-total guess 23.9, the broadcaster's projection 22.5, the goal 19.5 or less."
   },
   "average_total": 162,
   "example": {
@@ -166,21 +166,21 @@
     ]
   },
   "hero": {
-    "caption": "A real innings: Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. Australia went from 82/2 to 186. The TV's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.",
-    "panel": "Knowing the score at 10 overs barely helps the TV, and on average it guesses too low, by 14.3 runs. The agent has to beat it by at least 3 runs.",
+    "caption": "A real innings: Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. Australia went from 82/2 to 186. The broadcaster's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.",
+    "panel": "Knowing the score at 10 overs barely helps the broadcaster, and on average it guesses too low, by 14.3 runs. The agent has to beat it by at least 3 runs.",
     "panel_emphasis": [
       "too low"
     ],
     "footnote": "2,133 past innings, 2005 to 2022: IPL, BBL and full-member internationals.",
-    "chart_text": "Runs by over for Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs are shown in grey as context and the last 10 in the prediction area. Australia were 82 for 2 after 10 overs. The TV projection said 164. The average-total guess said 162. The innings finished on 186. A zoom on the finish shows where each prediction landed at 20 overs: the actual total 186, the TV projection 164 (22 runs short) and the average-total guess 162. The TV's usual miss is 22.5 runs either way, shown as a band around its projection. The agent's prediction is not known."
+    "chart_text": "Runs by over for Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs are shown in grey as context and the last 10 in the prediction area. Australia were 82 for 2 after 10 overs. The broadcaster's projection said 164. The average-total guess said 162. The innings finished on 186. A zoom on the finish shows where each prediction landed at 20 overs: the actual total 186, the broadcaster's projection 164 (22 runs short) and the average-total guess 162. The broadcaster's usual miss is 22.5 runs either way, shown as a band around its projection. The agent's prediction is not known."
   },
   "message": null,
   "goal_card": {
     "kicker": "THE GOAL",
-    "sentence": "Beat the TV's projection by at least 3 runs on average.",
+    "sentence": "Beat the broadcaster's projection by at least 3 runs on average.",
     "tv": {
       "miss": 22.5,
-      "label": "runs: how far out the TV usually is, on past innings (2005–2022)"
+      "label": "runs: how far out the broadcaster usually is, on past innings (2005–2022)"
     },
     "target": {
       "runs": "3+",
@@ -211,7 +211,7 @@
     },
     {
       "id": "tv",
-      "plain": "TV projection",
+      "plain": "broadcaster's projection",
       "technical": "run rate × 20 overs",
       "meaning": "The broadcaster's forecast: the runs per over so far, times 20.",
       "order": 3,

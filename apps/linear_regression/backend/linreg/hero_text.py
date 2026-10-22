@@ -9,10 +9,10 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from . import accuracy_text
-from .methods import term
+from .methods import cap, short, short_possessive, term
 
-BARELY_HELPS_SHARE = 0.10   # the TV "barely helps" when it beats knowing nothing by no more than this share of that miss
-TYPICAL_MISS_SHARE = 0.25   # this innings' miss is "about its typical miss" within this share of the TV's average miss
+BARELY_HELPS_SHARE = 0.10   # the broadcaster "barely helps" when it beats knowing nothing by no more than this share of that miss
+TYPICAL_MISS_SHARE = 0.25   # this innings' miss is "about its typical miss" within this share of the broadcaster's average miss
 POPULATION = "IPL, BBL and full-member internationals"
 
 
@@ -26,7 +26,7 @@ def _plural(x: float) -> str:
 
 
 def miss_words(actual: int, tv: int) -> str:
-    """How far the TV's projection was from the total, from the displayed whole numbers: "22 runs short" when it said less
+    """How far the broadcaster's projection was from the total, from the displayed whole numbers: "22 runs short" when it said less
     than the total, "21 runs over" when it said more, "1 run" for one, "spot on" when equal. The page's bracket uses the
     same rule (worm-layout.ts missWords); web/tests/fixtures/miss_words_cases.json holds the cases both are tested on."""
     n = round(actual) - round(tv)
@@ -37,27 +37,28 @@ def miss_words(actual: int, tv: int) -> str:
 
 
 def barely_helps(know_nothing_miss: float, tv_miss: float) -> bool:
-    """True only when the TV is better than knowing nothing, but by no more than BARELY_HELPS_SHARE of its miss."""
+    """True only when the broadcaster is better than knowing nothing, but by no more than BARELY_HELPS_SHARE of its miss."""
     gap = round(know_nothing_miss - tv_miss, 1)
     return know_nothing_miss > 0 and 0 < gap <= BARELY_HELPS_SHARE * know_nothing_miss + 1e-9
 
 
 def about_typical_miss(innings_miss: float, tv_average_miss: float) -> bool:
-    """True when this innings' miss is within TYPICAL_MISS_SHARE of the TV's average miss, either side."""
+    """True when this innings' miss is within TYPICAL_MISS_SHARE of the broadcaster's average miss, either side."""
     return abs(innings_miss - tv_average_miss) <= TYPICAL_MISS_SHARE * tv_average_miss + 1e-9
 
 
 def panel(know_nothing_miss: float, tv_miss: float, tv_bias: float, margin_runs: float) -> tuple[str, list[str]]:
     """The panel's sentence and the phrases in it to show in bold."""
     gap = round(know_nothing_miss - tv_miss, 1)
+    who = short("tv")
     if barely_helps(know_nothing_miss, tv_miss):
-        first = "Knowing the score at 10 overs barely helps the TV"
+        first = f"Knowing the score at 10 overs barely helps {who}"
     elif gap > 0:
-        first = f"Knowing the score at 10 overs helps the TV: its average miss is {_runs(gap)} {_plural(gap)} lower"
+        first = f"Knowing the score at 10 overs helps {who}: its average miss is {_runs(gap)} {_plural(gap)} lower"
     elif gap == 0:
-        first = "Knowing the score at 10 overs does not help the TV: it misses by the same amount as knowing nothing"
+        first = f"Knowing the score at 10 overs does not help {who}: it misses by the same amount as knowing nothing"
     else:
-        first = (f"Knowing the score at 10 overs does not help the TV: its average miss is {_runs(-gap)} "
+        first = (f"Knowing the score at 10 overs does not help {who}: its average miss is {_runs(-gap)} "
                  f"{_plural(-gap)} higher than knowing nothing")
     emphasis: list[str] = []
     if accuracy_text.bias_short(tv_bias) == "0.0":
@@ -76,7 +77,7 @@ def footnote(first_year: int, last_year: int, innings: int) -> str:
 
 
 def caption(example: Mapping[str, Any], tv_average_miss: float) -> str:
-    """The caption under the chart: which innings, what the grey and white parts are, how the innings went and how far the TV was.
+    """The caption under the chart: which innings, what the grey and white parts are, how the innings went and how far the broadcaster was.
     The direction and size come from the displayed whole numbers (the page's bracket uses the same rule), and so does the
     "about its typical miss" clause, so none of them can disagree with the figures shown."""
     batting, bowling = example["batting_team"], example["bowling_team"]
@@ -85,7 +86,7 @@ def caption(example: Mapping[str, Any], tv_average_miss: float) -> str:
     return (f"A real innings: {batting} v {bowling}, {example['venue']}, {example['date_label']}. "
             f"The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. "
             f"{batting} went from {example['runs_at_10']}/{example['wickets_at_10']} to {total}. "
-            f"The TV's straight line said {tv} and was {miss_words(total, tv)}{typical}. "
+            f"{cap(short_possessive('tv'))} straight line said {tv} and was {miss_words(total, tv)}{typical}. "
             f"Open circles mark wickets.")
 
 
@@ -94,10 +95,10 @@ def chart_text(example: Mapping[str, Any], tv_average_miss: float, average_total
     total, tv = example["final_total"], example["tv_projection"]
     return (f"Runs by over for {batting} v {example['bowling_team']}, {example['venue']}, {example['date_label']}. "
             f"The first 10 overs are shown in grey as context and the last 10 in the prediction area. "
-            f"{batting} were {example['runs_at_10']} for {example['wickets_at_10']} after 10 overs. The TV projection "
+            f"{batting} were {example['runs_at_10']} for {example['wickets_at_10']} after 10 overs. The {term('tv')} "
             f"said {tv}. The {term('average_total')} said {_runs(average_total)}. The innings finished "
             f"on {total}. A zoom on the finish shows where each prediction landed at 20 overs: the actual total {total}, "
-            f"the TV projection {tv} ({miss_words(total, tv)}) and the {term('average_total')} {_runs(average_total)}. The TV's "
+            f"the {term('tv')} {tv} ({miss_words(total, tv)}) and the {term('average_total')} {_runs(average_total)}. {cap(short_possessive('tv'))} "
             f"usual miss is {_runs(tv_average_miss)} runs either way, shown as a band around its projection. The "
             f"agent's prediction is not known.")
 
@@ -118,13 +119,13 @@ def build_hero(figures: Mapping[str, Mapping[str, Any]], training: Mapping[str, 
 
 def goal_card(margin_runs: float, tv_miss: float | None = None, training: Mapping[str, int] | None = None,
               test: Mapping[str, int] | None = None) -> dict[str, Any]:
-    """The words of the goal card on the main page's hero (feature 022). The kicker and the goal sentence always; the TV's usual
+    """The words of the goal card on the main page's hero (feature 022). The kicker and the goal sentence always; the broadcaster's usual
     miss on past innings (with the years it was worked out on), the target and the "Judged on" line when the figures are known."""
     shown = int(margin_runs) if float(margin_runs).is_integer() else margin_runs
     card: dict[str, Any] = {"kicker": "THE GOAL",
-                            "sentence": f"Beat the TV's projection by at least {shown} runs on average."}
+                            "sentence": f"Beat the {term('tv')} by at least {shown} runs on average."}
     if tv_miss is not None and training:
-        card["tv"] = {"miss": tv_miss, "label": f"runs: how far out the TV usually is, on past innings "
+        card["tv"] = {"miss": tv_miss, "label": f"runs: how far out {short('tv')} usually is, on past innings "
                                                 f"({training['first_year']}–{training['last_year']})"}
         card["target"] = {"runs": f"{shown}+", "label": "runs closer: what the agent must do"}
     if test:

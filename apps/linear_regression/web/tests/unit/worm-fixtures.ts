@@ -23,15 +23,15 @@ export function input(over: Partial<WormInput["example"]> = {}, rest: Partial<Om
   };
 }
 
-/** Australia v India: 82/2 at 10 overs, 186, TV 164, know-nothing 162, TV's average miss 22.5. */
+/** Australia v India: 82/2 at 10 overs, 186, broadcaster 164, average-total 162, broadcaster's average miss 22.5. */
 export const current = (): WormInput => input();
-/** The TV and the know-nothing guess within 2 runs of each other (164 and 163). */
+/** The broadcaster and the know-nothing guess within 2 runs of each other (164 and 163). */
 export const close = (): WormInput => input({}, { averageTotal: 163 });
-/** The TV above the actual total (171 against 150). */
+/** The broadcaster above the actual total (171 against 150). */
 export const tvOver = (): WormInput => input({ runs: runsFor(75, 150), runs_at_10: 75, final_total: 150, tv_projection: 171, tv_miss: 21, wicket_overs: [4, 12, 20] });
-/** The TV equal to the actual total. */
+/** The broadcaster equal to the actual total. */
 export const spotOn = (): WormInput => input({ tv_projection: 186, tv_miss: 0 });
-/** Low totals, so the TV's miss band (TV ± 22.5) goes past the plotted values and below zero's neighbourhood. */
+/** Low totals, so the broadcaster's miss band (broadcaster ± 22.5) goes past the plotted values and below zero's neighbourhood. */
 export const lowTotals = (): WormInput => input({ runs: runsFor(30, 60), runs_at_10: 30, final_total: 60, tv_projection: 60, tv_miss: 0, wicket_overs: [3, 20] }, { averageTotal: 58, averageMiss: 22.5 });
 /** A high-total innings whose zoom range reaches past the 0 to 200 axis. */
 export const highTotals = (): WormInput => input({ runs: runsFor(110, 199), runs_at_10: 110, final_total: 199, tv_projection: 198, tv_miss: 1 }, { averageTotal: 196, averageMiss: 5 });

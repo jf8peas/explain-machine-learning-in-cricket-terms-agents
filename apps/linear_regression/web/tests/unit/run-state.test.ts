@@ -152,7 +152,7 @@ describe("the run state", () => {
     expect(resultStrip(initialRunState())).toBeNull();
     const strip = resultStrip(done(play(initialRunState())));
     expect(strip?.label).toBeTruthy();
-    expect(strip?.text).toMatch(/runs out, the TV/);
+    expect(strip?.text).toMatch(/runs out, the broadcaster/);
   });
 
   it("stores nothing", () => {

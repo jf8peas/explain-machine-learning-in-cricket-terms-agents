@@ -12,7 +12,7 @@ from .methods import term
 
 PROJECTION = f"the {term('tv')}"
 NOTHING = "knowing nothing"
-_CAP_PROJECTION = f"The {term('tv')}"     # str.capitalize() would lower-case the TV
+_CAP_PROJECTION = f"The {term('tv')}"     # str.capitalize() would lower-case the rest
 
 
 def _runs(x: float) -> str:
@@ -45,7 +45,7 @@ def bias_short(bias: float) -> str:
 
 
 def meter_label(method_name: str) -> str:
-    """A method's name as a mark's label: "the TV projection" becomes "TV projection"."""
+    """A method's name as a mark's label: "the broadcaster's projection" becomes "Broadcaster's projection"."""
     name = method_name[4:] if method_name.startswith("the ") else method_name
     return name[:1].upper() + name[1:]
 
@@ -105,7 +105,7 @@ def projection_bias_sentence(bias: float) -> str:
 
 
 def large_bias_sentence(direction: str) -> str:
-    return (f"Every method that uses the score at 10 overs, the TV projection and the agent's models alike, guesses too "
+    return (f"Every method that uses the score at 10 overs, {PROJECTION} and the agent's models alike, guesses too "
             f"{direction} by a wide margin on average: a straight line fitted on the data has not removed that lean.")
 
 

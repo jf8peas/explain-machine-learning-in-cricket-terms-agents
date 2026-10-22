@@ -10,7 +10,7 @@ import math
 from typing import Any, Mapping
 
 from . import accuracy_text
-from .methods import BY_ID, cap, term
+from .methods import BY_ID, cap, short, term
 from .state import MARGIN_RUNS
 
 REFERENCE = "broadcaster"            # the method the goal is measured against
@@ -28,7 +28,7 @@ def goal() -> dict[str, Any]:
         "margin_runs": margin,
         "text": (f"beat the {term('tv')} by at least {shown} runs of average miss, on the latest calendar year, "
                  f"which nothing was trained or chosen on."),
-        "lead": (f"At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, "
+        "lead": (f"At 10 overs, {short("tv")} shows a projected score. The agent tries to beat it: predict the final total, "
                  f"and miss by {shown} {'run' if shown == 1 else 'runs'} less on average."),
     }
 

@@ -14,7 +14,7 @@ WICKET_HAND = {}                                                     # the defau
 WICKET_HAND_LESS = dict(features_=("runs_at_10", "wickets_in_hand"), coefs={"runs_at_10": 1.2, "wickets_in_hand": -2.0})
 NO_WICKET = dict(features_=("runs_at_10", "fours_at_10"), coefs={"runs_at_10": 1.2, "fours_at_10": 0.4})
 
-# TV against the average-total guess, and which way the TV leans (TV average miss is `tv`)
+# the broadcaster against the average-total guess, and which way it leans (its average miss is `tv`)
 CLEARLY = dict(tv=21.0, know_nothing=34.0)
 BARELY = dict(tv=21.0, know_nothing=22.0)
 NO_BETTER = dict(tv=21.0, know_nothing=20.0)
@@ -81,11 +81,11 @@ def test_the_verdict_variant_shape_and_title(kw, variant, shape, title):
 
 def test_each_verdict_variant_says_what_it_should_with_its_numbers():
     reached = text(block(blocks_for(state_for(**REACHED))[1], "verdict"))
-    assert "beat the TV projection by 4.0 runs on average" in reached and "at least 3 runs" in reached
+    assert "beat the broadcaster's projection by 4.0 runs on average" in reached and "at least 3 runs" in reached
     beat = text(block(blocks_for(state_for(**MISSED_BEAT))[1], "verdict"))
     assert "but only by 2.0 runs" in beat and "at least 3 runs" in beat
     worse = text(block(blocks_for(state_for(**MISSED_WORSE))[1], "verdict"))
-    assert "The TV projection was 1.0 runs more accurate than the brute-force search's model" in worse
+    assert "The broadcaster's projection was 1.0 runs more accurate than the brute-force search's model" in worse
     same = text(block(blocks_for(state_for(forward_mae=17.0, tv=17.0))[1], "verdict"))
     assert "exactly as accurate" in same and "0.0" not in same
 
@@ -97,7 +97,7 @@ def test_the_verdict_names_the_rivals_model_when_the_language_model_did_not_take
 
 def test_the_verdict_names_the_ai_agents_model_when_it_was_chosen():
     b = block(blocks_for(state_for(llm_mae=15.0, forward_mae=17.0, tv=21.0))[1], "verdict")
-    assert "The AI agent's model beat the TV projection" in text(b)
+    assert "The AI agent's model beat the broadcaster's projection" in text(b)
 
 
 @pytest.mark.parametrize("kw", [REACHED, MISSED_BEAT, MISSED_WORSE, RIVAL_SHORTER, TV_SHORTEST, TIE_FOR_SHORTEST, NO_AI])
@@ -127,7 +127,7 @@ def test_the_barely_helps_threshold_is_the_heros():
 
 # a average-total guess that is far off (bias at least half its miss) and guesses too low: totals have risen
 RISING = dict(know_nothing=34.0, know_nothing_bias=-20.0)
-RISING_BARELY = dict(tv=21.0, know_nothing=22.0, know_nothing_bias=-15.0)    # far off and too low, but the TV only barely helps
+RISING_BARELY = dict(tv=21.0, know_nothing=22.0, know_nothing_bias=-15.0)    # far off and too low, but the broadcaster only barely helps
 FAR_OFF_HIGH = dict(know_nothing=34.0, know_nothing_bias=20.0)
 NOT_FAR_OFF = dict(know_nothing=34.0, know_nothing_bias=-10.0)
 
@@ -139,14 +139,14 @@ def test_takeaway_one_says_scores_keep_climbing_when_the_know_nothing_guess_is_f
     facts = facts_for(state_for(**kw))
     assert facts["know_nothing_rising"]["value"] is True and facts["know_nothing_bias_direction"]["display"] == "too low"
     assert f"{facts['know_nothing_bias_runs']['display']} too low" in b["sentences"][0]
-    assert f"The TV misses by {facts['tv_test_miss']['display']} runs, against {facts['know_nothing_miss']['display']}" in b["sentences"][1]
+    assert f"The broadcaster misses by {facts['tv_test_miss']['display']} runs, against {facts['know_nothing_miss']['display']}" in b["sentences"][1]
 
 
 @pytest.mark.parametrize("kw, title", [
     (RISING_BARELY, "The run rate alone barely helps"),             # far off and too low, but only "clearly" gets the climbing wording
     (FAR_OFF_HIGH, "The run rate alone is a real help"),            # far off but too high: totals have not risen
     (NOT_FAR_OFF, "The run rate alone is a real help"),             # too low but not far off
-    (dict(tv=21.0, know_nothing=20.0, know_nothing_bias=-15.0), "The run rate alone does not help"),   # the TV is no better: feature 015's wording
+    (dict(tv=21.0, know_nothing=20.0, know_nothing_bias=-15.0), "The run rate alone does not help"),   # the broadcaster is no better: feature 015's wording
     (dict(know_nothing=34.0, know_nothing_bias=0.0), "The run rate alone is a real help"),
 ])
 def test_takeaway_one_keeps_feature_015_wording_when_totals_have_not_visibly_risen(kw, title):
@@ -210,11 +210,11 @@ def test_one_feature_gives_one_bar_and_unequal_effects_keep_every_bar():
     assert len(wide["visual"]["rows"]) == 2 and wide["visual"]["rows"][1]["display"] == "0.2"
 
 
-# ---- takeaway 3: why the TV gets it wrong ---------------------------------------------------------------------------
+# ---- takeaway 3: why the broadcaster gets it wrong ---------------------------------------------------------------------------
 
 def test_takeaway_three_follows_the_direction_of_the_tv_bias():
     low = block(blocks_for(state_for(**TV_LOW))[1], "takeaway_tv")
-    assert low["title"] == "Sides speed up, and the TV forgets it" and "12.0 runs too low" in low["sentences"][0]
+    assert low["title"] == "Sides speed up, and the broadcaster forgets it" and "12.0 runs too low" in low["sentences"][0]
     high = block(blocks_for(state_for(**TV_HIGH))[1], "takeaway_tv")
     assert "too low" not in text(high) and "15.0 runs too high" in high["sentences"][0] and "speed up" not in text(high)
     none = block(blocks_for(state_for(**TV_ZERO))[1], "takeaway_tv")

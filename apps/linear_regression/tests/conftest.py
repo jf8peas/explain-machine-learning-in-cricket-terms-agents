@@ -26,9 +26,9 @@ def make_table(years=(2019, 2020, 2021, 2022, 2023, 2024, 2025), per_year=150, m
             runs = int(rng.normal(75, 15))
             wk = int(min(9, rng.poisson(2.5)))
             pp = int(min(runs, max(0, runs * 0.55 + rng.normal(0, 4))))
-            if mode == "exact_double":      # TV projection is perfect
+            if mode == "exact_double":      # the broadcaster's projection is perfect
                 final = runs * 2
-            elif mode == "offset":          # model is perfect, TV projection is poor
+            elif mode == "offset":          # model is perfect, the broadcaster's projection is poor
                 final = runs + 80
             else:
                 final = int(runs * 1.6 + 30 - 6 * wk + rng.normal(0, 18))
