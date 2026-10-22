@@ -101,7 +101,7 @@ def test_the_cause_of_a_rejection_is_in_the_line_the_page_shows_and_in_the_log(r
     with caplog.at_level("WARNING", logger="linreg.llm"):
         _, _, state = run(run_graph, path, writer=bad)
     line = state["explanation"]["fallback_reason"]
-    assert line.startswith("The language model's wording could not be used (") and line.endswith("so the wording is from templates.")
+    assert line.startswith("The AI agent's wording could not be used (") and line.endswith("so the wording is from templates.")
     for word in words:
         assert word in line, (word, line)
     logged = " ".join(r.getMessage() for r in caplog.records if "writing reply unusable" in r.getMessage())

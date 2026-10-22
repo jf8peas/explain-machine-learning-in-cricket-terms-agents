@@ -12,23 +12,27 @@ from typing import Any
 
 from .goal import agent_verdict
 from .hero_text import _plural, _runs
+from .methods import cap, term
+
+SEARCH = term("brute_force")
+AGENT = term("agent")
 
 TOO_CLOSE_RUNS = 0.5          # two displayed misses less than this far apart are "too close to call" (the page's exam.ts rule)
 
 CASES = ("beat", "edged", "held", "no_llm")
-OPENING = "An AI agent built its own prediction model."
+OPENING = f"An {AGENT} built its own prediction model."
 HERO_H1 = {
     "beat": f"{OPENING} Then it beat the TV.",
     "edged": f"{OPENING} It edged the TV, just short of the goal.",
     "held": f"{OPENING} The TV held on this time.",
-    "no_llm": "The agent couldn't reach its language model, so a plain search ran alone.",
+    "no_llm": f"The {AGENT} couldn't run, so the {SEARCH} ran alone.",
 }
 ASKED = "Halfway through a T20 innings, where will it finish?"
 LEAD = {
     "agent": f"{ASKED} The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
-    "search": f"{ASKED} A plain search chose the clues, code did the maths, and it was tested on a season it had never seen.",
+    "search": f"{ASKED} The {SEARCH} chose the clues, code did the maths, and it was tested on a season it had never seen.",
 }
-NO_MADE_UP = "0 numbers made up by the AI"
+NO_MADE_UP = f"0 numbers made up by the {AGENT}"
 SEASON = "On a season it never saw,"
 
 
@@ -54,7 +58,7 @@ def case_for(agent_miss: float | None, tv_miss: float) -> str:
 
 def verdict_h2(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float) -> str:
     if case == "no_llm":
-        return (f"{SEASON} the plain search missed by {_runs_text(search_miss)}; the TV missed by {_runs_text(tv_miss)}."
+        return (f"{SEASON} the {SEARCH} missed by {_runs_text(search_miss)}; the TV missed by {_runs_text(tv_miss)}."
                 if search_miss is not None else f"{SEASON} the TV missed by {_runs_text(tv_miss)}.")
     gap = round(tv_miss - agent_miss, 1)
     if case == "beat":
@@ -72,10 +76,10 @@ def vs_search(agent_miss: float | None, search_miss: float | None, tries: int) -
         return None
     gap = _tenths(search_miss) - _tenths(agent_miss)          # tenths of a run; positive: the agent missed by less
     if abs(gap) < TOO_CLOSE_RUNS * 10:
-        return f"The agent matched the brute-force search, using just {_count(tries, 'try', 'tries')}."
+        return f"The agent matched the {SEARCH}, using just {_count(tries, 'try', 'tries')}."
     size = _runs_text(abs(gap) / 10)
-    return (f"The agent beat the brute-force search by {size}." if gap > 0
-            else f"The agent finished {size} behind the brute-force search.")
+    return (f"The agent beat the {SEARCH} by {size}." if gap > 0
+            else f"The agent finished {size} behind the {SEARCH}.")
 
 
 def scoreboard(case: str, agent_miss: float | None, search_miss: float | None, tv_miss: float, tries: int) -> dict[str, Any]:
@@ -90,13 +94,13 @@ def scoreboard(case: str, agent_miss: float | None, search_miss: float | None, t
         text = (f"{_runs_text(gap)} closer than the TV" if gap > 0 else
                 f"{_runs_text(-gap)} behind the TV" if gap < 0 else "level with the TV")
         facts.append({"id": "gap", "text": text})
-    return {"subject_label": "AI agent" if case != "no_llm" else "Brute-force search", "subject_miss": subject,
+    return {"subject_label": AGENT if case != "no_llm" else cap(SEARCH), "subject_miss": subject,
             "tv_miss": tv_miss, "facts": facts}
 
 
 def build(*, agent_miss: float | None, search_miss: float | None, tv_miss: float, tries: int) -> dict[str, Any]:
     """All the headline words for one final test. The misses are the displayed (one-decimal) average misses on the test
-    season; `agent_miss` is None when no language-model setup was fitted; `tries` counts every proposal, rejected ones included."""
+    season; `agent_miss` is None when the agent made no idea that could be fitted; `tries` counts every proposal, rejected ones included."""
     case = case_for(agent_miss, tv_miss)
     return {"case": case, "hero_h1": HERO_H1[case], "lead": LEAD["search" if case == "no_llm" else "agent"],
             "verdict_h2": verdict_h2(case, agent_miss, search_miss, tv_miss),

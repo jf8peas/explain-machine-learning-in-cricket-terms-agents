@@ -1,4 +1,4 @@
-"""The know-nothing guess: every innings is predicted to end on the training years' average final total (feature 006)."""
+"""The average-total guess: every innings is predicted to end on the training years' average final total (feature 006)."""
 import numpy as np
 import pandas as pd
 

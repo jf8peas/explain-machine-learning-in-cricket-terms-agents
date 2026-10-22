@@ -2,6 +2,7 @@
 // each one with figures alone. Every number is the run's; the wording that is typed here contains no figure. "Too close to
 // call" is decided by the shared rule in exam.ts, on the scores as displayed, and only when both models are present.
 import { fromTenths, tooClose, type Seg } from "../exam";
+import { term } from "../terms";
 import type { ExamScores, ExamView } from "./view";
 
 export type Lead = { who: "ai" | "rival" | "level"; close: boolean };
@@ -22,7 +23,7 @@ export function gap(s: ExamScores): number | undefined {
   return both(s) ? Math.abs(s.ai - s.rival) : undefined;
 }
 
-const name = (who: "ai" | "rival") => (who === "ai" ? "AI agent's candidate model" : "rival's candidate model");
+const name = (who: "ai" | "rival") => `${term(who === "ai" ? "agent" : "brute_force")}'s ${term("idea")}`;
 
 type Verdict = "both" | "ai" | "rival" | "none";
 function beating(s: { rival: number; ai: number }, reference: number | null): Verdict | null {
@@ -38,7 +39,7 @@ export function compareSentence(v: ExamView): Seg[] {
   const l = lead(s) as Lead;
   const out: Seg[] = [];
   if (l.close) {
-    out.push({ text: `On ${v.years.test}, the AI agent's and the rival's candidate models are ` }, { text: "too close to call", kind: "tooclose" },
+    out.push({ text: `On ${v.years.test}, the ${term("agent")}'s and the ${term("brute_force")}'s ${term("idea")}s are ` }, { text: "too close to call", kind: "tooclose" },
       { text: ` (${fromTenths(s.ai)} and ${fromTenths(s.rival)} runs). ` });
   } else {
     const who = l.who as "ai" | "rival";
@@ -48,24 +49,24 @@ export function compareSentence(v: ExamView): Seg[] {
   const phrase = (b: Verdict, ref: string) => b === "both" ? `Both beat ${ref}` : b === "none" ? `Neither beat ${ref}`
     : `Only the ${name(b)} beat ${ref}`;
   if (tv && kn && tv === kn) {
-    out.push({ text: `${tv === "both" ? "Both beat" : tv === "none" ? "Neither beat" : `Only the ${name(tv)} beat`} the TV projection and the know-nothing guess.` });
+    out.push({ text: `${tv === "both" ? "Both beat" : tv === "none" ? "Neither beat" : `Only the ${name(tv)} beat`} the ${term("tv")} and the ${term("average_total")}.` });
   } else {
-    if (tv) out.push({ text: `${phrase(tv, "the TV projection")}. ` });
-    if (kn) out.push({ text: `${phrase(kn, "the know-nothing guess")}.` });
+    if (tv) out.push({ text: `${phrase(tv, `the ${term("tv")}`)}. ` });
+    if (kn) out.push({ text: `${phrase(kn, `the ${term("average_total")}`)}.` });
   }
   return out;
 }
 
-/** "On the check seasons the rival was ahead; on 2026 the AI edged it." and its variants; empty without both models. */
+/** "On the check seasons the brute-force search was ahead; on 2026 the AI agent edged it." and its variants; empty without both models. */
 export function leadSentence(v: ExamView): string {
   const a = lead(v.validation), b = lead(v.test);
   if (!v.aiTook || !a || !b) return "";
-  const who = (w: "ai" | "rival") => (w === "ai" ? "the AI" : "the rival");
+  const who = (w: "ai" | "rival") => `the ${term(w === "ai" ? "agent" : "brute_force")}`;
   const year = String(v.years.test);
-  if (a.who === "level" && b.who === "level") return `On the check seasons and on ${year} the two were level.`;
-  const first = a.who === "level" ? "On the check seasons the two were level" : `On the check seasons ${who(a.who)} was ahead`;
+  if (a.who === "level" && b.who === "level") return `On the ${term("check_seasons")} and on ${year} the two were level.`;
+  const first = a.who === "level" ? `On the ${term("check_seasons")} the two were level` : `On the ${term("check_seasons")} ${who(a.who)} was ahead`;
   if (b.who === "level") return `${first}; on ${year} the two were level.`;
-  if (a.who === b.who) return `On the check seasons and again on ${year} ${who(a.who)} was ahead.`;
+  if (a.who === b.who) return `On the ${term("check_seasons")} and again on ${year} ${who(a.who)} was ahead.`;
   return `${first}; on ${year} ${who(b.who)} ${b.close ? "edged it" : "came out ahead"}.`;
 }
 
@@ -75,11 +76,12 @@ export function bothTiny(v: ExamView): string {
   return v.aiTook && a && b && a.close && b.close ? "Both gaps are tiny." : "";
 }
 
-/** The second reason: the run's own count of candidate models tried on the check seasons. */
+/** The second reason: the run's own count of ideas tried on the check seasons. */
 export function reasonTwo(v: ExamView): string {
+  const checks = term("check_seasons"), idea = term("idea");
   return v.candidateModels === 1
-    ? "1 candidate model was tried on the check seasons. Some of its score is luck, so it usually slips on fresh data."
-    : `${v.candidateModels} candidate models were tried on the check seasons and the best one kept. Some of that best score is luck, so it usually slips on fresh data.`;
+    ? `1 ${idea} was tried on the ${checks}. Some of its score is luck, so it usually slips on fresh data.`
+    : `${v.candidateModels} ${idea}s were tried on the ${checks} and the best one kept. Some of that best score is luck, so it usually slips on fresh data.`;
 }
 
 /** One shared scale end for the two exam cards: the largest score rounded up to the next whole 5 runs (at least 5). */

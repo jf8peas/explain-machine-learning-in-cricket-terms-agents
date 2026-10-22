@@ -28,7 +28,7 @@ export function buildLivePanel(fetchModels: () => Promise<ModelsResponse | null>
   const limits = h("span", { "data-testid": "run-limits" });
   const start = h("button", { type: "button", class: "btn filled", "data-testid": "live-start" }, START_LABEL);
   const message = h("p", { class: "live-message", role: "status", "data-testid": "live-message" });
-  const el = h("div", { class: "commentary live-panel", id: "live-panel", "data-testid": "live-panel" },
+  const el = h("div", { "data-region": "commentary", class: "commentary live-panel", id: "live-panel", "data-testid": "live-panel" },
     h("label", { class: "field", for: "model-select" }, "Language model ", select), note,
     h("p", { class: "variation-note", "data-testid": "variation-note" },
       "Because a language model is involved, ", h("strong", {}, "runs can differ each time"), ". ", WHY_DIFFERENT, " ", limits),

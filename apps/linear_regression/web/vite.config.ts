@@ -16,5 +16,5 @@ export default defineConfig({
       },
     },
   },
-  test: { include: ["tests/unit/**/*.test.ts"] },
+  test: { include: ["tests/unit/**/*.test.ts"], setupFiles: ["tests/unit/setup-terms.ts"] },
 });

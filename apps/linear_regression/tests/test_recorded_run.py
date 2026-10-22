@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from linreg import headlines
+from linreg.methods import terms_version
 from linreg.fingerprint import DATA_FILES, data_fingerprint
 
 WEB = Path(__file__).resolve().parent.parent / "web"
@@ -56,6 +57,16 @@ def test_the_recorded_headlines_are_what_the_code_builds_from_the_recorded_figur
         search_miss=shown["forward"]["average_miss"] if "forward" in shown else None,
         tv_miss=shown["broadcaster"]["average_miss"], tries=state["rounds_used"])
     assert state["final"]["headlines"] == rebuilt, f"{path.name} has old headline wording: record the run again"
+
+
+@pytest.mark.parametrize("path", [SHIPPED, WEB / "tests" / "fixtures" / "recorded-run.fake.json"], ids=["shipped", "fake fixture"])
+def test_the_recorded_wording_is_what_the_backend_would_produce_now(path):
+    """Feature 021, FR-012: every code-worded string is the one the backend words now. When this fails, run
+    `uv run python scripts/reword_recorded_run.py` (no model, no run); it changes no number and not the agent's reasoning."""
+    from reword_recorded_run import reworded
+    recording = load(path)
+    assert recording.get("wording_version") == terms_version(), f"{path.name} has no wording version or an old one: run scripts/reword_recorded_run.py"
+    assert reworded(recording) == recording, f"{path.name} is in old wording: run scripts/reword_recorded_run.py"
 
 
 @pytest.mark.release

@@ -55,7 +55,7 @@ _FIXED_COLUMNS: dict[str, dict[str, Any]] = {
 USED_FOR = {"key": "used_for", "label": "Used for", "type": "text", "filter": "select",
             "labels": {"training": "Training", "training_validation": "Training and validation", "test": "Test"},
             "description": "Training: the earliest years, which the agent only learns from. Training and validation: the "
-                           "three years before the test year; each is a check year, judged by a model that learned only "
+                           "three years before the test season; each is a check season, judged by a model that learned only "
                            "from the years before it, and is also learning data for the checks after it. Test: the "
                            "latest year, used once at the end for the final mark. Split by calendar year, never at "
                            "random. Only innings in the test population are ever scored."}
@@ -122,8 +122,8 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
         "sections": [
             {"title": "Innings per competition",
              "rows": [{"label": COMPETITION_NAMES.get(k, k), "value": f"{int(v['innings_kept']):,}"} for k, v in comps]},
-            {"title": "How the years are used", "note": "How the agent uses the innings, by calendar year: every candidate model is judged "
-                                                         "on three check years, each by a model that learned only from the "
+            {"title": "How the years are used", "note": "How the agent uses the innings, by calendar year: every idea is judged "
+                                                         "on three check seasons, each by a model that learned only from the "
                                                          "years before it, and the latest year is kept for a single final test.",
              "rows": [{"label": f"Training ({train_years[0]} to {train_years[-1]})" if train_years else "Training",
                        "value": f"{training:,}"},
@@ -131,8 +131,8 @@ def _summary(df: pd.DataFrame, manifest: dict[str, Any]) -> dict[str, Any]:
                        "value": f"{checks:,}"},
                       {"label": f"Test ({rolling.test_year})", "value": f"{tests:,}"}]},
             {"title": "Test population", "note": "The innings the agent is judged on: every IPL and BBL innings, and the T20 "
-                                                  "internationals where both teams are ICC full members. Every check year "
-                                                  "and the test year are scored on these innings only.",
+                                                  "internationals where both teams are ICC full members. Every check season "
+                                                  "and the test season are scored on these innings only.",
              "rows": [{"label": "In the test population", "value": f"{pop['in']:,}"},
                       {"label": "Outside it", "value": f"{pop['out']:,}"},
                       *[{"label": f"{COMPETITION_NAMES.get(c, c)}: in the population",

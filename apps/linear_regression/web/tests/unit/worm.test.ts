@@ -193,16 +193,16 @@ describe("zoomPlan", () => {
         const text = (id: string) => z.labels.find((l) => l.id === id)!.text;
         expect(text("actual")).toBe(`Actual ${e.final_total}`);
         expect(text("tv")).toBe(`TV ${e.tv_projection}`);
-        expect(text("nothing")).toBe(`Know-nothing ${Math.round(inp.averageTotal)}`);
+        expect(text("nothing")).toBe(`Average-total guess ${Math.round(inp.averageTotal)}`);
         expect(z.title).toEqual(["ZOOM ON THE FINISH", "total after 20 overs"]);
       });
     });
   }
 
-  it("reads the current innings as in the design: 22 runs short, labels Actual 186, TV 164 and Know-nothing 162", () => {
+  it("reads the current innings as in the design: 22 runs short, labels Actual 186, TV 164 and Average-total guess 162", () => {
     const z = wormPlan(current(), "wide").zoom;
     expect(z.bracket.words).toBe("22 runs short");
-    expect(z.labels.map((l) => l.text).sort()).toEqual(["22 runs short", "Actual 186", "Know-nothing 162", "TV 164"]);
+    expect(z.labels.map((l) => l.text).sort()).toEqual(["22 runs short", "Actual 186", "Average-total guess 162", "TV 164"]);
     expect(z.range).toEqual(zoomRange({ actual: 186, tv: 164, nothing: 162 }, 22.5));
   });
 

@@ -2,6 +2,7 @@
 // The run-by-over chart with the zoom on the finish sits in Commentary. Every number comes from /api/reference; the only words
 // typed here are fixed copy.
 import { h, fmt } from "./dom";
+import { cap, term } from "./terms";
 import type { Reference } from "./reference-types";
 import { mountWorm } from "./worm";
 
@@ -10,7 +11,7 @@ export const RULE_NOTE = "It just multiplies the run rate by 20.";
 export const UNAVAILABLE = "The figures for this section could not be loaded.";
 
 export function headline(usualMiss: number): string {
-  return `The TV projection is usually about ${fmt(usualMiss)} runs out.`;
+  return `The ${term("tv")} is usually about ${fmt(usualMiss)} runs out.`;
 }
 
 export function question(innings: number): string {
@@ -19,7 +20,7 @@ export function question(innings: number): string {
 
 export function renderProblem(root: HTMLElement, ref: Reference | null): void {
   if (!ref || !ref.figures || !ref.training) {
-    root.replaceChildren(h("p", { class: "kicker" }, KICKER), h("h2", { id: "problem-title" }, "The TV projection"),
+    root.replaceChildren(h("p", { class: "kicker" }, KICKER), h("h2", { id: "problem-title" }, `The ${term("tv")}`),
       h("p", { class: "muted", "data-testid": "problem-unavailable", role: "status" }, ref?.message ?? UNAVAILABLE));
     return;
   }
@@ -33,7 +34,7 @@ export function renderProblem(root: HTMLElement, ref: Reference | null): void {
   const caption = example
     ? h("p", { class: "cap-line", "data-testid": "problem-caption" }, `${example.batting_team} v ${example.bowling_team}, ${example.venue}, ${example.date_label}`)
     : null;
-  const commentary = h("div", { class: "commentary", id: "problem-commentary", "data-testid": "problem-commentary" },
+  const commentary = h("div", { "data-region": "commentary", class: "commentary", id: "problem-commentary", "data-testid": "problem-commentary" },
     h("span", { class: "commentary-label" }, "Commentary"));
   const figure = h("figure", { class: "worm-card", "data-testid": "worm-card" },
     h("div", { "data-testid": "worm-chart" }),

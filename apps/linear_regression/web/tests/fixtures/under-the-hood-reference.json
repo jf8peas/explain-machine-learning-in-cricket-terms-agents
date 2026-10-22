@@ -1,1 +1,292 @@
-{"goal":{"reference":"broadcaster","margin_runs":3,"text":"beat the TV projection by at least 3 runs of average miss, on the latest calendar year, which nothing was trained or chosen on.","lead":"At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, and miss by 3 runs less on average."},"methods":[{"id":"know_nothing","name":"the know-nothing guess","note":"always the training years' average final total, whatever the score at 10 overs","marker":"square"},{"id":"broadcaster","name":"the TV projection","note":"the broadcaster's projected score: current run rate x 20 overs","marker":"circle"},{"id":"llm","name":"the language model's model","note":"a straight line fitted on the features the language model picked","marker":"triangle"},{"id":"forward","name":"forward selection's model","note":"a straight line fitted on the features forward selection picked","marker":"diamond"}],"training":{"first_year":2005,"last_year":2022,"innings":2133},"figures":{"know_nothing":{"n":2133,"average_miss":23.9,"within_10":26.7,"within_20":49.9,"miss_percent":14.8,"bias":0.0},"broadcaster":{"n":2133,"average_miss":22.5,"within_10":27.1,"within_20":53.9,"miss_percent":13.9,"bias":-14.3}},"gap":{"average_miss_runs":1.4,"average_miss_percent":5.9,"within_10_points":0.4},"finding":"slightly_better","words":{"know_nothing":{"bias":"leans neither way on average (0.0 runs)","bias_short":"0.0"},"broadcaster":{"bias":"guesses 14.3 runs too low","bias_short":"14.3 too low"}},"sentences":{"headline":"Here is how well two simple guesses did against the real final totals in past seasons (2005 to 2022, 2,133 innings). This is the bar the agent has to clear.","gap":"The TV projection misses by 22.5 runs on average, against 23.9 for the know-nothing guess, which ignores the score at 10 overs. Knowing the score at 10 overs is worth 1.4 runs (5.9%), and 0.4 more innings in every 100 land within 10 runs.","finding":"The TV projection is only slightly better than knowing nothing: its average miss is just 1.4 runs (5.9%) lower, so beating it means little.","bias":"The TV projection guesses 14.3 runs too low on average, because sides tend to score faster in the last 10 overs than their run rate at the halfway mark."},"meter":{"scale":{"min":16,"max":27},"marks":[{"id":"know_nothing","label":"Know-nothing guess","value":23.9},{"id":"broadcaster","label":"TV projection","value":22.5},{"id":"goal","label":"The goal","value":19.5}],"caption":"Average miss, runs · 2005 to 2022, 2,133 innings","text":"Average miss, lower is better: the know-nothing guess 23.9, the TV projection 22.5, the goal 19.5 or less."},"average_total":162,"example":{"match_id":"1223954","batting_team":"Australia","bowling_team":"India","venue":"Sydney Cricket Ground","date":"2020-12-08","date_label":"December 2020","runs":[9,14,16,28,45,51,59,68,73,82,87,101,114,124,139,145,157,168,175,186],"wickets":[0,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,5],"runs_at_10":82,"wickets_at_10":2,"final_total":186,"tv_projection":164,"tv_miss":22,"wicket_overs":[2,10,19,20]},"hero":{"caption":"A real innings: Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. Australia went from 82/2 to 186. The TV's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.","panel":"Knowing the score at 10 overs barely helps the TV, and on average it guesses too low, by 14.3 runs. The agent has to beat it by at least 3 runs.","panel_emphasis":["too low"],"footnote":"2,133 past innings, 2005 to 2022: IPL, BBL and full-member internationals.","chart_text":"Runs by over for Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs are shown in grey as context and the last 10 in the prediction area. Australia were 82 for 2 after 10 overs. The TV projection said 164. The know-nothing guess said 162. The innings finished on 186. A zoom on the finish shows where each prediction landed at 20 overs: the actual total 186, the TV projection 164 (22 runs short) and the know-nothing guess 162. The TV's usual miss is 22.5 runs either way, shown as a band around its projection. The agent's prediction is not known."},"message":null}
+{
+  "goal": {
+    "reference": "broadcaster",
+    "margin_runs": 3,
+    "text": "beat the TV projection by at least 3 runs of average miss, on the latest calendar year, which nothing was trained or chosen on.",
+    "lead": "At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, and miss by 3 runs less on average."
+  },
+  "methods": [
+    {
+      "id": "know_nothing",
+      "name": "the average-total guess",
+      "note": "always the training years' average final total, whatever the score at 10 overs",
+      "marker": "square"
+    },
+    {
+      "id": "broadcaster",
+      "name": "the TV projection",
+      "note": "the broadcaster's projected score: current run rate x 20 overs",
+      "marker": "circle"
+    },
+    {
+      "id": "llm",
+      "name": "the AI agent's model",
+      "note": "a straight line fitted on the clues the AI agent picked",
+      "marker": "triangle"
+    },
+    {
+      "id": "forward",
+      "name": "the brute-force search's model",
+      "note": "a straight line fitted on the clues the brute-force search picked",
+      "marker": "diamond"
+    }
+  ],
+  "training": {
+    "first_year": 2005,
+    "last_year": 2022,
+    "innings": 2133
+  },
+  "figures": {
+    "know_nothing": {
+      "n": 2133,
+      "average_miss": 23.9,
+      "within_10": 26.7,
+      "within_20": 49.9,
+      "miss_percent": 14.8,
+      "bias": 0.0
+    },
+    "broadcaster": {
+      "n": 2133,
+      "average_miss": 22.5,
+      "within_10": 27.1,
+      "within_20": 53.9,
+      "miss_percent": 13.9,
+      "bias": -14.3
+    }
+  },
+  "gap": {
+    "average_miss_runs": 1.4,
+    "average_miss_percent": 5.9,
+    "within_10_points": 0.4
+  },
+  "finding": "slightly_better",
+  "words": {
+    "know_nothing": {
+      "bias": "leans neither way on average (0.0 runs)",
+      "bias_short": "0.0"
+    },
+    "broadcaster": {
+      "bias": "guesses 14.3 runs too low",
+      "bias_short": "14.3 too low"
+    }
+  },
+  "sentences": {
+    "headline": "Here is how well two simple guesses did against the real final totals in past seasons (2005 to 2022, 2,133 innings). This is the bar the agent has to clear.",
+    "gap": "The TV projection misses by 22.5 runs on average, against 23.9 for the average-total guess, which ignores the score at 10 overs. Knowing the score at 10 overs is worth 1.4 runs (5.9%), and 0.4 more innings in every 100 land within 10 runs.",
+    "finding": "The TV projection is only slightly better than knowing nothing: its average miss is just 1.4 runs (5.9%) lower, so beating it means little.",
+    "bias": "The TV projection guesses 14.3 runs too low on average, because sides tend to score faster in the last 10 overs than their run rate at the halfway mark."
+  },
+  "meter": {
+    "scale": {
+      "min": 16,
+      "max": 27
+    },
+    "marks": [
+      {
+        "id": "know_nothing",
+        "label": "Average-total guess",
+        "value": 23.9
+      },
+      {
+        "id": "broadcaster",
+        "label": "TV projection",
+        "value": 22.5
+      },
+      {
+        "id": "goal",
+        "label": "The goal",
+        "value": 19.5
+      }
+    ],
+    "caption": "Average miss, runs · 2005 to 2022, 2,133 innings",
+    "text": "Average miss, lower is better: the average-total guess 23.9, the TV projection 22.5, the goal 19.5 or less."
+  },
+  "average_total": 162,
+  "example": {
+    "match_id": "1223954",
+    "batting_team": "Australia",
+    "bowling_team": "India",
+    "venue": "Sydney Cricket Ground",
+    "date": "2020-12-08",
+    "date_label": "December 2020",
+    "runs": [
+      9,
+      14,
+      16,
+      28,
+      45,
+      51,
+      59,
+      68,
+      73,
+      82,
+      87,
+      101,
+      114,
+      124,
+      139,
+      145,
+      157,
+      168,
+      175,
+      186
+    ],
+    "wickets": [
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      3,
+      5
+    ],
+    "runs_at_10": 82,
+    "wickets_at_10": 2,
+    "final_total": 186,
+    "tv_projection": 164,
+    "tv_miss": 22,
+    "wicket_overs": [
+      2,
+      10,
+      19,
+      20
+    ]
+  },
+  "hero": {
+    "caption": "A real innings: Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs, in grey, are context; the white part is what everyone is trying to predict. Australia went from 82/2 to 186. The TV's straight line said 164 and was 22 runs short: about its typical miss. Open circles mark wickets.",
+    "panel": "Knowing the score at 10 overs barely helps the TV, and on average it guesses too low, by 14.3 runs. The agent has to beat it by at least 3 runs.",
+    "panel_emphasis": [
+      "too low"
+    ],
+    "footnote": "2,133 past innings, 2005 to 2022: IPL, BBL and full-member internationals.",
+    "chart_text": "Runs by over for Australia v India, Sydney Cricket Ground, December 2020. The first 10 overs are shown in grey as context and the last 10 in the prediction area. Australia were 82 for 2 after 10 overs. The TV projection said 164. The average-total guess said 162. The innings finished on 186. A zoom on the finish shows where each prediction landed at 20 overs: the actual total 186, the TV projection 164 (22 runs short) and the average-total guess 162. The TV's usual miss is 22.5 runs either way, shown as a band around its projection. The agent's prediction is not known."
+  },
+  "message": null,
+  "terms": [
+    {
+      "id": "agent",
+      "plain": "AI agent",
+      "technical": "language-model agent",
+      "meaning": "The program in which a language model chooses ideas and code checks every number.",
+      "order": 1,
+      "alt_plain": null
+    },
+    {
+      "id": "brute_force",
+      "plain": "brute-force search",
+      "technical": "grid search with forward selection",
+      "meaning": "Plain code, no AI: it tries every combination of settings and builds the best clues for each.",
+      "order": 2,
+      "alt_plain": null
+    },
+    {
+      "id": "tv",
+      "plain": "TV projection",
+      "technical": "run rate × 20 overs",
+      "meaning": "The broadcaster's forecast: the runs per over so far, times 20.",
+      "order": 3,
+      "alt_plain": null
+    },
+    {
+      "id": "average_total",
+      "plain": "average-total guess",
+      "technical": "baseline (the training seasons' average total)",
+      "meaning": "Always guess the typical final total, whatever the score at 10 overs.",
+      "order": 4,
+      "alt_plain": null
+    },
+    {
+      "id": "idea",
+      "plain": "idea",
+      "technical": "candidate model",
+      "meaning": "One try: a set of clues together with settings.",
+      "order": 5,
+      "alt_plain": null
+    },
+    {
+      "id": "clues",
+      "plain": "clues",
+      "technical": "features",
+      "meaning": "The facts about an innings a model may use, such as wickets at 10 overs.",
+      "order": 6,
+      "alt_plain": null
+    },
+    {
+      "id": "settings",
+      "plain": "settings",
+      "technical": "hyperparameters",
+      "meaning": "Choices made before learning starts, such as how many seasons to learn from.",
+      "order": 7,
+      "alt_plain": null
+    },
+    {
+      "id": "check_seasons",
+      "plain": "check seasons",
+      "technical": "validation (rolling cross-validation)",
+      "meaning": "Seasons used again and again to choose between ideas.",
+      "order": 8,
+      "alt_plain": null
+    },
+    {
+      "id": "test_season",
+      "plain": "test season",
+      "technical": "hold-out test",
+      "meaning": "The one season kept sealed until the end, then scored once.",
+      "order": 9,
+      "alt_plain": "final test"
+    },
+    {
+      "id": "pick",
+      "plain": "our pick",
+      "technical": "the model chosen on the check seasons",
+      "meaning": "The idea that scored best on the check seasons.",
+      "order": 10,
+      "alt_plain": null
+    }
+  ],
+  "definitions": {
+    "brute_force": "The brute-force search is plain code, no AI: it tries every combination of settings and, inside each, adds clues one at a time, keeping whichever cuts the miss most. It is the yardstick: if the agent can't match it, its reasoning isn't adding anything.",
+    "brute_force_technical": "Technically it is a grid search over 24 combinations of three hyperparameters (which innings, how many seasons, how much recent seasons count), with greedy forward selection of features in each cell.",
+    "brute_force_honest": "\"Brute-force\" refers to the settings only: it does not try every possible set of clues (2^19, about 524,000)."
+  },
+  "banned": [
+    {
+      "pattern": "\\brivals?\\b",
+      "allowed_in": []
+    },
+    {
+      "pattern": "know[- ]nothing",
+      "allowed_in": []
+    },
+    {
+      "pattern": "mechanical search",
+      "allowed_in": []
+    },
+    {
+      "pattern": "\\bsetups?\\b",
+      "allowed_in": []
+    },
+    {
+      "pattern": "forward selection",
+      "allowed_in": [
+        "commentary",
+        "scorebook",
+        "definition"
+      ]
+    }
+  ],
+  "terms_version": "w1-c241948d0e43"
+}

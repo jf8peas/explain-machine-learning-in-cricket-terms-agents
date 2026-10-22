@@ -28,7 +28,7 @@ test("the section has its kicker, heading and four cards, and no panel is open",
   await open(page);
   await expect(page.locator("#scorebook .kicker").first()).toHaveText("THE SCOREBOOK");
   await expect(page.locator("#scorebook-title")).toHaveText("For the data scientists: every detail.");
-  await expect(card(page, "models")).toContainText("Every model tried");
+  await expect(card(page, "models")).toContainText("Every idea tried");
   await expect(card(page, "graph")).toContainText("The agent graph, step by step");
   await expect(card(page, "data")).toContainText("The data");
   await expect(card(page, "built")).toContainText("How this app was built");
@@ -36,7 +36,7 @@ test("the section has its kicker, heading and four cards, and no panel is open",
   await expect(card(page, "built")).toHaveAttribute("href", "/under-the-hood.html");
 });
 
-test("Every model tried: the ranked list and the brute-force search's two grids, in a full-width panel below the cards", async ({ page }) => {
+test("Every idea tried: the ranked list and the brute-force search's two grids, in a full-width panel below the cards", async ({ page }) => {
   await open(page);
   await card(page, "models").click();
   await expect(panel(page)).toBeVisible();
@@ -56,7 +56,7 @@ test("Every model tried: the ranked list and the brute-force search's two grids,
   expect(chips.map((c) => c.join("|")).sort()).toEqual(wanted.map((c) => c.join("|")).sort());
   const misses = (await rows.locator(".rank-miss").allTextContents()).map(Number);
   expect(misses).toEqual([...misses].sort((x, y) => x - y));                      // ranked by average miss
-  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Candidate model", "Found by", "Average miss on check seasons (runs)"]);
+  await expect(page.getByTestId("ranking").locator("thead th")).toHaveText(["#", "Idea", "Found by", "Average miss on check seasons (runs)"]);
   await expect(page.getByTestId("ranking-tv")).toContainText("The TV projection missed by");
 
   await expect(page.getByTestId("grid-table")).toHaveCount(2);
@@ -68,7 +68,7 @@ test("Every model tried: the ranked list and the brute-force search's two grids,
   const best = page.locator('[data-testid="grid-cell"][data-best="true"]');
   await expect(best).toHaveCount(1);
   await expect(best).toHaveText(`★ ${state.grid.best.validation_mae.toFixed(1)}`);
-  await expect(page.getByTestId("grid-best")).toContainText(`The rival's best: ${state.grid.best.validation_mae.toFixed(1)} runs on the check seasons.`);
+  await expect(page.getByTestId("grid-best")).toContainText(`The brute-force search's best: ${state.grid.best.validation_mae.toFixed(1)} runs on the check seasons.`);
   expect(await best.evaluate((el) => getComputedStyle(el).outlineStyle)).not.toBe("none");      // an outline, so it does not rely on colour
 });
 

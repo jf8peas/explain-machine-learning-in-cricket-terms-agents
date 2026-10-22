@@ -5,7 +5,9 @@ import "../commentary.css";
 import "../simple.css";
 import "../../graph-replay/graph-replay";
 import { setupHeader } from "../../detail-level/site-header";
+import { setTerms } from "../terms";
 import { fillFigures } from "./dom";
+import { fillWords, followDefinitionLink } from "./words";
 import { buildFigures, type CatalogueResponse, type DataResponse, type ModelsResponse, type ReferenceResponse, type StructureResponse } from "./figures";
 
 async function getJson<T>(url: string): Promise<T | undefined> {
@@ -22,4 +24,9 @@ setupHeader();
 void Promise.all([
   getJson<DataResponse>("/api/data"), getJson<ReferenceResponse>("/api/reference"), getJson<StructureResponse>("/api/structure"),
   getJson<CatalogueResponse>("/api/catalogue"), getJson<ModelsResponse>("/api/models"),
-]).then(([data, reference, structure, catalogue, models]) => fillFigures(document, buildFigures(data, reference, { structure, catalogue, models })));
+]).then(([data, reference, structure, catalogue, models]) => {
+  setTerms(reference);
+  fillFigures(document, buildFigures(data, reference, { structure, catalogue, models }));
+  fillWords(document);
+  followDefinitionLink();
+});

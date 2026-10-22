@@ -10,7 +10,7 @@ import math
 from typing import Any, Mapping
 
 from . import accuracy_text
-from .methods import BY_ID
+from .methods import BY_ID, cap, term
 from .state import MARGIN_RUNS
 
 REFERENCE = "broadcaster"            # the method the goal is measured against
@@ -26,7 +26,7 @@ def goal() -> dict[str, Any]:
     return {
         "reference": REFERENCE,
         "margin_runs": margin,
-        "text": (f"beat the TV projection by at least {shown} runs of average miss, on the latest calendar year, "
+        "text": (f"beat the {term('tv')} by at least {shown} runs of average miss, on the latest calendar year, "
                  f"which nothing was trained or chosen on."),
         "lead": (f"At 10 overs, the TV shows a projected score. The agent tries to beat it: predict the final total, "
                  f"and miss by {shown} {'run' if shown == 1 else 'runs'} less on average."),
@@ -90,14 +90,15 @@ def reference_finding(know_nothing_miss: float, projection_miss: float) -> dict[
 
 
 def verdict_sentence(v: dict[str, Any]) -> str:
-    """The verdict in plain words: whether the winner beat the projection, by how much, and whether that is the goal."""
+    """The verdict in plain words: whether our pick beat the projection, by how much, and whether that is the goal."""
     shown = int(MARGIN_RUNS) if float(MARGIN_RUNS).is_integer() else MARGIN_RUNS
     runs, percent = abs(v["improvement_runs"]), v["improvement_percent"]
     pct = f" ({abs(percent):.1f}%)" if percent is not None else ""
+    tv, pick = term("tv"), cap(term("pick"))
     if not v["beat"]:
-        return f"The winning model did not beat the TV projection: it was {runs:.1f} runs{pct} worse." if runs else             "The winning model did not beat the TV projection: the two missed by the same amount."
+        if not runs:
+            return f"{pick} did not beat the {tv}: the two missed by the same amount."
+        return f"{pick} did not beat the {tv}: it was {runs:.1f} runs{pct} worse."
     if v["reached"]:
-        return (f"The winning model beat the TV projection by {runs:.1f} runs{pct}, which reaches the goal of at least "
-                f"{shown} runs.")
-    return (f"The winning model beat the TV projection by {runs:.1f} runs{pct}, which is short of the goal of at least "
-            f"{shown} runs.")
+        return f"{pick} beat the {tv} by {runs:.1f} runs{pct}, which reaches the goal of at least {shown} runs."
+    return f"{pick} beat the {tv} by {runs:.1f} runs{pct}, which is short of the goal of at least {shown} runs."

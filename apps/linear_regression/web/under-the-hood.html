@@ -42,8 +42,8 @@
     <section id="hero" class="hero-band on-dark" data-testid="hero" aria-labelledby="hero-title">
       <div class="hero-inner built-hero">
         <p class="kicker">HOW THIS APP WAS BUILT</p>
-        <h1 id="hero-title">The language model chooses. Code does every number.</h1>
-        <p class="hero-lead">A LangGraph agent runs in a Python function on Vercel. A small web page replays it step by step. The data is real ball-by-ball cricket from Cricsheet.</p>
+        <h1 id="hero-title">The AI agent chooses. Code does every number.</h1>
+        <p class="hero-lead">A LangGraph agent runs in a Python function on Vercel. The data is real ball-by-ball cricket from Cricsheet.</p>
         <ul class="facts" data-testid="hero-facts">
           <li><span class="num" data-testid="fact-steps"><span data-figure="agentSteps">not available right now</span></span><span class="what">agent steps</span></li>
           <li><span class="num" data-testid="fact-llm-steps"><span data-figure="llmSteps">not available right now</span></span><span class="what">use a language model</span></li>
@@ -73,7 +73,7 @@
         <span class="arch-link" aria-hidden="true">←</span>
         <div class="arch-box"><strong>Two data files</strong></div>
       </div>
-      <div class="commentary" id="commentary-big" data-testid="commentary-big">
+      <div class="commentary" data-region="commentary" id="commentary-big" data-testid="commentary-big">
         <span class="commentary-label">Commentary</span>
         <div class="cards three">
           <div class="card"><h3>Your browser</h3><p>A static page that asks for data, replays the run and draws every chart.</p><p class="where">web/</p></div>
@@ -81,6 +81,7 @@
           <div class="card"><h3>Two data files</h3><p>innings.csv and overs.csv are read, never written.</p><p class="where">data/</p></div>
         </div>
         <p>A script prepared the data by hand beforehand. During a live run, OpenRouter relays calls to the language model and Upstash Redis holds the run limits.</p>
+        <details class="words" data-region="definition" data-testid="words-we-use"><summary>Words we use</summary><dl data-glossary><dt>not available right now</dt></dl></details>
       </div>
     </section>
 
@@ -92,7 +93,7 @@
         <li class="tile" data-testid="tile-clues"><span class="tile-value" data-figure="clues">not available right now</span><span class="tile-label">possible clues</span></li>
         <li class="tile" data-testid="tile-judged"><span class="tile-value" data-figure="testPopulation">not available right now</span><span class="tile-label">innings judged on</span></li>
       </ul>
-      <div class="commentary" id="commentary-data" data-testid="commentary-data">
+      <div class="commentary" data-region="commentary" id="commentary-data" data-testid="commentary-data">
         <span class="commentary-label">Commentary</span>
         <div class="cards two">
           <div class="card">
@@ -132,7 +133,7 @@
 
     <section id="play" class="block" aria-labelledby="h-play">
       <p class="kicker">Part 2</p>
-      <h2 id="h-play">Only a live run runs the agent. Each step streams back as it finishes.</h2>
+      <h2 id="h-play">Only a live run runs the agent. Each step streams back.</h2>
       <ol class="steps tiles-five" data-testid="play-tiles">
         <li class="tile" data-testid="play-vercel"><span class="n">1</span><strong>Vercel</strong></li>
         <li class="tile" data-testid="play-fastapi"><span class="n">2</span><strong>FastAPI</strong></li>
@@ -140,7 +141,7 @@
         <li class="tile" data-testid="play-agent"><span class="n">4</span><strong>The agent</strong></li>
         <li class="tile" data-testid="play-stream"><span class="n">5</span><strong>The stream</strong></li>
       </ol>
-      <div class="commentary" id="commentary-play" data-testid="commentary-play">
+      <div class="commentary" data-region="commentary" id="commentary-play" data-testid="commentary-play">
         <span class="commentary-label">Commentary</span>
         <ol class="plain" data-testid="play-notes">
           <li>Vercel passes the request to Python.</li><li>FastAPI finds the run function.</li><li>The gate says yes or no.</li><li>The agent runs its graph.</li><li>The stream sends each step back.</li>
@@ -165,29 +166,31 @@
       <p class="kicker">Part 3</p>
       <h2 id="h-agent"><span data-figure="stepsWord">The</span> steps, each tagged with one of the eight stages of any ML project.</h2>
       <graph-replay view="structure" structure-url="/api/structure"></graph-replay>
-      <div class="commentary" id="commentary-agent" data-testid="commentary-agent">
+      <p class="yardstick-def" id="brute-force" tabindex="-1" data-testid="brute-force-def" data-region="definition" data-definition="brute_force">not available right now</p>
+      <div class="commentary" data-region="commentary" id="commentary-agent" data-testid="commentary-agent">
         <span class="commentary-label">Commentary</span>
+        <div data-region="definition" data-testid="brute-force-commentary"><p data-definition="brute_force_technical">not available right now</p><p data-definition="brute_force_honest">not available right now</p></div>
         <div class="cards" data-testid="stage-cards">
           <div class="card" data-testid="stage-card-1"><h3>1 · Prepare the data</h3><p>load_data checks the data first. <span data-figure-group="stage1-ok">All well: <span data-figure="totalInnings">not available right now</span> innings, <span data-figure="dateRange">not available right now</span>.</span> If not, it says what and the run ends.</p></div>
           <div class="card" data-testid="stage-card-2"><h3>2 · Split the data</h3><p>Three seasons to choose with, one to test. Each season is predicted only from earlier ones, never at random. The test season is read once.</p></div>
-          <div class="card" data-testid="stage-card-3"><h3>3 · Understand the data</h3><p>Summary statistics from before the test brief the language model. Nothing is fitted here.</p></div>
+          <div class="card" data-testid="stage-card-3"><h3>3 · Understand the data</h3><p>Summary statistics from before the test brief the AI agent. Nothing is fitted here.</p></div>
           <div class="card" data-testid="stage-card-4"><h3>4 · Frame the problem</h3><p data-figure-group="reference-bar">The bar, on <span data-figure="refInnings">not available right now</span> past innings (<span data-figure="refFirstYear">not available right now</span> to <span data-figure="refLastYear">not available right now</span>): average-total guess <span data-figure="knowNothingMiss">not available right now</span> runs out, TV projection <span data-figure="tvMiss">not available right now</span>.</p><p data-figure-group="tv-bias">The TV guesses <span data-figure="tvBias">not available right now</span> runs <span data-figure="tvBiasWords">not available right now</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
-          <div class="card" data-testid="stage-card-5-6"><h3>5–6 · Choose and fit</h3><p>An idea is four choices: clues, seasons, recency weighting and innings. The agent proposes up to six; a grid search tries every combination. Code scores each on the three check seasons.</p></div>
+          <div class="card" data-testid="stage-card-5-6"><h3>5–6 · Choose and fit</h3><p>An idea is four choices: clues, seasons, recency weighting and innings. The agent proposes up to six; the brute-force search tries every combination of settings. Code scores each on the three check seasons.</p></div>
           <div class="card" data-testid="stage-card-7"><h3>7 · Final assessment</h3><p>The chosen model is scored once on the test season. The goal is met when it beats the TV by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
-          <div class="card" data-testid="stage-card-8"><h3>8 · Interpret and communicate</h3><p>Code builds the facts. The language model may only reword them, naming facts instead of writing numbers.</p></div>
+          <div class="card" data-testid="stage-card-8"><h3>8 · Interpret and communicate</h3><p>Code builds the facts. The AI agent may only reword them, naming facts instead of writing numbers.</p></div>
         </div>
       </div>
     </section>
 
     <section id="what-you-see" class="block" aria-labelledby="h-see">
       <p class="kicker">Part 4</p>
-      <h2 id="h-see">Your browser keeps every step, so you can pause and rewind without running the agent again.</h2>
+      <h2 id="h-see">Your browser keeps every step, so you can pause and rewind.</h2>
       <div class="cards three" data-testid="levels">
-        <div class="card"><h3>Scoreboard</h3><p>A headline, a picture and a short lead. Always shown.</p></div>
-        <div class="card dashed"><h3>Commentary</h3><p>The detail behind each part. Open with Show me everything.</p></div>
-        <div class="card"><h3>Scorebook</h3><p>Every model tried, the agent step by step, the data.</p></div>
+        <div class="card"><h3>Scoreboard</h3><p>A headline, a picture and a short lead.</p></div>
+        <div class="card dashed"><h3>Commentary</h3><p>The detail behind each part.</p></div>
+        <div class="card"><h3>Scorebook</h3><p>Every idea tried, the agent step by step, the data.</p></div>
       </div>
-      <div class="commentary" id="commentary-see" data-testid="commentary-see">
+      <div class="commentary" data-region="commentary" id="commentary-see" data-testid="commentary-see">
         <span class="commentary-label">Commentary</span>
         <p>Each step arrives as a small event while the agent works. Your browser keeps them, so you can pause, step back and jump.</p>
         <p>Two scores less than 0.5 runs apart are too close to call. The graph and data grid are reusable components.</p>
@@ -198,7 +201,7 @@
       <p class="kicker">Part 5</p>
       <h2 id="h-ship">One folder, one Vercel project, app 1 of 8.</h2>
       <div class="cards three">
-        <div class="card"><h3>The code</h3><p>One folder holds the API, the agent, the data, the page and the tests, planned with Spec Kit.</p></div>
+        <div class="card"><h3>The code</h3><p>One folder holds the API, agent, data, page and tests.</p></div>
         <div class="card"><h3>Deployment</h3><p>One Vercel project with a 90-second limit per run. The model key stays on the server.</p></div>
         <div class="card"><h3>The bigger site</h3><p>App 1 of 8 for Explain Machine Learning in Cricket Terms.</p></div>
       </div>

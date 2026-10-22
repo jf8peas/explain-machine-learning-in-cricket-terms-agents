@@ -39,11 +39,11 @@ describe("choiceView", () => {
 
 describe("the choice heading", () => {
   it("names the chosen candidate model and adds 'by a whisker' only when too close", () => {
-    expect(choiceHeading(view("llm", 170, 182))).toBe("The AI agent's candidate model");
-    expect(choiceHeading(view("forward", 174, 170))).toBe("The rival's candidate model, by a whisker");
-    expect(choiceHeading(view("llm", 170, 170))).toBe("The AI agent's candidate model, by a whisker");
-    expect(choiceHeading(view("forward", 182, 170))).toBe("The rival's candidate model");
-    expect(choiceHeading(view("forward", null, 170))).toBe("The rival's candidate model");
+    expect(choiceHeading(view("llm", 170, 182))).toBe("The AI agent's idea");
+    expect(choiceHeading(view("forward", 174, 170))).toBe("The brute-force search's idea, by a whisker");
+    expect(choiceHeading(view("llm", 170, 170))).toBe("The AI agent's idea, by a whisker");
+    expect(choiceHeading(view("forward", 182, 170))).toBe("The brute-force search's idea");
+    expect(choiceHeading(view("forward", null, 170))).toBe("The brute-force search's idea");
     expect(choiceHeading(choiceView(undefined, null, null))).toBe("Still searching");
   });
 });
@@ -69,9 +69,9 @@ describe("the choice text", () => {
   });
 
   it("for a tie mentions the tie rule, and for no AI says the rival goes forward with no comparison", () => {
-    expect(text(view("llm", 170, 170))).toContain("equal scores go to the AI agent's candidate model");
+    expect(text(view("llm", 170, 170))).toContain("equal scores go to the AI agent's idea");
     const none = text(view("forward", null, 170));
-    expect(none).toContain("The AI agent made no candidate model that could be scored, so the rival's goes forward.");
+    expect(none).toContain("The AI agent made no idea that could be scored, so the brute-force search's goes forward.");
     expect(none).not.toMatch(/too close to call|against/i);
   });
 
@@ -79,7 +79,7 @@ describe("the choice text", () => {
     const t = text(view("forward", 170, 170));
     expect(t).not.toContain("equal scores go to the AI agent");
     expect(t).toContain("too close to call");
-    expect(choiceHeading(view("forward", 170, 170))).toBe("The rival's candidate model, by a whisker");
+    expect(choiceHeading(view("forward", 170, 170))).toBe("The brute-force search's idea, by a whisker");
   });
 
   it("never uses the word winner or the word setup, in any state", () => {

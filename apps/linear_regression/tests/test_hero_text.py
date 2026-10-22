@@ -161,7 +161,7 @@ def test_the_chart_text_has_every_number_the_chart_shows_and_says_the_agent_is_u
 def test_the_chart_text_describes_the_zoom_the_miss_and_the_tvs_usual_miss():
     text = hero()["chart_text"]
     assert "zoom on the finish" in text.lower()
-    assert "the actual total 186" in text and "the TV projection 164 (22 runs short)" in text and "the know-nothing guess 162" in text
+    assert "the actual total 186" in text and "the TV projection 164 (22 runs short)" in text and "the average-total guess 162" in text
     assert "usual miss is 22.5 runs either way" in text and "band around its projection" in text
     assert "grey as context" in text
 

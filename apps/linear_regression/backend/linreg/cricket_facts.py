@@ -17,12 +17,16 @@ from typing import Any, Mapping
 from . import accuracy_text
 from .accuracy import is_large_bias
 from .hero_text import barely_helps
+from .methods import term
+
+_AVG, _PICK, _CHECKS, _TEST, _CLUES, _TV = (term("average_total"), term("pick"), term("check_seasons"), term("test_season"),
+                                             term("clues"), term("tv"))
 
 Fact = dict[str, Any]
 
-# How the page names a method in a sentence ("The <label> beat the TV projection..."), by method id.
-METHOD_LABELS = {"llm": "AI agent's model", "forward": "rival's model", "broadcaster": "TV projection",
-                 "know_nothing": "know-nothing guess"}
+# How the page names a method in a sentence ("The <label> beat the TV projection..."), by method id. From the glossary.
+METHOD_LABELS = {"llm": f"{term('agent')}'s model", "forward": f"{term('brute_force')}'s model",
+                 "broadcaster": term("tv"), "know_nothing": term("average_total")}
 
 # The share of innings called within 10 runs, in words that finish "...of the real total ___.": (lower bound, phrase).
 WITHIN_10_WORDS = ((85.0, "nearly always"), (72.0, "about three quarters of the time"),
@@ -79,27 +83,27 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
     facts: dict[str, Fact] = {}
 
     facts["goal_reached"] = _fact(reached, "yes/no", "yes" if reached else "no",
-                                  "whether the chosen candidate model beat the TV projection by at least the goal margin")
-    facts["beat_tv"] = _fact(beat, "yes/no", "yes" if beat else "no", "whether the chosen candidate model beat the TV projection at all")
+                                  f"whether {_PICK} beat the {_TV} by at least the goal margin")
+    facts["beat_tv"] = _fact(beat, "yes/no", "yes" if beat else "no", f"whether {_PICK} beat the {_TV} at all")
     facts["beat_tv_by"] = _fact(_runs(abs(improvement)), "runs", _one(_runs(abs(improvement))),
-                                "the runs of average miss by which the chosen candidate model beat the TV projection (or missed it, "
+                                f"the runs of average miss by which {_PICK} beat the {_TV} (or missed it, "
                                 "if it did not beat it), as a positive number")
     facts["goal_margin"] = _fact(margin_runs, "runs", _shown(margin_runs),
-                                 "the margin of improvement over the TV projection that the goal asks for")
+                                 f"the margin of improvement over the {_TV} that the goal asks for")
     if beat and not reached:
         short = _runs(margin_runs - improvement)
         facts["short_of_goal_by"] = _fact(short, "runs", _one(short),
-                                          "how far short of the goal the chosen candidate model finished, in runs")
+                                          f"how far short of the goal {_PICK} finished, in runs")
     know = final.get("versus_know_nothing")
     if know:
         gain = _runs(abs(know["improvement_runs"]))
         facts["beat_know_nothing_by"] = _fact(gain, "runs", _one(gain),
-                                              "the runs of average miss by which the chosen candidate model beat the know-nothing "
-                                              "guess (the average of past totals)")
+                                              f"the runs of average miss by which {_PICK} beat the {_AVG} "
+                                              "(the average of past totals)")
         facts["beat_know_nothing"] = _fact(bool(know["beat"]), "yes/no", "yes" if know["beat"] else "no",
-                                           "whether the chosen candidate model beat the know-nothing guess")
+                                           f"whether {_PICK} beat the {_AVG}")
     facts["tv_test_miss"] = _fact(_runs(final["test_mae"]["tv"]), "runs", _one(_runs(final["test_mae"]["tv"])),
-                                  "the TV projection's average miss on the test year")
+                                  f"the {_TV}'s average miss on the {_TEST}")
     accs: Mapping[str, Mapping[str, float]] = final.get("accuracy") or {}
     acc = accs.get(final["winner"])
     if acc:
@@ -107,9 +111,9 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
                                          f"the share of test innings the chosen model predicted within {tolerances[0]} runs")
         facts["share_within_10_words"] = _fact(within_10_words(acc["within_10"]), "text", within_10_words(acc["within_10"]),
                                                "the chosen model's within-the-tolerance share in words, ending 'of the time'")
-        facts["test_innings"] = _fact(acc["n"], "count", str(acc["n"]), "how many innings the test year has")
+        facts["test_innings"] = _fact(acc["n"], "count", str(acc["n"]), f"how many innings the {_TEST} has")
     facts["chosen_label"] = _fact(final["winner"], "text", METHOD_LABELS[final["winner"]],
-                                  "the method chosen on the check years, before the test year")
+                                  f"the method chosen on the {_CHECKS}, before the {_TEST}")
     facts.update(_reference_facts(accs))
     facts["within_runs_threshold"] = _fact(tolerances[0], "runs", _shown(tolerances[0]),
                                            "the number of runs the 'within' share is measured at")
@@ -126,10 +130,10 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
         facts[f"typical_difference_{f}"] = _fact(_runs(iqr[f]), labels[f]["unit"], _shown(_runs(iqr[f])),
                                                  f"a typical difference in {label}")
     most = max(features, key=lambda f: abs(coefs[f] * iqr[f]))
-    facts["biggest_factor"] = _fact(most, "text", labels[most]["label"], "the feature with the biggest effect")
+    facts["biggest_factor"] = _fact(most, "text", labels[most]["label"], "the clue with the biggest effect")
     facts["biggest_factor_effect"] = _fact(abs(effects[most]), "runs", _one(abs(effects[most])),
                                            "runs a typical difference in the biggest factor moves the prediction")
-    facts["n_features"] = _fact(len(features), "count", str(len(features)), "how many features the winning model uses")
+    facts["n_features"] = _fact(len(features), "count", str(len(features)), f"how many {_CLUES} the winning model uses")
 
     if WICKET_COST_FEATURE in coefs:
         c = float(coefs[WICKET_COST_FEATURE])
@@ -145,12 +149,12 @@ def build_facts(state: Mapping[str, Any], labels: Mapping[str, Mapping[str, str]
                                                   "whether a wicket in hand added runs ('worth') or, oddly, did not "
                                                   "('less')")
 
-    facts["test_year"] = _fact(split["test_year"], "year", str(split["test_year"]), "the test year, used once at the end")
+    facts["test_year"] = _fact(split["test_year"], "year", str(split["test_year"]), f"the {_TEST}, used once at the end")
     return facts
 
 
 def _reference_facts(accs: Mapping[str, Mapping[str, float]]) -> dict[str, Fact]:
-    """The TV projection against the know-nothing guess, and which way the TV leans. Empty when they are missing."""
+    """The TV projection against the average-total guess, and which way the TV leans. Empty when they are missing."""
     tv, know = accs.get("broadcaster"), accs.get("know_nothing")
     if not tv or not know:
         return {}
@@ -158,39 +162,39 @@ def _reference_facts(accs: Mapping[str, Mapping[str, float]]) -> dict[str, Fact]
     gap = round(know["average_miss"] - tv["average_miss"], 1)
     state = "barely" if barely_helps(know["average_miss"], tv["average_miss"]) else "clearly" if gap > 0 else "none"
     out["know_nothing_miss"] = _fact(_runs(know["average_miss"]), "runs", _one(_runs(know["average_miss"])),
-                                          "the know-nothing guess's average miss on the test year")
+                                          f"the {_AVG}'s average miss on the {_TEST}")
     out["tv_gap"] = _fact(abs(gap), "runs", _one(abs(gap)),
-                                            "how many runs apart the TV projection's and the know-nothing guess's "
+                                            f"how many runs apart the {_TV}'s and the {_AVG}'s "
                                             "average misses are (absolute)")
     out["run_rate_state"] = _fact(state, "text", state,
                                   "whether the run rate alone clearly helps, barely helps or does not help")
-    # The know-nothing guess is far off because totals have risen when it passes the existing large-bias rule and guesses too low.
+    # The average-total guess is far off because totals have risen when it passes the existing large-bias rule and guesses too low.
     kbias = know["bias"]
     kleaning = accuracy_text.bias_short(kbias) != "0.0"
     kdirection = ("high" if kbias > 0 else "low") if kleaning else "none"
     rising = is_large_bias(know) and kleaning and kbias < 0
     out["know_nothing_rising"] = _fact(rising, "yes/no", "yes" if rising else "no",
-                                       "whether the know-nothing guess is far off because totals have risen (it is far off and guesses too low)")
+                                       f"whether the {_AVG} is far off because totals have risen (it is far off and guesses too low)")
     out["know_nothing_bias_runs"] = _fact(abs(round(kbias, 1)), "runs", f"{abs(kbias):.1f}",
-                                          "how many runs too low or too high the know-nothing guess is on average (absolute)")
+                                          f"how many runs too low or too high the {_AVG} is on average (absolute)")
     out["know_nothing_bias_direction"] = _fact(kdirection, "text", {"high": "too high", "low": "too low", "none": "about right"}[kdirection],
-                                               "which way the know-nothing guess leans on average: too low, too high or about right")
+                                               f"which way the {_AVG} leans on average: too low, too high or about right")
     bias = tv["bias"]
     leaning = accuracy_text.bias_short(bias) != "0.0"
     direction = ("high" if bias > 0 else "low") if leaning else "none"
     out["tv_bias_runs"] = _fact(abs(round(bias, 1)), "runs", f"{abs(bias):.1f}",
-                                "how many runs too low or too high the TV projection is on average (absolute)")
+                                f"how many runs too low or too high the {_TV} is on average (absolute)")
     out["tv_bias_direction"] = _fact(direction, "text",
                                      {"high": "too high", "low": "too low", "none": "about right"}[direction],
-                                     "which way the TV projection leans on average: too low, too high or about right")
+                                     f"which way the {_TV} leans on average: too low, too high or about right")
     large = is_large_bias(tv)
     out["tv_bias_large"] = _fact(large, "yes/no", "yes" if large else "no",
-                                 "whether the TV projection's lean is large next to its average miss")
+                                 f"whether the {_TV}'s lean is large next to its average miss")
     verb = ("add" if direction == "low" else "take off") if large and leaning else "none"
     out["rule_verb"] = _fact(verb, "text", verb if verb != "none" else "",
-                             "what the rule of thumb does to the TV projection: add or take off")
+                             f"what the rule of thumb does to the {_TV}: add or take off")
     out["rule_runs"] = _fact(abs(round(bias, 1)), "runs", f"{abs(bias):.1f}",
-                             "the runs the rule of thumb adds to or takes off the TV projection")
+                             f"the runs the rule of thumb adds to or takes off the {_TV}")
     return out
 
 

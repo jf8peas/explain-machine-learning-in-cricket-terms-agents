@@ -24,7 +24,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -59,7 +59,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -94,7 +94,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -129,7 +129,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -164,7 +164,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -199,7 +199,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -219,9 +219,9 @@
     },
     "expected": {
       "case": "no_llm",
-      "hero_h1": "The agent couldn't reach its language model, so a plain search ran alone.",
-      "lead": "Halfway through a T20 innings, where will it finish? A plain search chose the clues, code did the maths, and it was tested on a season it had never seen.",
-      "verdict_h2": "On a season it never saw, the plain search missed by 17.5 runs; the TV missed by 20.5 runs.",
+      "hero_h1": "The AI agent couldn't run, so the brute-force search ran alone.",
+      "lead": "Halfway through a T20 innings, where will it finish? The brute-force search chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the brute-force search missed by 17.5 runs; the TV missed by 20.5 runs.",
       "vs_search": null,
       "scoreboard": {
         "subject_label": "Brute-force search",
@@ -261,7 +261,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -296,7 +296,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",
@@ -331,7 +331,7 @@
           },
           {
             "id": "no_made_up",
-            "text": "0 numbers made up by the AI"
+            "text": "0 numbers made up by the AI agent"
           },
           {
             "id": "gap",

@@ -3,18 +3,17 @@
 // Nothing here draws; the section modules do.
 import { examYears, tenths, type ExamYears } from "../exam";
 import type { Attempt } from "../leaderboard";
+import { cap, methodModel, term, technical } from "../terms";
 import type { CricketExplanation, Fact, FinalState } from "./types";
 
-/** Page copy per method id (names and one-line descriptions come from the design README, not from the run). */
-export const COPY: Record<string, { name: string; description: string }> = {
-  llm: { name: "The AI agent's model", description: "" },
-  forward: { name: "The rival's model", description: "forward selection" },
-  broadcaster: { name: "The TV projection", description: "run rate × 20 overs" },
-  know_nothing: { name: "The know-nothing guess", description: "always the average total" },
-};
-
-/** The note on the chosen model's row. */
-export const PICK_NOTE = "our pick";
+/** Page copy per method id: the name is the glossary's plain term, the description its technical term (both from the server's list). */
+export function copyFor(id: string): { name: string; description: string } {
+  const technicalOf: Record<string, Parameters<typeof technical>[0]> = {
+    llm: "agent", forward: "brute_force", broadcaster: "tv", know_nothing: "average_total",
+  };
+  const t = technicalOf[id];
+  return { name: cap(methodModel(id)), description: t ? technical(t) : "" };
+}
 
 /** The colour token of each method; always paired with the name, a hatch or a shape, never the only cue. */
 export const TOKEN: Record<string, string> = {
@@ -40,7 +39,7 @@ export function rows(final: FinalState): Row[] {
   const list = final.methods.filter((id) => final.accuracy[id]).map((id, i) => ({ id, i, a: final.accuracy[id] }));
   list.sort((x, y) => x.a.average_miss - y.a.average_miss || x.i - y.i);
   return list.map(({ id, a }) => ({
-    id, name: COPY[id]?.name ?? id, description: COPY[id]?.description ?? "",
+    id, name: copyFor(id).name, description: copyFor(id).description,
     miss: a.average_miss, within10: a.within_10, within20: a.within_20, bias: a.bias,
     phrase: final.bias_phrases?.[id] ?? "", isChosen: id === final.winner,
   }));
@@ -48,7 +47,7 @@ export function rows(final: FinalState): Row[] {
 
 /** The header lead: the innings count, the test year and how many predictions were made (all from the state). */
 export function headerLead(testYear: number | undefined, innings: number | undefined, methods: number): string {
-  const year = testYear === undefined ? "the test year" : String(testYear);
+  const year = testYear === undefined ? `the ${term("test_season")}` : String(testYear);
   const each = innings === undefined ? "each innings" : `each of the ${innings} innings`;
   const words = COUNT_WORDS[methods] ?? String(methods);
   return `For ${each} of ${year}, ${words} predictions of the final total, made at the halfway mark and then compared with what really happened.`;
@@ -79,7 +78,7 @@ export interface ExamView {
   years: ExamYears;
   innings: number;
   candidateModels: number;         // the AI's fitted attempts plus the grid's allowed cells
-  tv: number | null;               // the TV projection's and the know-nothing guess's test misses (tenths)
+  tv: number | null;               // the TV projection's and the average-total guess's test misses (tenths)
   knowNothing: number | null;
 }
 

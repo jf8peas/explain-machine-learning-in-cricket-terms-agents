@@ -76,7 +76,7 @@ test("Why you can trust this score is closed, opens with its own toggle or with 
   expect(items).toEqual([
     `The agent chose using the check seasons (${checks[0]}–${checks[checks.length - 1]}) only.`,
     `The test season (${split.test_year}) stayed locked and was used once.`,
-    "A plain grid search ran alongside as a yardstick.",
+    "The brute-force search ran alongside as a yardstick.",
   ]);
   await toggle.click();
   await page.getByTestId("view-switch").click();
@@ -86,13 +86,14 @@ test("Why you can trust this score is closed, opens with its own toggle or with 
 test("Commentary holds three cards, and the pick with its goal verdict appears only in the first", async ({ page }) => {
   await open(page);
   await expect(page.getByTestId("verdict-commentary")).toBeHidden();
-  await expect(page.getByText(/our pick/i)).toBeHidden();                       // nowhere on the Scoreboard
+  await expect(page.getByText(/our pick/i).first()).toBeHidden();                       // nowhere on the Scoreboard
   await page.getByTestId("view-switch").click();
   const titles = await page.locator("#verdict-commentary .vcard h3").allTextContents();
   expect(titles).toEqual(["Check seasons vs the final test", "How often is it close?", "What moves the final total"]);
   await expect(page.getByTestId("vcard-seasons").getByTestId("pick")).toContainText("Our pick: ");
   await expect(page.getByTestId("vcard-seasons").getByTestId("pick-verdict")).toHaveText(final().verdict_sentence);
-  expect(await page.getByText(/our pick/i).count()).toBe(1);
+  await expect(page.getByTestId("vcard-seasons").getByText(/our pick/i)).toHaveCount(2);       // the label and the verdict sentence, both in the first card
+  expect(await page.getByText(/our pick/i).count()).toBe(2);
   await expect(page.getByTestId("vcard-seasons").getByTestId("exam-card")).toHaveCount(2);        // both methods' scores on each exam
   await expect(page.getByTestId("vcard-close").getByTestId("close-row")).toHaveCount(4);
   await expect(page.getByTestId("vcard-drivers").getByTestId("drivers-chart")).toBeVisible();

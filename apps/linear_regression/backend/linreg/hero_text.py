@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from . import accuracy_text
+from .methods import term
 
 BARELY_HELPS_SHARE = 0.10   # the TV "barely helps" when it beats knowing nothing by no more than this share of that miss
 TYPICAL_MISS_SHARE = 0.25   # this innings' miss is "about its typical miss" within this share of the TV's average miss
@@ -94,9 +95,9 @@ def chart_text(example: Mapping[str, Any], tv_average_miss: float, average_total
     return (f"Runs by over for {batting} v {example['bowling_team']}, {example['venue']}, {example['date_label']}. "
             f"The first 10 overs are shown in grey as context and the last 10 in the prediction area. "
             f"{batting} were {example['runs_at_10']} for {example['wickets_at_10']} after 10 overs. The TV projection "
-            f"said {tv}. The know-nothing guess said {_runs(average_total)}. The innings finished "
+            f"said {tv}. The {term('average_total')} said {_runs(average_total)}. The innings finished "
             f"on {total}. A zoom on the finish shows where each prediction landed at 20 overs: the actual total {total}, "
-            f"the TV projection {tv} ({miss_words(total, tv)}) and the know-nothing guess {_runs(average_total)}. The TV's "
+            f"the TV projection {tv} ({miss_words(total, tv)}) and the {term('average_total')} {_runs(average_total)}. The TV's "
             f"usual miss is {_runs(tv_average_miss)} runs either way, shown as a band around its projection. The "
             f"agent's prediction is not known.")
 

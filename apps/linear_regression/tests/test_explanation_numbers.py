@@ -107,7 +107,7 @@ def test_a_run_where_the_model_fails_still_explains(run_graph, write_csv):
 
 def test_the_chosen_model_is_named_in_the_verdict():
     _, blocks = blocks_for(state_for(llm_mae=18.0, forward_mae=17.0))
-    assert "rival's model" in " ".join(next(b for b in blocks if b["id"] == "verdict")["sentences"])
+    assert "brute-force search's model" in " ".join(next(b for b in blocks if b["id"] == "verdict")["sentences"])
     _, blocks = blocks_for(state_for(llm_mae=16.0, forward_mae=17.5))
     assert "AI agent's model" in " ".join(next(b for b in blocks if b["id"] == "verdict")["sentences"])
 

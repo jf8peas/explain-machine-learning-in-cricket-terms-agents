@@ -33,13 +33,13 @@ def test_scale_for_todays_figures():
 def test_marks_are_three_in_a_fixed_order_with_labels_from_the_method_names():
     m = meter(29.4, 21.8, TRAINING)
     assert [x["id"] for x in m["marks"]] == ["know_nothing", "broadcaster", "goal"]
-    assert [x["label"] for x in m["marks"]] == ["Know-nothing guess", "TV projection", "The goal"]
+    assert [x["label"] for x in m["marks"]] == ["Average-total guess", "TV projection", "The goal"]
 
 
 def test_caption_and_text_equivalent():
     m = meter(29.4, 21.8, TRAINING)
     assert m["caption"] == "Average miss, runs · 2005 to 2024, 4,036 innings"
-    assert m["text"] == ("Average miss, lower is better: the know-nothing guess 29.4, the TV projection 21.8, "
+    assert m["text"] == ("Average miss, lower is better: the average-total guess 29.4, the TV projection 21.8, "
                          "the goal 18.8 or less.")
     for s in (m["caption"], m["text"], *(x["label"] for x in m["marks"])):
         assert "<" not in s and ">" not in s

@@ -55,24 +55,24 @@ describe("lead and gap on one exam", () => {
 describe("leadSentence and bothTiny", () => {
   it("for the design's run says the rival was ahead on the check seasons and the AI edged it on the test, and both gaps are tiny", () => {
     const x = v();
-    expect(leadSentence(x)).toBe("On the check seasons the rival was ahead; on 2026 the AI edged it.");
+    expect(leadSentence(x)).toBe("On the check seasons the brute-force search was ahead; on 2026 the AI agent edged it.");
     expect(bothTiny(x)).toBe("Both gaps are tiny.");
   });
 
   it("when the AI is ahead on both exams by a clear margin, says so once and does not say both gaps are tiny", () => {
     const x = v({ figs: figs(15.0, 17.0), validation: { llm: 15.0, forward: 17.0 } });
-    expect(leadSentence(x)).toBe("On the check seasons and again on 2026 the AI was ahead.");
+    expect(leadSentence(x)).toBe("On the check seasons and again on 2026 the AI agent was ahead.");
     expect(bothTiny(x)).toBe("");
   });
 
   it("when the rival is ahead on both exams, says so", () => {
     const x = v({ figs: figs(18.7, 17.9), validation: { llm: 18.5, forward: 17.0 } });
-    expect(leadSentence(x)).toBe("On the check seasons and again on 2026 the rival was ahead.");
+    expect(leadSentence(x)).toBe("On the check seasons and again on 2026 the brute-force search was ahead.");
   });
 
   it("when the exams disagree by clear margins says each leader, and does not say tiny", () => {
     const x = v({ figs: figs(16.5, 17.7), validation: { llm: 18.2, forward: 17.0 } });
-    expect(leadSentence(x)).toBe("On the check seasons the rival was ahead; on 2026 the AI came out ahead.");
+    expect(leadSentence(x)).toBe("On the check seasons the brute-force search was ahead; on 2026 the AI agent came out ahead.");
     expect(bothTiny(x)).toBe("");
   });
 
@@ -85,7 +85,7 @@ describe("leadSentence and bothTiny", () => {
 
   it("copes with a level exam", () => {
     expect(leadSentence(v({ figs: figs(17.8, 17.8), validation: { llm: 17.0, forward: 17.0 } }))).toBe("On the check seasons and on 2026 the two were level.");
-    expect(leadSentence(v({ figs: figs(17.0, 17.8), validation: { llm: 17.0, forward: 17.0 } }))).toBe("On the check seasons the two were level; on 2026 the AI came out ahead.");
+    expect(leadSentence(v({ figs: figs(17.0, 17.8), validation: { llm: 17.0, forward: 17.0 } }))).toBe("On the check seasons the two were level; on 2026 the AI agent came out ahead.");
   });
 
   it("is empty, and nothing is too close, without the AI's model", () => {
@@ -102,15 +102,15 @@ describe("compareSentence under the bars", () => {
     const x = v();
     const t = text(x);
     expect(t).toContain("too close to call (17.7 and 17.8 runs).");
-    expect(t).toContain("Both beat the TV projection and the know-nothing guess.");
+    expect(t).toContain("Both beat the TV projection and the average-total guess.");
     expect(compareSentence(x).some((s) => s.kind === "tooclose")).toBe(true);
   });
 
   it("at exactly 0.5 and at 1.2 says which was more accurate and by how much, never too close to call", () => {
-    for (const [llm, forward, who, by] of [[17.7, 18.2, "AI agent's", "0.5"], [17.7, 18.9, "AI agent's", "1.2"], [19.1, 17.9, "rival's", "1.2"]] as const) {
+    for (const [llm, forward, who, by] of [[17.7, 18.2, "AI agent's", "0.5"], [17.7, 18.9, "AI agent's", "1.2"], [19.1, 17.9, "brute-force search's", "1.2"]] as const) {
       const x = v({ figs: figs(llm, forward) });
       const t = text(x);
-      expect(t).toContain(`the ${who} candidate model was more accurate, by ${by} runs.`);
+      expect(t).toContain(`the ${who} idea was more accurate, by ${by} runs.`);
       expect(t).not.toMatch(/too close to call/i);
       expect(compareSentence(x).some((s) => s.kind === "tooclose")).toBe(false);
     }
@@ -123,10 +123,10 @@ describe("compareSentence under the bars", () => {
 
   it("says who beat the references when they differ", () => {
     const only = text(v({ figs: figs(17.7, 22.0) }));      // the rival (22.0) does not beat the TV (21.4)
-    expect(only).toContain("Only the AI agent's candidate model beat the TV projection.");
-    expect(only).toContain("Both beat the know-nothing guess.");
+    expect(only).toContain("Only the AI agent's idea beat the TV projection.");
+    expect(only).toContain("Both beat the average-total guess.");
     const neither = text(v({ figs: figs(25.0, 24.0, 21.4, 22.0) }));
-    expect(neither).toContain("Neither beat the TV projection and the know-nothing guess.");
+    expect(neither).toContain("Neither beat the TV projection and the average-total guess.");
   });
 
   it("does not count a tie with a reference as beating it", () => {
@@ -136,9 +136,9 @@ describe("compareSentence under the bars", () => {
 
 describe("the reasons and the shared scale", () => {
   it("shows the run's own count of candidate models, never a typed word like dozens", () => {
-    expect(reasonTwo(v())).toBe("29 candidate models were tried on the check seasons and the best one kept. Some of that best score is luck, so it usually slips on fresh data.");
-    expect(reasonTwo(v({ aiAttempts: 0, allowedCells: 1 }))).toBe("1 candidate model was tried on the check seasons. Some of its score is luck, so it usually slips on fresh data.");
-    expect(reasonTwo(v({ aiAttempts: 7, allowedCells: 24 }))).toMatch(/^31 candidate models/);
+    expect(reasonTwo(v())).toBe("29 ideas were tried on the check seasons and the best one kept. Some of that best score is luck, so it usually slips on fresh data.");
+    expect(reasonTwo(v({ aiAttempts: 0, allowedCells: 1 }))).toBe("1 idea was tried on the check seasons. Some of its score is luck, so it usually slips on fresh data.");
+    expect(reasonTwo(v({ aiAttempts: 7, allowedCells: 24 }))).toMatch(/^31 ideas/);
     for (const n of [1, 5, 29, 31, 40]) expect(reasonTwo(v({ aiAttempts: n, allowedCells: 0 }))).not.toMatch(/dozens/i);
   });
 

@@ -1,6 +1,7 @@
 // The figures on the "How this app was built" page that change when the data or the agent changes. They come from routes the
 // app already serves (/api/data's summary, /api/reference, /api/structure, /api/catalogue and /api/models), never from typed text. Pure: no DOM, so it is unit-tested.
 // A missing or unreadable piece leaves its key out, and the page then shows a placeholder instead of a figure.
+import type { TermsPayload } from "../terms";
 
 export const PLACEHOLDER = "not available right now";
 export const GROUP_PLACEHOLDER = "These figures are not available right now.";
@@ -9,7 +10,7 @@ export interface Row { label?: string; value?: string }
 export interface Section { title?: string; rows?: Row[] }
 export interface DataResponse { summary?: { headline?: Row[]; sections?: Section[] } | null }
 interface Method { average_miss?: number | null; bias?: number | null }
-export interface ReferenceResponse {
+export interface ReferenceResponse extends TermsPayload {
   training?: { first_year?: number; last_year?: number; innings?: number } | null;
   figures?: { know_nothing?: Method | null; broadcaster?: Method | null } | null;
   goal?: { margin_runs?: number } | null;

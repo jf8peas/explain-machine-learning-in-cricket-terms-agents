@@ -8,7 +8,7 @@ events that route streams, with the day, the model's display name (never its id)
 it writes web/public/recorded-run.json. `--fake` uses the scripted stand-in model (no key, no network) and marks the file
 `"scripted": true`; the page's tests use that file and the release check refuses to ship it.
 
-Record again whenever the data is rebuilt or the headline wording changes: tests/test_recorded_run.py fails until you do.
+Record again whenever the data is rebuilt (a change of wording alone only needs scripts/reword_recorded_run.py): tests/test_recorded_run.py fails until you do.
 A run that failed, or that has no headlines, is never written. The key is read from the environment only and never printed.
 """
 from __future__ import annotations
@@ -28,6 +28,7 @@ from linreg.fingerprint import data_fingerprint  # noqa: E402
 from linreg.graph import build_graph  # noqa: E402
 from linreg.graph_api import run_events  # noqa: E402
 from linreg.llm_client import OpenRouterClient  # noqa: E402
+from linreg.methods import terms_version  # noqa: E402
 from linreg.llm_fake import FAKE_MODEL_OPTIONS, default_fake  # noqa: E402
 from linreg.model_options import ModelOptions  # noqa: E402
 from linreg.run_budget import RunBudget  # noqa: E402
@@ -79,7 +80,8 @@ def record(*, fake: bool, environ: Mapping[str, str] | None = None, today: date 
     if first.get("data_error"):
         raise RecordingError(f"the data could not be loaded: {first['data_error']}")
     out: dict[str, Any] = {"recorded_on": (today or date.today()).isoformat(), "model_name": model.name,
-                           "fingerprint": data_fingerprint(), "events": steps, "done": done}
+                           "fingerprint": data_fingerprint(), "events": steps, "done": done,
+                           "wording_version": terms_version()}
     if fake:
         out["scripted"] = True
     return out

@@ -1,5 +1,6 @@
 // The shapes of the /api/reference response (app-specific). The server works out every number and sentence; the page only
 // shows them. Shared by the hero and by the accuracy views.
+import type { TermsPayload } from "./terms";
 export interface Figures { n: number; average_miss: number; within_10: number; within_20: number; miss_percent: number; bias: number }
 export interface MethodDef { id: string; name: string; note: string; marker: string }
 export interface Scale { min: number; max: number }
@@ -33,7 +34,7 @@ export interface HeroText {
   chart_text: string | null;
 }
 
-export interface Reference {
+export interface Reference extends TermsPayload {
   goal: { reference: string; margin_runs: number; text: string; lead: string };
   methods: MethodDef[];
   training: { first_year: number; last_year: number; innings: number } | null;

@@ -40,7 +40,7 @@ def independent(path=DEFAULT_PATH):
 def test_the_response_has_the_goal_the_four_methods_the_training_years_and_both_references():
     body = client.get("/api/reference").json()
     assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message",
-                         "average_total", "example", "hero"}
+                         "average_total", "example", "hero", "terms", "definitions", "banned", "terms_version"}
     assert body["goal"] == goal()
     assert body["methods"] == method_defs()
     assert set(body["figures"]) == {"know_nothing", "broadcaster"}
@@ -120,6 +120,7 @@ def test_when_the_data_cannot_be_read_the_goal_and_methods_are_still_sent(tmp_pa
     for key in ("training", "figures", "gap", "finding", "words", "sentences", "meter", "average_total", "example", "hero"):
         assert body[key] is None
     assert "could not be loaded" in body["message"]
+    assert len(body["terms"]) == 10 and body["definitions"]["brute_force"] and body["banned"] and body["terms_version"]
 
 
 def test_the_result_is_worked_out_once_but_a_failure_is_tried_again(monkeypatch):

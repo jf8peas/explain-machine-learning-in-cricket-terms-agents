@@ -49,7 +49,7 @@ function commentaryAbove(state: Record<string, unknown>): HTMLElement {
   const cat = loadedCatalogue();
   const years = examYears(state.split as Parameters<typeof examYears>[0]);
   const first = (state.split as { first_year?: number } | undefined)?.first_year;
-  const parts = h("div", { class: "commentary", id: "watch-commentary", "data-testid": "watch-commentary" },
+  const parts = h("div", { "data-region": "commentary", class: "commentary", id: "watch-commentary", "data-testid": "watch-commentary" },
     h("span", { class: "commentary-label" }, "Commentary"),
     h("h3", {}, "What the agent decides"),
     h("p", {}, "An idea is four choices: the clues, the seasons to learn from, how much to favour recent seasons, and which innings to include.",
@@ -73,8 +73,8 @@ function rowEl(r: FeedRow): HTMLElement {
     h("span", { class: "round-n" }, `ROUND ${r.round}`),
     h("div", { class: "round-main" },
       h("p", { class: "round-idea", "data-testid": "round-idea" }, h("strong", {}, r.idea), r.seasons ? ` · ${r.seasons}` : ""),
-      ...(r.reason ? [h("blockquote", { class: "reason", "data-reasoning": "", "data-testid": "model-reason" }, r.reason)] : []),
-      ...(chips.length ? [h("div", { class: "commentary round-settings", "data-testid": "round-settings" },
+      ...(r.reason ? [h("blockquote", { class: "reason", "data-reasoning": "", "data-region": "reasoning", "data-testid": "model-reason" }, r.reason)] : []),
+      ...(chips.length ? [h("div", { "data-region": "commentary", class: "commentary round-settings", "data-testid": "round-settings" },
         h("ul", { class: "setup-chips" }, ...chips))] : [])),
     h("div", { class: "round-result" },
       ...(r.score ? [h("strong", { class: "score", "data-testid": "round-score" }, r.score)] : []),
@@ -95,7 +95,7 @@ export function setupWatch(root: HTMLElement, page: PageState): Watch {
   const notice = h("p", { class: "llm-notice", role: "status", "data-testid": "llm-notice", hidden: "" });
   const bestIdea = h("p", { class: "best-idea", "data-testid": "best-idea" });
   const graphToggle = h("button", { type: "button", class: "toggle", "data-testid": "graph-toggle", "data-commentary-toggle": "", "aria-controls": "graph-panel", "aria-expanded": "false" }, `${GRAPH_TOGGLE} `);
-  const graphPanel = h("div", { class: "commentary graph-panel", id: "graph-panel", "data-testid": "graph-panel" }, h("span", { class: "commentary-label" }, "Commentary"), replay);
+  const graphPanel = h("div", { "data-region": "commentary", class: "commentary graph-panel", id: "graph-panel", "data-testid": "graph-panel" }, h("span", { class: "commentary-label" }, "Commentary"), replay);
   const live = buildLivePanel();
   const above = h("div", { "data-testid": "watch-above" });
   const empty = h("p", { class: "muted", "data-testid": "feed-empty" });

@@ -133,9 +133,9 @@ def test_the_share_words_use_the_displayed_one_decimal_share():
 
 
 @pytest.mark.parametrize("kw, chosen", [
-    (dict(forward_mae=17.0, llm_mae=18.0, tv=21.0), "rival's model"),
+    (dict(forward_mae=17.0, llm_mae=18.0, tv=21.0), "brute-force search's model"),
     (dict(winner="llm", llm_mae=18.0, forward_mae=16.0, tv=21.0), "AI agent's model"),
-    (dict(llm_mae=None, forward_mae=17.0, tv=21.0, took_part=False), "rival's model"),
+    (dict(llm_mae=None, forward_mae=17.0, tv=21.0, took_part=False), "brute-force search's model"),
 ])
 def test_the_chosen_label_follows_the_method_chosen_before_the_test(kw, chosen):
     assert facts_for(state_for(**kw))["chosen_label"]["display"] == chosen

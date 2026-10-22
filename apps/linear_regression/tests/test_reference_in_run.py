@@ -1,4 +1,4 @@
-"""The run's two new jobs: baseline scores the know-nothing guess on the three check years, and final_test scores all four
+"""The run's two new jobs: baseline scores the average-total guess on the three check years, and final_test scores all four
 methods once on the test year and reports how good each is (feature 006)."""
 import numpy as np
 import pandas as pd
@@ -70,7 +70,7 @@ def test_baseline_scores_the_two_references_on_each_check_year_and_averages_them
 def test_baseline_mentions_the_know_nothing_guess_and_keeps_its_old_sentence(run_graph, path):
     events = run_graph({"data_path": path}, llm=FakeLlm({"fake/steady": list(SCRIPT)}))
     summary = next(u for n, u in events if n == "baseline")["summary"]
-    assert "know-nothing" in summary and "That is the score to beat" in summary
+    assert "average-total" in summary and "That is the score to beat" in summary
 
 
 def test_the_test_slice_is_still_read_only_in_final_test(run_graph, path, monkeypatch):

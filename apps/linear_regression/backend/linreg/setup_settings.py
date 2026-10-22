@@ -1,6 +1,6 @@
 """The settings feature 008 fixes, in one place. App-specific.
 
-The test population's full-member list and team-name aliases, the menus the language model and the rival choose from
+The test population's full-member list and team-name aliases, the menus the language model and the brute-force search choose from
 (training window, recency weighting, training innings), the recency strengths as half-lives, and the minimum innings
 the rolling checks need. The prompt, the proposal check, the grid search, the Data tab, the stage notes and the page's
 labels all read from here; nothing else holds a member name, a menu id, a half-life or a minimum.
@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping
+
+from .methods import with_technical
 
 # --- the test population -----------------------------------------------------------------------------------------
 
@@ -100,7 +102,7 @@ def setup_words(window: str, weighting: str, training_innings: str) -> str:
 
 
 def grid_combinations() -> int:
-    """How many setups the rival's grid search tries: one for every combination of the three menus."""
+    """How many ideas the brute-force search tries: one for every combination of the three menus."""
     return len(WINDOWS) * len(WEIGHTINGS) * len(TRAINING_INNINGS)
 
 
@@ -114,5 +116,5 @@ def public_menus() -> dict[str, list[dict[str, str]]]:
 # The one wording for the first hyperparameter tuning on the site: the stage 5 note and the line under the grid both use it.
 HYPERPARAMETER_NOTE = (
     "Two of the choices here, how many past seasons to learn from (the training window) and how much recent seasons count "
-    "(the recency weighting), are hyperparameters: settings chosen before fitting, not learned from the data. This is the "
-    "first app on the site to tune them, and the rival does it by trying every combination, which is called a grid search.")
+    f"(the recency weighting), are {with_technical('settings')}: chosen before fitting, not learned from the data. This is the "
+    f"first app on the site to tune them, and the {with_technical('brute_force')} does it by trying every combination.")

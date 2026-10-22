@@ -85,7 +85,7 @@ export class GraphReplay extends HTMLElement {
           <div class="side">
             <section class="panel item-panel" data-testid="item-panel" aria-labelledby="h-item" aria-live="polite" hidden></section>
             <section class="panel" aria-labelledby="h-event"><h3 id="h-event">Event</h3><div id="event" data-testid="event" aria-live="polite"></div></section>
-            <section class="panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state"><summary>Show every value</summary><div class="state" id="state" data-testid="state"></div></details></section>
+            <section class="panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state" data-region="state"><summary>Show every value</summary><div class="state" id="state" data-testid="state"></div></details></section>
           </div>
         </div>
         <details class="path" data-testid="path"><summary>Path taken</summary><ol class="timeline" aria-label="Path taken" data-testid="timeline"></ol></details>

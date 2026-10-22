@@ -27,7 +27,7 @@ from .llm_client import LlmClient, LlmError, LlmTimeout, LlmUnavailable
 from .llm_reply import UnusableReply, parse_reply
 from .writing_reply import parse_writing_reply
 from .prompts import build_request, build_writing_request
-from . import setup_settings
+from . import setup_settings, wording as phrasing
 from .season_split import Rolling, rolling_checks
 from .state import FORWARD, LLM, ROUND_CAP, SET_LIMIT, RunState
 
@@ -66,6 +66,10 @@ def _config(config: RunnableConfig) -> dict:
     return (config or {}).get("configurable", {}) or {}
 
 
+def _r_or_none(v):
+    return None if v is None else _r(v, 1)
+
+
 def _words(ids: list[str]) -> str:
     names = [feature_registry.label(i) for i in ids]
     return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
@@ -100,13 +104,13 @@ def load_data(state: RunState, config: RunnableConfig) -> dict[str, Any]:
         "data_summary": summary,
         "data_error": None,
         "model_name": cfg.get("model_name"),
-        "decision": {"branch": "ok", "reason": "The data loaded and the three check years and the test year have enough innings."},
+        "decision": {"branch": "ok", "reason": phrasing.load_ok_reason()},
         "summary": (f"Loaded {summary['innings']} first innings from {summary['seasons']} seasons "
                     f"across {len(comps)} competitions ({', '.join(comps)})."),
     }
     if not cfg.get("llm_allowed", True):
         out["llm_status"] = "not_used"
-        out["llm_failure"] = cfg.get("llm_unavailable_reason") or "The language model could not be used for this run."
+        out["llm_failure"] = cfg.get("llm_unavailable_reason") or phrasing.agent_unavailable()
     return out
 
 
@@ -114,15 +118,10 @@ def split(state: RunState) -> dict[str, Any]:
     rolling = _context(state).rolling
     checks = [{"year": c.year, "n": rolling.n_check[c.year], "earlier_years": [c.earlier_years[0], c.earlier_years[-1]]}
               for c in rolling.checks]
-    years = ", ".join(str(c["year"]) for c in checks[:-1]) + f" and {checks[-1]['year']}"
-    sizes = ", ".join(f"{c['n']}" for c in checks[:-1]) + f" and {checks[-1]['n']}"
     info = {"test_year": rolling.test_year, "test_n": rolling.n_test, "checks": checks,
             "first_year": rolling.checks[0].earlier_years[0]}
     return {"split": info,
-            "summary": (f"Every candidate model is judged on three checks: {years} ({sizes} innings), each time learning only from "
-                        f"the years before the one being checked. {rolling.test_year} ({rolling.n_test} innings) is kept for "
-                        "one final test. Split by year, never at random, and only IPL, BBL and full-member internationals "
-                        "are scored.")}
+            "summary": phrasing.split_summary(checks, rolling.test_year, rolling.n_test)}
 
 
 def explore(state: RunState) -> dict[str, Any]:
@@ -186,17 +185,14 @@ def baseline(state: RunState) -> dict[str, Any]:
     err = float(np.mean([mae(rolling.check_rows(spec)["final_total"],
                              broadcaster_projection(rolling.check_rows(spec)["runs_at_10"])) for spec in rolling.checks]))
     return {"baseline_validation_mae": _r(err), "reference_validation": reference,
-            "summary": (f"Averaged over the three check years the TV projected score (current run rate x 20 overs) misses the "
-                        f"real total by {_r(err, 1)} runs. That is the score to beat. A know-nothing guess, the average total of "
-                        f"the earlier test-population innings whatever the score at 10 overs, misses by "
-                        f"{reference['know_nothing']['average_miss']} runs.")}
+            "summary": phrasing.baseline_summary(_r(err, 1), reference["know_nothing"]["average_miss"])}
 
 
 # --- the language-model loop ----------------------------------------------------------------------------------
 
 def _failure(message: str, status: str = "failed") -> dict[str, Any]:
     return {"proposal": None, "llm_status": status, "llm_failure": message,
-            "summary": f"The language model could not take part: {message} The run continues with forward selection only."}
+            "summary": phrasing.agent_failed_summary(message)}
 
 
 def propose_features(state: RunState, config: RunnableConfig, llm: LlmClient) -> dict[str, Any]:
@@ -204,7 +200,7 @@ def propose_features(state: RunState, config: RunnableConfig, llm: LlmClient) ->
     cfg = _config(config)
     budget, model_id = cfg.get("budget"), cfg.get("model_id")
     if state.get("llm_status") == "not_used" or not cfg.get("llm_allowed", True) or budget is None or model_id is None:
-        return _failure(state.get("llm_failure") or "The language model could not be used for this run.", "not_used")
+        return _failure(state.get("llm_failure") or phrasing.agent_unavailable(), "not_used")
 
     used = state.get("rounds_used", 0)
     mine = [a for a in state.get("attempts", []) if a["proposer"] == LLM]
@@ -238,10 +234,7 @@ def propose_features(state: RunState, config: RunnableConfig, llm: LlmClient) ->
     except UnusableReply as exc:
         log.warning("language model reply unusable: model=%s", model_id)
         return _failure(str(exc))
-    named = ", ".join(proposal.features) if proposal.features else "no features"
-    parts = [str(p) for p in (proposal.window, proposal.weighting, proposal.training_innings) if p is not None]
-    named += f" ({'; '.join(parts)})" if parts else ""
-    verdict = "It says it is finished." if proposal.finished else "It is not finished."
+    named = phrasing.proposal_named(proposal.features, proposal.window, proposal.weighting, proposal.training_innings)
     return {
         "proposal": {"features": None if proposal.features is None else list(proposal.features),
                      "window": proposal.window, "weighting": proposal.weighting,
@@ -249,7 +242,7 @@ def propose_features(state: RunState, config: RunnableConfig, llm: LlmClient) ->
                      "finished": proposal.finished},
         "rounds_used": used + 1,
         "llm_status": "ok",
-        "summary": f"The language model proposes: {named}. {verdict} Its reasoning is shown with this step.",
+        "summary": phrasing.propose_summary(named, proposal.finished),
     }
 
 
@@ -257,9 +250,9 @@ def check_proposal(state: RunState) -> dict[str, Any]:
     """Code checks the model's proposal against every rule before anything is fitted."""
     proposal = state.get("proposal")
     if proposal is None:
-        note = state.get("llm_failure") or "The language model gave no proposal."
+        note = state.get("llm_failure") or phrasing.agent_gave_no_proposal()
         return {"decision": {"branch": "failed", "reason": note},
-                "summary": "No proposal to check. Moving on to forward selection."}
+                "summary": phrasing.no_proposal_summary()}
     mine = [a for a in state.get("attempts", []) if a["proposer"] == LLM]
     used = state["rounds_used"]
     named = list(proposal["features"] or [])
@@ -268,13 +261,13 @@ def check_proposal(state: RunState) -> dict[str, Any]:
             "finished": bool(proposal["finished"])}
     if proposal["finished"]:
         if not mine:
-            message = "The language model said it was finished before any feature set had been tried."
+            message = phrasing.finished_too_soon_message()
             return {"llm_status": "failed", "llm_failure": message, "rounds": [{**note, "outcome": "failed", "message": message}],
                     "decision": {"branch": "failed", "reason": message},
-                    "summary": f"{message} The run continues with forward selection only."}
+                    "summary": phrasing.finished_too_soon_summary(message)}
         return {"rounds": [{**note, "outcome": "finished", "message": "The model is finished."}],
                 "decision": {"branch": "finished", "reason": "The model said it is finished."},
-                "summary": "The model says it is finished, so the agent moves on to forward selection."}
+                "summary": phrasing.finished_summary()}
     check = selection.check_proposal(proposal, mine, _context(state).fitter)
     if check.outcome == "fit":
         setup = {k: proposal[k] for k in ("window", "weighting", "training_innings")}
@@ -355,15 +348,14 @@ def evaluate(state: RunState) -> dict[str, Any]:
     no_improve = 0 if improved else state.get("no_improve", 0) + 1
     why = selection.stop_reason(finished=False, rounds_used=state["rounds_used"], rounds_without_improvement=no_improve)
     base = state["baseline_validation_mae"]
-    verdict = "an improvement on the best so far" if improved and best else "the first set tried" if improved else "no better than the best so far"
+    verdict = "an improvement on the best so far" if improved and best else "the first idea tried" if improved else "no better than the best so far"
     reasons = {"no_improvement": "two rounds in a row brought no improvement", "round_cap": "the round cap was reached"}
     return {
         "attempts": [attempt], "llm_best": attempt if improved else best, "no_improve": no_improve,
         "decision": ({"branch": "stop", "reason": f"The model's search ends: {reasons[why]}."} if why
                      else {"branch": "continue", "reason": "The model gets another round."}),
-        "summary": (f"Over the three check years ({_by_year(checks)}) this set misses by {_r(err, 1)} runs on average "
-                    f"(R-squared {score}), {verdict}; the TV projection misses by {_r(base, 1)}."
-                    + (f" The search ends: {reasons[why]}." if why else "")),
+        "summary": phrasing.evaluate_summary(_by_year(checks), _r(err, 1), score, verdict, _r(base, 1),
+                                            reasons[why] if why else None),
     }
 
 
@@ -390,11 +382,9 @@ def grid_search(state: RunState) -> dict[str, Any]:
                  "build_up": found["build_up"]},
         "attempts": [attempt], "forward_set": list(best["features"]), "forward_best": attempt,
         "validation_winner": decision,
-        "decision": {"branch": "done", "reason": f"Every combination was considered; {decision['reason']}."},
-        "summary": (f"The rival tried every combination of training innings, window and weighting ({considered} "
-                    f"considered, {fitted} fitted), running forward selection in each. Its best candidate model, {setup}, uses "
-                    f"{_words(best['features'])} and misses by {_r(best['validation_mae'], 1)} runs on average over the "
-                    f"three checks. Choosing between the two methods on the checks: {decision['reason']}."),
+        "decision": {"branch": "done", "reason": phrasing.grid_decision_reason(decision["reason"])},
+        "summary": phrasing.grid_summary(considered, fitted, setup, _words(best["features"]), _r(best["validation_mae"], 1),
+                                        decision["reason"]),
     }
 
 
@@ -424,7 +414,7 @@ def final_test(state: RunState) -> dict[str, Any]:
                      "forward": scores["forward"]["test_mae"] if "forward" in scores else None, "tv": tv},
         "validation_mae": {"llm": llm_best["validation_mae"] if llm_best else None,
                            "forward": forward_best["validation_mae"] if forward_best else None},
-        "winner": winner, "winner_name": "the language model" if winner == "llm" else "forward selection",
+        "winner": winner, "winner_name": phrasing.winner_name(winner),
         "winner_chosen_on": decision["chosen_on"], "winner_reason": decision["reason"],
         "margin": margin, "winner_mae": won["test_mae"], "winner_r2": won["test_r2"],
         "sets": {k: v["features"] for k, v in scores.items()},
@@ -456,12 +446,8 @@ def final_test(state: RunState) -> dict[str, Any]:
         "validation_winner": decision,
         "final": final, "features": list(won["features"]), "coefficients": coefficients,
         "intercept": _r(fitted["intercept"], 3), "feature_iqr": {f: _r(v, 2) for f, v in fitted["feature_iqr"].items()},
-        "summary": ("Final test, once each on the test year: "
-                    + ", ".join(f"{name} {_r(v, 1)} runs" for name, v in (
-                        ("language model", final["test_mae"]["llm"]), ("forward selection", final["test_mae"]["forward"]),
-                        ("TV projection", tv)) if v is not None)
-                    + f". {final['winner_name'].capitalize()} was chosen on the check years. The know-nothing guess "
-                    f"missed by {final['accuracy']['know_nothing']['average_miss']} runs."),
+        "summary": phrasing.final_summary(_r_or_none(final["test_mae"]["llm"]), _r_or_none(final["test_mae"]["forward"]),
+                                         _r(tv, 1), winner, final["accuracy"]["know_nothing"]["average_miss"]),
     }
 
 
@@ -497,12 +483,10 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
         if (state.get("llm_status") != "ok" or not cfg.get("llm_allowed", True) or budget is None or model_id is None
                 or not (state.get("final") or {}).get("llm_took_part")):
             took_part = bool((state.get("final") or {}).get("llm_took_part"))
-            return _keep_templates(state, "The language model stopped early, so the wording is from templates." if took_part
-                                   else "The language model did not take part in this run, so the wording is from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("stopped_early" if took_part else "not_taken_part"))
         timeout = budget.take_writing_call()
         if timeout is None:
-            return _keep_templates(state, "There was no time or call budget left to ask the language model, so the "
-                                          "wording is from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("no_budget"))
         facts, blocks = expl["facts"], expl["blocks"]
         offered = [b for b in blocks if b["id"] not in cricket_blocks.CODE_ONLY]     # the verdict and rule of thumb stay code
         request = build_writing_request(
@@ -515,12 +499,11 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
         except LlmTimeout:
             log.warning("language model writing call failed: model=%s kind=timeout elapsed=%.1fs", model_id,
                         time.monotonic() - started)
-            return _keep_templates(state, "The language model did not reply in time, so the wording is from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("timeout"))
         except LlmError as exc:   # unavailable, or any other model-call failure
             log.warning("language model writing call failed: model=%s kind=%s elapsed=%.1fs", model_id,
                         type(exc).__name__, time.monotonic() - started)
-            return _keep_templates(state, "The language model could not be reached for the final wording, so the wording "
-                                          "is from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("unreachable"))
         try:
             wording = parse_writing_reply(text, facts, [b["id"] for b in offered])
             written = []
@@ -533,17 +516,14 @@ def write_in_cricket_terms(state: RunState, config: RunnableConfig, llm: LlmClie
             # the message names the rule that failed (never the model's own text), so it is safe to log and to show
             detail = str(exc) if isinstance(exc, UnusableReply) else f"a placeholder names a fact that does not exist ({exc})"
             log.warning("language model writing reply unusable: model=%s reason=%s", model_id, detail)
-            return _keep_templates(state, f"The language model's wording could not be used ({detail}), so the wording is "
-                                          f"from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("unusable", detail))
         covered = sum(1 for b in written if b["from_model"])
         if not covered:
             log.warning("language model writing reply had no usable wording: model=%s", model_id)
-            return _keep_templates(state, "The language model's reply had no wording for any block, so the wording is "
-                                          "from templates.")
+            return _keep_templates(state, phrasing.keep_templates_reason("empty"))
         return {"explanation": {**expl, "blocks": written, "source": "language model",
                                 "model": state.get("model_name") or model_id, "fallback_reason": None},
-                "summary": f"The language model wrote the words for {covered} of {len(offered)} takeaways; code filled in "
-                           f"every number and every direction."}
+                "summary": phrasing.wrote_summary(covered, len(offered))}
     except Exception:   # nothing here may fail the run: the template wording is already in the state
         log.exception("writing the closing words failed")
-        return _keep_templates(state, "The final wording could not be written, so the wording is from templates.")
+        return _keep_templates(state, phrasing.keep_templates_reason("failed"))

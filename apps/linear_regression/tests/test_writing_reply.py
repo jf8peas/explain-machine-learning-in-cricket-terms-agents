@@ -143,3 +143,13 @@ def test_a_direction_through_the_know_nothing_placeholder_is_accepted_but_writte
     assert ok.blocks["takeaway_run_rate"]["sentences"] == ["The guess runs {know_nothing_bias_runs} {know_nothing_bias_direction}."]
     with pytest.raises(UnusableReply, match="direction word"):
         parse(writing_reply({"takeaway_run_rate": block("Scores climb", "The guess runs too low.")}))
+
+
+@pytest.mark.parametrize("text", ["The rival did better.", "A know-nothing guess is poor.", "The mechanical search wins.",
+                                  "Each setup counts.", "Forward selection chose it."])
+def test_a_banned_name_for_a_method_rejects_the_whole_reply_and_the_message_does_not_repeat_it(text):
+    reply = json.dumps({"blocks": {"takeaway_tv": {"title": "Fine", "sentences": [text]}}})
+    with pytest.raises(UnusableReply) as exc:
+        parse(reply)
+    assert "name the page does not use" in str(exc.value)
+    assert text.split()[1].lower() not in str(exc.value).lower()

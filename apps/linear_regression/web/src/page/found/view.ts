@@ -141,26 +141,27 @@ export function choiceView(w: ValidationWinner | undefined, ai: number | null, r
 
 export type { Seg } from "../exam";
 import type { Seg } from "../exam";
+import { altTerm, term } from "../terms";
 const runsWord = (t: number) => `${fromTenths(t)} runs`;
-const SETTLED = "How good it really is gets settled by the final test, on a season nothing has seen.";
+const settled = () => `How good it really is gets settled by the ${altTerm("test_season")}, on a season nothing has seen.`;
 
 /** The choice panel's heading. */
 export function choiceHeading(v: ChoiceView): string {
   if (v.state === "pending") return "Still searching";
-  const name = v.chosen === "ai" ? "The AI agent's candidate model" : "The rival's candidate model";
+  const name = `The ${term(v.chosen === "ai" ? "agent" : "brute_force")}'s ${term("idea")}`;
   return v.tooClose ? `${name}, by a whisker` : name;
 }
 
 /** The choice panel's text as segments, so the page can bold the scores and mark the "too close to call" phrase. */
 export function choiceText(v: ChoiceView): Seg[] {
   if (v.state === "pending") {
-    return [{ text: "The search is still going. The candidate model that goes forward is chosen once the rival has finished its grid search, before the final test season is touched." }];
+    return [{ text: `The search is still going. The ${term("idea")} that goes forward is chosen once the ${term("brute_force")} has finished its grid search, before the ${term("test_season")} is touched.` }];
   }
   if (v.state === "noAi" || v.chosenMiss === null) {
-    return [{ text: `The AI agent made no candidate model that could be scored, so the rival's goes forward. ${SETTLED}` }];
+    return [{ text: `The ${term("agent")} made no ${term("idea")} that could be scored, so the ${term("brute_force")}'s goes forward. ${settled()}` }];
   }
-  const other = v.chosen === "ai" ? "the rival" : "the AI agent";
-  const out: Seg[] = [{ text: "It missed by " }, { text: runsWord(v.chosenMiss), kind: "strong" }, { text: " on the check seasons" }];
+  const other = `the ${term(v.chosen === "ai" ? "brute_force" : "agent")}`;
+  const out: Seg[] = [{ text: "It missed by " }, { text: runsWord(v.chosenMiss), kind: "strong" }, { text: ` on the ${term("check_seasons")}` }];
   if (v.otherMiss === null || v.gap === null) {
     out.push({ text: ". " });
   } else {
@@ -168,12 +169,12 @@ export function choiceText(v: ChoiceView): Seg[] {
     if (v.tooClose) {
       out.push({ text: `A gap of ${fromTenths(v.gap)} runs is ` }, { text: "too close to call", kind: "tooclose" },
         { text: ": the two are about equally good. A choice still has to be made, so the lower score goes forward" },
-        { text: v.gap === 0 && v.chosen === "ai" ? " (equal scores go to the AI agent's candidate model). " : ". " });
+        { text: v.gap === 0 && v.chosen === "ai" ? ` (equal scores go to the ${term("agent")}'s ${term("idea")}). ` : ". " });
     } else {
       out.push({ text: `${fromTenths(v.gap)} runs better. ` });
     }
   }
-  out.push({ text: SETTLED });
+  out.push({ text: settled() });
   return out;
 }
 

@@ -14,7 +14,7 @@ WICKET_HAND = {}                                                     # the defau
 WICKET_HAND_LESS = dict(features_=("runs_at_10", "wickets_in_hand"), coefs={"runs_at_10": 1.2, "wickets_in_hand": -2.0})
 NO_WICKET = dict(features_=("runs_at_10", "fours_at_10"), coefs={"runs_at_10": 1.2, "fours_at_10": 0.4})
 
-# TV against the know-nothing guess, and which way the TV leans (TV average miss is `tv`)
+# TV against the average-total guess, and which way the TV leans (TV average miss is `tv`)
 CLEARLY = dict(tv=21.0, know_nothing=34.0)
 BARELY = dict(tv=21.0, know_nothing=22.0)
 NO_BETTER = dict(tv=21.0, know_nothing=20.0)
@@ -85,14 +85,14 @@ def test_each_verdict_variant_says_what_it_should_with_its_numbers():
     beat = text(block(blocks_for(state_for(**MISSED_BEAT))[1], "verdict"))
     assert "but only by 2.0 runs" in beat and "at least 3 runs" in beat
     worse = text(block(blocks_for(state_for(**MISSED_WORSE))[1], "verdict"))
-    assert "The TV projection was 1.0 runs more accurate than the rival's model" in worse
+    assert "The TV projection was 1.0 runs more accurate than the brute-force search's model" in worse
     same = text(block(blocks_for(state_for(forward_mae=17.0, tv=17.0))[1], "verdict"))
     assert "exactly as accurate" in same and "0.0" not in same
 
 
 def test_the_verdict_names_the_rivals_model_when_the_language_model_did_not_take_part():
     b = block(blocks_for(state_for(**NO_AI))[1], "verdict")
-    assert "rival's model" in text(b) and "AI agent's model" not in text(b)
+    assert "brute-force search's model" in text(b) and "AI agent's model" not in text(b)
 
 
 def test_the_verdict_names_the_ai_agents_model_when_it_was_chosen():
@@ -110,9 +110,9 @@ def test_the_verdict_is_one_sentence_whoever_had_the_shortest_bar(kw):
 # ---- takeaway 1: the run rate alone ----------------------------------------------------------------------------
 
 @pytest.mark.parametrize("kw, title, phrase", [
-    (CLEARLY, "The run rate alone is a real help", "13.0 fewer than the know-nothing guess (34.0)"),
-    (BARELY, "The run rate alone barely helps", "only 1.0 fewer than the know-nothing guess (22.0)"),
-    (NO_BETTER, "The run rate alone does not help", "no better than the know-nothing guess (20.0)"),
+    (CLEARLY, "The run rate alone is a real help", "13.0 fewer than the average-total guess (34.0)"),
+    (BARELY, "The run rate alone barely helps", "only 1.0 fewer than the average-total guess (22.0)"),
+    (NO_BETTER, "The run rate alone does not help", "no better than the average-total guess (20.0)"),
 ])
 def test_takeaway_one_follows_whether_the_tv_beats_the_know_nothing_guess(kw, title, phrase):
     b = block(blocks_for(state_for(**kw))[1], "takeaway_run_rate")
@@ -125,7 +125,7 @@ def test_the_barely_helps_threshold_is_the_heros():
     assert facts_for(state_for(tv=17.9, know_nothing=20.0))["run_rate_state"]["value"] == "clearly"
 
 
-# a know-nothing guess that is far off (bias at least half its miss) and guesses too low: totals have risen
+# a average-total guess that is far off (bias at least half its miss) and guesses too low: totals have risen
 RISING = dict(know_nothing=34.0, know_nothing_bias=-20.0)
 RISING_BARELY = dict(tv=21.0, know_nothing=22.0, know_nothing_bias=-15.0)    # far off and too low, but the TV only barely helps
 FAR_OFF_HIGH = dict(know_nothing=34.0, know_nothing_bias=20.0)

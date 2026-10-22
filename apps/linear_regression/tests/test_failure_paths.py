@@ -43,7 +43,7 @@ def test_a_failure_on_the_first_round_sends_the_run_on_with_forward_selection_on
     state = merged_state(events)
     assert state["llm_status"] == "failed" and state["llm_failure"]
     propose = [u for n, u in events if n == "propose_features"][0]
-    assert propose["summary"].startswith("The language model could not take part") or kind.startswith("finished")
+    assert propose["summary"].startswith("The AI agent could not take part") or kind.startswith("finished")
     assert_completes_without_the_model(events, state)
 
 
@@ -51,7 +51,7 @@ def test_the_failure_is_a_clear_step_with_a_plain_reason(run_graph, path):
     events, _ = run(run_graph, path, DOWN, DOWN)
     update = [u for n, u in events if n == "propose_features"][0]
     assert update["proposal"] is None and "provider answered with an error" in update["llm_failure"]
-    assert "forward selection only" in update["summary"]
+    assert "brute-force search only" in update["summary"]
     check = [u for n, u in events if n == "check_proposal"][0]
     assert check["decision"]["branch"] == "failed"
 

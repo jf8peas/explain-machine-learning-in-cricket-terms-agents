@@ -1,5 +1,6 @@
 // Your turn: client-side only, enabled once a run has finished. The inputs are the ones the agent's own final model needs
 // (the brute-force search's model when no language model ran, and the form says so), built from the feature catalogue.
+import { methodModel } from "./terms";
 import { loadCatalogue } from "./catalogue";
 import { h } from "./dom";
 import { featureValues, fieldsFor, predict, projection, validate, type Catalogue, type Entered, type Field, type Model } from "./predict";
@@ -7,7 +8,7 @@ import { featureValues, fieldsFor, predict, projection, validate, type Catalogue
 /** The model the form predicts with, and how to name it: "the agent's model" or "the brute-force search's model". */
 export interface TryModel extends Model { source: "agent" | "search" }
 
-export const modelName = (source: TryModel["source"]): string => (source === "agent" ? "the agent's model" : "the brute-force search's model");
+export const modelName = (source: TryModel["source"]): string => `the ${methodModel(source === "agent" ? "llm" : "forward")}`;
 
 /** The words under the model's number. */
 export const predictedCaption = (source: TryModel["source"]): string =>

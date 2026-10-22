@@ -172,7 +172,7 @@ test("an unreliable model: a clear notice, the search still completes, and the p
   await timelineItems(page).nth(FIRST_PROPOSE).click();
   await expect(page.getByTestId("event-actor")).toHaveText("language model step");
   await expect(page.getByTestId("event-summary")).toContainText("could not take part");
-  await expect(page.getByTestId("hero-title")).toHaveText("The agent couldn't reach its language model, so a plain search ran alone.");
+  await expect(page.getByTestId("hero-title")).toHaveText("The AI agent couldn't run, so the brute-force search ran alone.");
   await expect(page.getByTestId("verdict-bar").first()).toContainText("not run");
   await expect(page.getByTestId("run-label")).toHaveText("Your live run · Unreliable");
   await expect(page.getByTestId("tryit-model-label")).toHaveText("Predicting with the brute-force search's model.");

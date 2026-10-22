@@ -2,16 +2,14 @@
 // gives, from zero on one scale, shorter is better. Every number is the run's displayed figure; the names are the plain ones
 // the Scoreboard uses. A method that did not run (the agent, when no language model could be reached) says "not run".
 import { h } from "./dom";
+import { cap, methodName } from "./terms";
 import { TOKEN } from "./final/view";
 
 export type BarId = "llm" | "forward" | "broadcaster" | "know_nothing";
 
-export const BAR_ORDER: { id: BarId; label: string }[] = [
-  { id: "llm", label: "AI agent" },
-  { id: "forward", label: "Brute-force search" },
-  { id: "broadcaster", label: "TV projection" },
-  { id: "know_nothing", label: "Average-total guess" },
-];
+const IDS: BarId[] = ["llm", "forward", "broadcaster", "know_nothing"];
+/** The bars in the design's order, named with the glossary's plain terms. */
+export const barOrder = (): { id: BarId; label: string }[] => IDS.map((id) => ({ id, label: cap(methodName(id)) }));
 
 export const NOT_RUN = "not run";
 
@@ -26,9 +24,10 @@ export interface BarView {
 }
 
 export function barViews(accuracy: Record<string, { average_miss: number }> | undefined): BarView[] {
-  const misses = BAR_ORDER.map((b) => accuracy?.[b.id]?.average_miss ?? null);
+  const order = barOrder();
+  const misses = order.map((b) => accuracy?.[b.id]?.average_miss ?? null);
   const longest = Math.max(...misses.filter((m): m is number => m !== null), 0);
-  return BAR_ORDER.map((b, i) => {
+  return order.map((b, i) => {
     const miss = misses[i];
     return { id: b.id, label: b.label, miss, text: miss === null ? NOT_RUN : miss.toFixed(1),
              widthPct: miss === null || longest <= 0 ? 0 : (miss / longest) * 100 };

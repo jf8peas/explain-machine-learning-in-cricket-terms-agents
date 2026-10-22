@@ -70,7 +70,7 @@ class OpenRouterClient:
     def complete(self, request: LlmRequest) -> str:
         key = self._key()
         if not key:
-            raise LlmUnavailable("The language model is not configured on this server.")
+            raise LlmUnavailable("The AI agent is not configured on this server.")
         body: dict = {
             "model": request.model,
             "messages": [{"role": "system", "content": request.system}, {"role": "user", "content": request.user}],
@@ -90,9 +90,9 @@ class OpenRouterClient:
             with httpx.Client(transport=self._transport, timeout=request.timeout) as http:
                 response = http.post(self._url, json=body, headers=headers)
         except httpx.TimeoutException:
-            raise LlmTimeout("The language model did not reply in time.") from None
+            raise LlmTimeout("The AI agent did not reply in time.") from None
         except httpx.HTTPError as exc:
-            raise LlmUnavailable(redact(f"The language model could not be reached ({exc}).", key)) from None
+            raise LlmUnavailable(redact(f"The AI agent could not be reached ({exc}).", key)) from None
         if response.status_code >= 400:
             raise self._error(response, key, structured=request.json_schema is not None)
         return self._text(response, key)
@@ -106,7 +106,7 @@ class OpenRouterClient:
             detail = ""
         unsupported = (structured and response.status_code in (400, 404, 422)
                        and ("response_format" in detail or "structured" in detail or "json_schema" in detail))
-        return LlmUnavailable(f"The language model's provider answered with an error ({response.status_code}).",
+        return LlmUnavailable(f"The AI agent's provider answered with an error ({response.status_code}).",
                               unsupported_format=unsupported)
 
     @staticmethod
@@ -115,9 +115,9 @@ class OpenRouterClient:
             data = response.json()
             content = data["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError):
-            raise LlmUnavailable("The language model's answer had no reply text.") from None
+            raise LlmUnavailable("The AI agent's answer had no reply text.") from None
         if isinstance(content, list):  # some hosts return a list of parts
             content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
         if not isinstance(content, str) or not content.strip():
-            raise LlmUnavailable("The language model's answer had no reply text.")
+            raise LlmUnavailable("The AI agent's answer had no reply text.")
         return redact(content, None)

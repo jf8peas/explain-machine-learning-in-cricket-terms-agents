@@ -14,6 +14,7 @@ import re
 from typing import Any, Mapping
 
 from .cricket_facts import WICKET_COST_FEATURE, WICKET_HAND_FEATURE, Fact, effect_id
+from .methods import term
 
 PLACEHOLDER = re.compile(r"\{([A-Za-z0-9_]+)\}")
 
@@ -29,7 +30,7 @@ MOVABLE: tuple[str, ...] = ()                       # the takeaways keep their f
 # What each block the language model writes shows, in words for the language model's prompt.
 BLOCK_PURPOSE = {
     "takeaway_run_rate": "takeaway 1: what the TV projection (the run rate alone) is worth next to just guessing the average total",
-    "takeaway_drivers": "takeaway 2: what drives the final total, with a small chart of how far each feature moves the prediction",
+    "takeaway_drivers": "takeaway 2: what drives the final total, with a small chart of how far each clue moves the prediction",
     "takeaway_tv": "takeaway 3: which way the TV projection tends to be wrong, and why a fan should care",
 }
 
@@ -75,20 +76,20 @@ def _takeaway_run_rate(facts: Mapping[str, Fact]) -> dict[str, Any]:
     if state == "clearly" and facts["know_nothing_rising"]["value"]:
         title = "Scores keep climbing"
         return {"title": title, "visual": {},
-                "sentences": ["Totals keep rising, so the average-total guess runs {know_nothing_bias_runs} {know_nothing_bias_direction}.",
+                "sentences": ["Totals keep rising, so the " + term("average_total") + " runs {know_nothing_bias_runs} {know_nothing_bias_direction}.",
                               "The TV misses by {tv_test_miss} runs, against {know_nothing_miss} for that guess."]}
     elif state == "clearly":
         title = "The run rate alone is a real help"
-        sentence = ("The TV misses by {tv_test_miss} runs, {tv_gap} fewer than the know-nothing "
-                    "guess ({know_nothing_miss}).")
+        sentence = ("The TV misses by {tv_test_miss} runs, {tv_gap} fewer than the " + term("average_total") +
+                    " ({know_nothing_miss}).")
     elif state == "barely":
         title = "The run rate alone barely helps"
-        sentence = ("The TV misses by {tv_test_miss} runs, only {tv_gap} fewer than the "
-                    "know-nothing guess ({know_nothing_miss}).")
+        sentence = ("The TV misses by {tv_test_miss} runs, only {tv_gap} fewer than the " + term("average_total") +
+                    " ({know_nothing_miss}).")
     else:
         title = "The run rate alone does not help"
-        sentence = ("The TV misses by {tv_test_miss} runs, no better than the know-nothing guess "
-                    "({know_nothing_miss}).")
+        sentence = ("The TV misses by {tv_test_miss} runs, no better than the " + term("average_total") +
+                    " ({know_nothing_miss}).")
     return {"title": title, "sentences": [sentence], "visual": {}}
 
 

@@ -1,5 +1,6 @@
 // The Scoreboard card's view (app-specific, pure). The server's headline set holds every word and every displayed average miss
 // (headlines.py); this only lays them out and works out the kicker from the test season and the number of unseen innings.
+import { term } from "./terms";
 import { fmt } from "./dom";
 
 export interface Scoreboard {
@@ -26,7 +27,7 @@ export interface CardView {
   facts: { id: string; text: string }[];
 }
 
-export const TV_LABEL = "TV projection";
+export const tvLabel = (): string => term("tv");
 
 /** The card for a finished final test, or null before there is one. `innings` is the number of unseen innings scored. */
 export function cardView(headlines: Headlines | undefined, testYear: number | undefined, innings: number | undefined): CardView | null {
@@ -37,7 +38,7 @@ export function cardView(headlines: Headlines | undefined, testYear: number | un
   return {
     kicker: `SCOREBOARD · ${season}${unseen}`,
     subject: { label: card.subject_label, miss: fmt(card.subject_miss) },
-    tv: { label: TV_LABEL, miss: fmt(card.tv_miss) },
+    tv: { label: tvLabel(), miss: fmt(card.tv_miss) },
     facts: card.facts,
   };
 }

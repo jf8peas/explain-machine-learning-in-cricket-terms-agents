@@ -3,9 +3,9 @@
 Worked out on the test-population innings in the years before the first check year (test year - 3), so the check years and
 the test year stay unseen and every method is scored on the kind of innings the whole app is judged on. The result is computed once per
 process and kept; a failure is not kept, so the next request tries again. If the data cannot be read the goal and the
-method names are still sent, with a message, so the page can show the goal and say the figures could not be loaded.
+method names and the glossary (`terms`, `definitions`, `banned`, `terms_version`, feature 021) are still sent, with a message, so the page can show the goal and say the figures could not be loaded.
 
-The hero (feature 013) adds `average_total` (the know-nothing value), `example` (the innings named by
+The hero (feature 013) adds `average_total` (the average-total guess's value), `example` (the innings named by
 settings.EXAMPLE_MATCH_ID, from the same training rows, or None with a logged warning when it cannot be drawn) and `hero`
 (the caption, panel sentence, footnote and chart text, worked out in hero_text).
 """
@@ -23,7 +23,7 @@ from .accuracy import accuracy, display
 from .data_loading import DataError, load_innings
 from .evaluation import broadcaster_projection, know_nothing_guess
 from .goal import goal, meter, reference_finding
-from .methods import method_defs
+from .methods import method_defs, reference_terms
 from .overs_loading import example_innings, load_overs, overs_path_for
 from .season_split import rolling_checks
 
@@ -67,6 +67,7 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
         "hero": hero_text.build_hero({"know_nothing": known, "broadcaster": projected}, training,
                                      goal()["margin_runs"], average_total, example),
         "message": None,
+        **reference_terms(),
     }
 
 
@@ -83,7 +84,7 @@ def _example(train, path: str | Path | None) -> dict[str, Any] | None:
 def _unavailable() -> dict[str, Any]:
     return {"goal": goal(), "methods": method_defs(), "training": None, "figures": None, "gap": None,
             "finding": None, "words": None, "sentences": None, "meter": None, "average_total": None, "example": None,
-            "hero": None, "message": NOT_LOADED}
+            "hero": None, "message": NOT_LOADED, **reference_terms()}
 
 
 def create_router(data_path: str | Path | None = None) -> APIRouter:

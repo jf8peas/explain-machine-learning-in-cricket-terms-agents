@@ -181,9 +181,9 @@ test("selecting a stage does not open its note, and the note buttons are reachab
 
 test("the technical notes say where selection happens and what is held out", async ({ page }) => {
   await open(page);
-  await expect(legendStage(page, "split").locator(".stage-note")).toContainText("held-out test set, read once");
-  await expect(legendStage(page, "choose").locator(".stage-note")).toContainText("cross-validated MAE wins, before the test year is read");
-  await expect(legendStage(page, "fit").locator(".stage-note")).toContainText("A separate fit is made for each validation fold");
+  await expect(legendStage(page, "split").locator(".stage-note")).toContainText("test season, read once");
+  await expect(legendStage(page, "choose").locator(".stage-note")).toContainText("cross-validated MAE wins, before the test season is read");
+  await expect(legendStage(page, "fit").locator(".stage-note")).toContainText("A separate fit is made for each of the check seasons");
 });
 
 test("a stage with no node is marked 'Not a step in this agent' with its reason", async ({ page }) => {
@@ -494,7 +494,7 @@ test("the general note under All names the validation and test years from the da
   const dateColumn = data.columns.findIndex((c: { key: string }) => c.key === "match_date");
   const latest = Math.max(...data.rows.map((r: string[]) => Number(String(r[dateColumn]).slice(0, 4))));
   await expect(page.getByTestId("legend-note")).toHaveText(
-    `Validation years: ${latest - 3}, ${latest - 2} and ${latest - 1}; test year: ${latest}, used once.`);
+    `Check seasons: ${latest - 3}, ${latest - 2} and ${latest - 1}; test season: ${latest}, used once.`);
 });
 
 test("with no general note in the structure the legend shows none", async ({ page }) => {

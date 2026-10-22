@@ -6,6 +6,7 @@ import "../data-grid/data-grid";
 import type { DataGrid } from "../data-grid/data-grid";
 import { syncToggles } from "../detail-level/detail-level";
 import { h } from "./dom";
+import { cap, introducer, term } from "./terms";
 import { renderGrid } from "./found/grid";
 import { renderRanking } from "./found/ranking";
 import { buildView } from "./found/view";
@@ -26,8 +27,8 @@ export interface Scorebook {
 
 interface Card { id: string; testid: string; title: string; line: string }
 
-const CARDS: Card[] = [
-  { id: "models", testid: "scorebook-card-models", title: "Every model tried", line: "Every idea, ranked, and the search's grids." },
+const cards = (): Card[] => [
+  { id: "models", testid: "scorebook-card-models", title: `Every ${term("idea")} tried`, line: `Every ${term("idea")}, ranked, and the ${term("brute_force")}'s grids.` },
   { id: "graph", testid: "scorebook-card-graph", title: "The agent graph, step by step", line: "Each step of the agent, one at a time." },
   { id: "data", testid: "scorebook-card-data", title: "The data", line: "Every innings, to sort, filter and download." },
 ];
@@ -38,7 +39,7 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
   let dataStarted = false;
   const cardEls = new Map<string, HTMLElement>();
 
-  const panel = h("div", { class: "sb-panel", id: "scorebook-panel", "data-testid": "scorebook-panel", role: "region", "aria-label": "Scorebook", hidden: "" });
+  const panel = h("div", { class: "sb-panel", id: "scorebook-panel", "data-testid": "scorebook-panel", role: "region", "aria-label": "Scorebook", "data-region": "scorebook", hidden: "" });
   const close = h("button", { type: "button", class: "toggle sb-close", "data-testid": "scorebook-close" }, "Close");
   const body = h("div", { class: "sb-body" });
   panel.append(close, body);
@@ -46,10 +47,11 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
   function drawModels() {
     const state = getRun()?.state ?? {};
     const view = buildView(state);
+    const intro = introducer();           // one panel: each technical term is shown in brackets once across both sections
     body.replaceChildren(
       h("section", { class: "sb-section", "data-testid": "scorebook-models" },
-        h("h3", {}, "The brute-force search: trying every combination"), ...renderGrid(view)),
-      h("section", { class: "sb-section" }, h("h3", {}, "Every candidate model tried, ranked"), ...renderRanking(view)));
+        h("h3", {}, `${cap(term("brute_force"))}: trying every combination`), ...renderGrid(view, intro)),
+      h("section", { class: "sb-section" }, h("h3", {}, `Every ${term("idea")} tried, ranked`), ...renderRanking(view, intro)));
   }
 
   function drawData() {
@@ -85,7 +87,8 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
     target?.scrollIntoView({ behavior: "auto", block: "start" });
   }
 
-  const cards = CARDS.map((c) => {
+  const cardNodes = new Map<string, HTMLElement>();
+  const cardList = cards().map((c) => {
     const el = h("button", { type: "button", class: "sb-card", "data-testid": c.testid, "aria-controls": "scorebook-panel", ...(c.id === "graph" ? {} : { "aria-expanded": "false" }) },
       h("strong", {}, c.title), h("span", {}, c.line));
     el.addEventListener("click", () => {
@@ -93,6 +96,7 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
       setOpen(openId === c.id ? null : (c.id as PanelId));
     });
     if (c.id !== "graph") cardEls.set(c.id, el);
+    cardNodes.set(c.id, el);
     return el;
   });
   const built = h("a", { class: "sb-card", href: "/under-the-hood.html", "data-testid": "scorebook-card-built" },
@@ -103,11 +107,19 @@ export function setupScorebook(root: HTMLElement, getRun: () => RunInfo | null):
   root.replaceChildren(
     h("p", { class: "kicker" }, KICKER),
     h("h2", { id: "scorebook-title" }, HEADING),
-    h("div", { class: "sb-cards", "data-testid": "scorebook-cards" }, ...cards, built),
+    h("div", { class: "sb-cards", "data-testid": "scorebook-cards" }, ...cardList, built),
     panel);
 
   return {
     open: (id) => setOpen(id),
-    refresh() { if (openId === "models") drawModels(); },
+    refresh() {
+      // the card words come from the glossary, which can arrive after the page is first drawn
+      for (const c of cards()) {
+        const el = cardNodes.get(c.id);
+        if (el?.children[0]) el.children[0].textContent = c.title;
+        if (el?.children[1]) el.children[1].textContent = c.line;
+      }
+      if (openId === "models") drawModels();
+    },
   };
 }

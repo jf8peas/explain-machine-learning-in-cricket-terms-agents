@@ -14,6 +14,7 @@ from .competition_dummies import DUMMIES
 from .data_table import DEFAULT_MANIFEST, exclusion_rows
 from .data_loading import DataError, load_innings
 from .graph import NODE_STAGES
+from .methods import term, with_technical
 from .season_split import rolling_checks
 from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, Row, row_set, stage_set
 
@@ -35,44 +36,45 @@ def note_texts() -> dict[str, str]:
         "split": (
             "Split by calendar year, never at random. Expanding-window cross-validation: each of the "
             f"{checks} years before the latest is scored by a model trained only on earlier years, and the {checks} mean "
-            "absolute errors (MAE, the average miss in runs) are averaged. That average chooses the features, "
-            "hyperparameters and winning method, while the coefficients are fitted only on each fold's training years. "
-            "The latest year is the held-out test set, read once. Only IPL, BBL and full-member T20Is are scored."),
+            "absolute errors (MAE, the average miss in runs) are averaged. That average chooses the clues, "
+            "settings and winning method, while the coefficients are fitted only on each fold's training years. "
+            f"The latest year is the {term('test_season')}, read once. Only IPL, BBL and full-member T20Is are scored."),
         "understand": (
-            "Computes summary statistics to brief the LLM before it proposes: each feature's correlation with the final "
-            "total, runs added by wickets down, and mean totals by competition and year. They guide the LLM's proposals "
+            f"Computes summary statistics to brief the {term('agent')} before it proposes: each clue's correlation with the "
+            "final total, runs added by wickets down, and mean totals by competition and year. They guide its proposals "
             "only; no model is fitted on them."),
         "frame": (
-            "Regression on the final total, scored by MAE. Before any fitting, two baselines are scored on the validation "
-            "folds: the TV projection (run rate × 20) and a naive mean. The goal is to beat the TV projection by "
-            f"{margin} runs of MAE on the test year."),
+            f"Regression on the final total, scored by MAE. Before any fitting, two references are scored on the {term('check_seasons')}: "
+            f"the {term('tv')} and the {term('average_total')}. The goal is to beat the {term('tv')} by "
+            f"{margin} runs of MAE on the {term('test_season')}."),
         "choose": (
-            f"Model selection. A candidate is a feature subset (up to {state.SET_LIMIT}) plus three hyperparameters, set "
-            "before fitting rather than learned: training window, recency weighting and training innings. The LLM "
-            "proposes candidates; code rejects any that are invalid, already tried, too small to train on or perfectly "
-            f"collinear, then fits and cross-validates the rest. The loop runs up to {state.ROUND_CAP} rounds and stops "
-            f"after {state.NO_IMPROVE_STOP} without improvement. As a benchmark, a grid search tries all "
-            f"{len(selection.GRID)} hyperparameter combinations, with forward feature selection inside each. Whichever "
-            "method's best candidate has the lower cross-validated MAE wins, before the test year is read."),
+            f"Model selection. An {with_technical('idea')} is a set of {term('clues')} (up to {state.SET_LIMIT}) plus three "
+            f"{term('settings')}, set before fitting rather than learned: training window, recency weighting and training "
+            f"innings. The {term('agent')} proposes ideas; code rejects any that are invalid, already tried, too small to "
+            f"train on or perfectly collinear, then fits and cross-validates the rest. The loop runs up to {state.ROUND_CAP} "
+            f"rounds and stops after {state.NO_IMPROVE_STOP} without improvement. As the yardstick, the {term('brute_force')} "
+            f"tries all {len(selection.GRID)} combinations of settings, adding clues one at a time inside each. Whichever "
+            f"method's best idea has the lower cross-validated MAE wins, before the {term('test_season')} is read."),
         "fit": (
-            "Fits the candidate in closed form (least squares via the normal equations, not gradient descent): an "
-            "intercept plus one coefficient per feature, weighted when recency weighting is on. A separate fit is made "
-            "for each validation fold, on only the years before it, and the loop repeats this for every new candidate. "
+            "Fits the idea in closed form (least squares via the normal equations, not gradient descent): an "
+            "intercept plus one coefficient per clue, weighted when recency weighting is on. A separate fit is made "
+            f"for each of the {term('check_seasons')}, on only the years before it, and the loop repeats this for every new idea. "
             "Solved directly in NumPy rather than scikit-learn (a test confirms identical coefficients) to stay within "
             "Vercel's size limit."),
         "assess": (
-            "The winning candidate and the benchmark's best are refitted on every year before the test year, then scored "
-            "once on the held-out test year alongside the TV projection and the naive mean. Selection was already "
-            "settled on cross-validated MAE, so this is an unbiased estimate of performance on a new season. Reports "
+            f"The winning {term('idea')} and the other method's best are refitted on every year before the "
+            f"{term('test_season')}, then scored once on it alongside the {term('tv')} and the {term('average_total')}. "
+            "Selection was already settled on cross-validated MAE, so this is an unbiased estimate of performance on a "
+            "new season. Reports "
             f"MAE, R², share within 10 and 20 runs, error as a % of a typical total, and bias, and whether the {margin}-run "
             "goal was met."),
         "interpret": (
             "Code works out a fixed set of named facts from the run and builds the blocks of the results section with "
-            "template wording. A separate language-model step then writes the titles and sentences, naming facts in braces "
+            f"template wording. A separate {term('agent')} step then writes the titles and sentences, naming facts in braces "
             "and never writing a number: code rejects any reply with a digit, an unknown fact or text over the length "
             "limit, and fills every number in from the facts. If the model is absent or its reply is rejected, the template "
-            "wording is used. Feature importance is coefficient × interquartile range: how many runs a typical difference "
-            "in that feature moves the prediction."),
+            "wording is used. A clue's importance is coefficient × interquartile range: how many runs a typical difference "
+            "in that clue moves the prediction."),
     }
 
 
@@ -124,7 +126,7 @@ def loop_note(data_path: str | Path | None = None) -> str | None:
     try:
         rolling = rolling_checks(load_innings(data_path, required=["match_date", "in_test_population"]))
         years = [str(c.year) for c in rolling.checks]
-        return f"Validation years: {', '.join(years[:-1])} and {years[-1]}; test year: {rolling.test_year}, used once."
+        return f"{term('check_seasons').capitalize()}: {', '.join(years[:-1])} and {years[-1]}; {term('test_season')}: {rolling.test_year}, used once."
     except (DataError, IndexError, KeyError, ValueError):
         return None
 

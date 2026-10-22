@@ -16,7 +16,7 @@ const GROUP_PLACEHOLDER = "These figures are not available right now.";
 const figure = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`).first();
 const gotoPage = async (page: Page, query = "") => {
   await page.goto(`/under-the-hood.html${query}`);
-  await expect(page.getByRole("heading", { level: 1, name: "The language model chooses. Code does every number." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "The AI agent chooses. Code does every number." })).toBeVisible();
 };
 
 // ---------------- the header ----------------
@@ -71,7 +71,7 @@ test("the hero has its kicker, headline, lead and four counted facts", async ({ 
   await gotoPage(page);
   await expect(page.locator("#hero .kicker")).toHaveText("HOW THIS APP WAS BUILT");
   await expect(page.locator("#hero .hero-lead")).toHaveText(
-    "A LangGraph agent runs in a Python function on Vercel. A small web page replays it step by step. The data is real ball-by-ball cricket from Cricsheet.");
+    "A LangGraph agent runs in a Python function on Vercel. The data is real ball-by-ball cricket from Cricsheet.");
   const structure = await (await page.request.get("/api/structure")).json();
   const steps = structure.nodes.filter((n: { kind: string }) => n.kind === "node");
   await expect(page.getByTestId("fact-steps")).toHaveText(String(steps.length));
@@ -105,10 +105,10 @@ test("every part has a heading and a visual, with its Commentary closed until as
   const catalogue = await (await page.request.get("/api/catalogue")).json();
   await expect(page.locator("#h-data")).toHaveText(`Every innings becomes one row of ${catalogue.features.length} possible clues.`);
   await expect(page.getByTestId("data-tiles").locator("li")).toHaveCount(3);
-  await expect(page.locator("#h-play")).toHaveText("Only a live run runs the agent. Each step streams back as it finishes.");
+  await expect(page.locator("#h-play")).toHaveText("Only a live run runs the agent. Each step streams back.");
   await expect(page.getByTestId("play-tiles").locator("li")).toHaveCount(5);
   await expect(page.getByTestId("play-tiles").locator("li strong")).toHaveText(["Vercel", "FastAPI", "The gate", "The agent", "The stream"]);
-  await expect(page.locator("#h-see")).toHaveText("Your browser keeps every step, so you can pause and rewind without running the agent again.");
+  await expect(page.locator("#h-see")).toHaveText("Your browser keeps every step, so you can pause and rewind.");
   await expect(page.getByTestId("levels").locator("h3")).toHaveText(["Scoreboard", "Commentary", "Scorebook"]);
   await expect(page.locator("#h-ship")).toHaveText("One folder, one Vercel project, app 1 of 8.");
   await expect(page.locator("#shipping .card h3")).toHaveText(["The code", "Deployment", "The bigger site"]);

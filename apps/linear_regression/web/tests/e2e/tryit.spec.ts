@@ -53,7 +53,7 @@ test("the form asks for the agent's own model's inputs only, starting with runs 
   for (const derived of DERIVED) expect(asked).not.toContain(derived);
   if (model.features.includes("is_ipl") || model.features.includes("is_bbl")) await expect(page.locator("[data-testid=tryit-fields] select")).toHaveCount(1);
   for (const f of model.features.filter((x: string) => !DERIVED.includes(x))) expect(asked).toContain(f);
-  await expect(page.getByTestId("tryit-model-label")).toHaveText("Predicting with the agent's model.");
+  await expect(page.getByTestId("tryit-model-label")).toHaveText("Predicting with the AI agent's model.");
 });
 
 test("when no language model ran, the form uses the brute-force search's model and says so", async ({ page }) => {

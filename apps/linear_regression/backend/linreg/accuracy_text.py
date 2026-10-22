@@ -8,9 +8,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-PROJECTION = "the TV projection"
+from .methods import term
+
+PROJECTION = f"the {term('tv')}"
 NOTHING = "knowing nothing"
-_CAP_PROJECTION = "The TV projection"     # str.capitalize() would lower-case the TV
+_CAP_PROJECTION = f"The {term('tv')}"     # str.capitalize() would lower-case the TV
 
 
 def _runs(x: float) -> str:
@@ -75,7 +77,7 @@ def gap_sentence(know_nothing: Mapping[str, Any], projection: Mapping[str, Any])
     percent = round(runs / know_nothing["average_miss"] * 100, 1) if know_nothing["average_miss"] else 0.0
     points = round(projection["within_10"] - know_nothing["within_10"], 1)
     return (f"{_CAP_PROJECTION} misses by {_runs(projection['average_miss'])} runs on average, against "
-            f"{_runs(know_nothing['average_miss'])} for the know-nothing guess, which ignores the score at 10 overs. "
+            f"{_runs(know_nothing['average_miss'])} for the {term('average_total')}, which ignores the score at 10 overs. "
             f"Knowing the score at 10 overs is worth {_runs(runs)} runs ({_runs(percent)}%), and {_runs(points)} more "
             f"innings in every 100 land within 10 runs.")
 
@@ -108,13 +110,13 @@ def large_bias_sentence(direction: str) -> str:
 
 
 def comparison_sentences(final: Mapping[str, Any]) -> list[str]:
-    """How the winning model compares with the know-nothing guess and the projection, for the explanation. Every number is
+    """How the winning model compares with the average-total guess and the projection, for the explanation. Every number is
     a figure already in the final state; the comparison with the projection is the goal's verdict sentence, not here."""
     winner = final["winner"]
     acc = final["accuracy"]
     versus = final["versus_know_nothing"]
     tolerance = final["tolerances"][0]
-    nothing = "the know-nothing guess"
+    nothing = f"the {term('average_total')}"
     if versus["beat"]:
         first = (f"Against {nothing}, which ignores the state of the innings, the winning model's average miss was "
                  f"{_runs(versus['improvement_runs'])} runs ({_pct(versus['improvement_percent'])}) lower.")

@@ -23,6 +23,7 @@ async function builtText(page: Page, everything: boolean) {
 
 test("the main page in the simple view has at most 500 words", async ({ page }) => {
   const words = wordCount(await mainText(page, false));
+  console.info(`WORDS main simple ${words}`);
   expect(words).toBeGreaterThan(200);                       // it is measuring the page, not an empty one
   expect(words).toBeLessThanOrEqual(MAIN.simple);
 });
@@ -30,6 +31,7 @@ test("the main page in the simple view has at most 500 words", async ({ page }) 
 test("the main page with Show me everything has at most 1,200 words, the Scorebook closed", async ({ page }) => {
   const simple = wordCount(await mainText(page, false));
   const words = wordCount(await mainText(page, true));
+  console.info(`WORDS main everything ${words}`);
   await expect(page.getByTestId("scorebook-panel")).toBeHidden();
   expect(words).toBeGreaterThan(simple);
   expect(words).toBeLessThanOrEqual(MAIN.everything);
@@ -37,6 +39,7 @@ test("the main page with Show me everything has at most 1,200 words, the Scorebo
 
 test("How this app was built in the simple view has at most 500 words", async ({ page }) => {
   const words = wordCount(await builtText(page, false));
+  console.info(`WORDS built simple ${words}`);
   expect(words).toBeGreaterThan(200);
   expect(words).toBeLessThanOrEqual(BUILT.simple);
 });
@@ -44,6 +47,7 @@ test("How this app was built in the simple view has at most 500 words", async ({
 test("How this app was built with Show me everything has at most 1,200 words", async ({ page }) => {
   const simple = wordCount(await builtText(page, false));
   const words = wordCount(await builtText(page, true));
+  console.info(`WORDS built everything ${words}`);
   expect(words).toBeGreaterThan(simple);
   expect(words).toBeLessThanOrEqual(BUILT.everything);
 });

@@ -4,7 +4,8 @@ The model is asked for titles and sentences that name facts in braces, for examp
 runs", and never write a number. This module decides what, if anything, of its reply may be shown:
 
 - The whole reply is rejected (`UnusableReply`) if it is not JSON in the agreed shape, if any title or sentence contains
-  a digit or any other numeric character outside a placeholder, if it writes a direction word itself outside a
+  a digit or any other numeric character outside a placeholder, if it uses a banned name for a method (methods.BANNED,
+  so the fallback is the plain template wording), if it writes a direction word itself outside a
   placeholder ("too low", "add", "take off", "over", "underestimate" and close variants: the direction reaches the page
   only through a fact such as {tv_bias_direction}, so it always matches the figures), if a placeholder names a fact that
   does not exist, if a brace is left over, or if a title or sentence is over its length limit or a block has too many
@@ -26,6 +27,7 @@ from typing import Any, Mapping
 from .cricket_blocks import BLOCK_IDS, CODE_ONLY, MAX_SENTENCE, MAX_TITLE, PLACEHOLDER, max_sentences
 from .cricket_facts import Fact
 from .llm_reply import UnusableReply, _candidates
+from .methods import has_banned
 
 # Words that say which way a figure leans or what to do with it. The model may not write them: it names a fact
 # ({tv_bias_direction}, {rule_verb}) and code fills in the word that matches the figures.
@@ -56,6 +58,8 @@ def _check_text(text: str, facts: Mapping[str, Fact], what: str) -> None:
         raise UnusableReply(f"the {what} contains a number written by the model")
     if DIRECTION_WORDS.search(bare):
         raise UnusableReply(f"the {what} writes a direction word itself instead of naming a fact")
+    if has_banned(bare):
+        raise UnusableReply(f"the {what} uses a name the page does not use for a method")
 
 
 def _load(text: str) -> dict:

@@ -1,5 +1,6 @@
 // The run's attempts and rounds as the state carries them, and the leading attempt (app-specific). The tab that shows them
 // is built in found/; the summary line under the graph names the same leader.
+import { cap, methodName } from "./terms";
 import type { CheckError } from "./setup";
 
 export interface Attempt {
@@ -26,7 +27,7 @@ export interface RoundNote {
   message?: string;
 }
 
-const who = (p: Attempt["proposer"]) => (p === "llm" ? "Language model" : "Forward selection");
+const who = (p: Attempt["proposer"]) => cap(methodName(p === "llm" ? "llm" : "forward"));
 /** The attempt with the lowest average error over the check years (the earliest wins a tie): the leading setup so far.
  *  The summary line under the graph names this one. */
 export function leader(attempts: Attempt[]): Attempt | null {

@@ -45,7 +45,7 @@ test("the Scoreboard card shows the agent's and the TV's average miss, and the t
   const facts = await page.getByTestId("scoreboard-facts").locator("li").allTextContents();
   expect(facts).toEqual(final.headlines.scoreboard.facts.map((f: { text: string }) => f.text));
   expect(facts[0]).toBe(state.rounds_used === 1 ? "1 try" : `${state.rounds_used} tries`);   // every proposal counts, rejected ones too
-  expect(facts[1]).toBe("0 numbers made up by the AI");
+  expect(facts[1]).toBe("0 numbers made up by the AI agent");
 });
 
 test("a line under the card says it is a recorded run, with the day and the model", async ({ page }) => {
@@ -82,7 +82,7 @@ test("the hero's Commentary is closed until Show me everything: the TV's accurac
   await expect(page.getByTestId("tv-sentence")).toHaveText(ref.hero.panel);
   await expect(page.getByTestId("tv-sentence")).toContainText(`at least ${ref.goal.margin_runs} runs`);
   await expect(page.getByTestId("tv-footnote")).toHaveText(ref.hero.footnote);
-  await expect(page.getByTestId("who-does-what")).toContainText("language model chooses the clues");
+  await expect(page.getByTestId("who-does-what")).toContainText("AI agent chooses the clues");
 });
 
 test("when the reference figures fail the Commentary says so and shows no number", async ({ page }) => {

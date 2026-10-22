@@ -1,6 +1,7 @@
 // Section 2 of the final test tab (app-specific): how close did each method get. One stacked bar per method, in section 1's
 // order, split into within 10 runs, 10 to 20 runs off and more than 20 runs off. The shares are worked out from the
 // displayed within-10 and within-20 figures so the three always add to 100. The bias wording is the server's, shown as sent.
+import { cap, term } from "../terms";
 import { h } from "../dom";
 import { TOKEN, factFlag, factText, type Row } from "./view";
 import type { CricketExplanation } from "./types";
@@ -26,7 +27,7 @@ const BANDS: { band: Band; label: string }[] = [
 export function closingText(words: string | undefined, runs: string | undefined): string {
   const note = "No method can be perfect from the halfway mark: collapses, a batter getting going and the weather all happen after it.";
   if (!words || !runs) return note;
-  const who = words.startsWith("only") ? "Even our pick" : "Our pick";
+  const who = words.startsWith("only") ? `Even ${term("pick")}` : cap(term("pick"));
   return `${who} was within ${runs} runs of the real total ${words}. ${note}`;
 }
 

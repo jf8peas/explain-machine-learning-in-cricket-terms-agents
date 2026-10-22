@@ -105,13 +105,13 @@ describe("when the language model did not do its work", () => {
 
   it("says it did not take part, with the server's reason, when it made no rounds", () => {
     expect(llmNotice("failed", "The provider is down.", 0)).toBe(
-      "The language model did not take part in this run: The provider is down. The brute-force search carried on alone.");
+      "The AI agent did not take part in this run: The provider is down. The brute-force search carried on alone.");
     expect(llmNotice("not_used", null, 0)).toContain("did not take part in this run.");
   });
 
   it("says it stopped early, keeping its best idea, when it made some rounds first", () => {
     expect(llmNotice("failed", "It timed out.", 2)).toBe(
-      "The language model stopped early: It timed out. Its best idea so far was kept, and the brute-force search carried on.");
+      "The AI agent stopped early: It timed out. Its best idea so far was kept, and the brute-force search carried on.");
   });
 });
 

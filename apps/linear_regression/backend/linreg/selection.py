@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import features, setup_settings
+from .methods import term
 from .state import NO_IMPROVE_STOP, ROUND_CAP, SET_LIMIT
 
 
@@ -19,6 +20,10 @@ class Check:
                                    # unknown_feature, empty, too_many, already_tried, too_few_innings, redundant
     message: str
     features: list[str]            # the features the outcome is about (the set to fit, or the offending ones)
+
+
+# The one wording of a repeated proposal (the recorded run is reworded from it).
+ALREADY_TRIED = "That idea was already tried: the same features, window, weighting and training innings."
 
 
 def _words(ids: list[str]) -> str:
@@ -55,7 +60,7 @@ def check_proposal(proposal: dict, tried: list[dict], fitter) -> Check:
     missing = [n for n in names if proposal.get(n) is None]
     if missing:
         return Check("rejected", "missing_part",
-                     f"The proposal did not give {_join(missing)}. A candidate model needs all four parts: features, window, "
+                     f"The proposal did not give {_join(missing)}. An idea needs all four parts: features, window, "
                      "weighting and training_innings.", [])
     for part, ids in SETUP_PARTS:
         value = proposal[part]
@@ -80,7 +85,7 @@ def check_proposal(proposal: dict, tried: list[dict], fitter) -> Check:
     here = setup_key({"features": proposed, "window": window, "weighting": weighting, "training_innings": innings})
     if any(setup_key(t) == here for t in tried):
         return Check("rejected", "already_tried",
-                     "That candidate model was already tried: the same features, window, weighting and training innings.",
+                     ALREADY_TRIED,
                      list(proposed))
     short = fitter.too_few(window, innings)
     if short:
@@ -149,18 +154,18 @@ def validation_winner(llm_best: dict | None, forward_best: dict | None) -> dict:
     if llm_best is not None and forward_best is not None:
         llm_error, forward_error = llm_best["validation_mae"], forward_best["validation_mae"]
         if forward_error < llm_error:
-            winner, why = "forward", (f"forward selection's best candidate model had the lower average validation error "
-                                      f"({forward_error} against {llm_error})")
+            winner, why = "forward", (f"the {term('brute_force')}'s best idea had the lower average miss on the "
+                                      f"{term('check_seasons')} ({forward_error} against {llm_error})")
         elif llm_error < forward_error:
-            winner, why = "llm", (f"the language model's best candidate model had the lower average validation error "
-                                  f"({llm_error} against {forward_error})")
+            winner, why = "llm", (f"the {term('agent')}'s best idea had the lower average miss on the "
+                                  f"{term('check_seasons')} ({llm_error} against {forward_error})")
         else:
-            winner, why = "llm", (f"the two best candidate models tied on average validation error ({llm_error}), "
-                                  "so the language model's is taken")
+            winner, why = "llm", (f"the two best ideas tied on average miss on the {term('check_seasons')} ({llm_error}), "
+                                  f"so the {term('agent')}'s is taken")
     elif llm_best is not None:
-        winner, why = "llm", "forward selection produced no candidate model"
+        winner, why = "llm", f"the {term('brute_force')} produced no idea"
     else:
-        winner, why = "forward", "the language model produced no candidate model"
+        winner, why = "forward", f"the {term('agent')} produced no idea"
     return {"winner": winner, "reason": why, "chosen_on": "validation"}
 
 

@@ -18,12 +18,12 @@ def fresh():
 
 def test_the_fixture_is_what_the_recorder_makes_now(fresh):
     stored = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    for key in ("model_name", "fingerprint", "scripted", "done", "events"):
+    for key in ("model_name", "fingerprint", "scripted", "done", "events", "wording_version"):
         assert stored[key] == fresh[key], key
 
 
 def test_the_recording_has_the_shape_the_page_reads(fresh):
-    assert set(fresh) == {"recorded_on", "model_name", "fingerprint", "events", "done", "scripted"}
+    assert set(fresh) == {"recorded_on", "model_name", "fingerprint", "events", "done", "scripted", "wording_version"}
     assert fresh["fingerprint"].startswith("sha256:") and fresh["done"] == {"steps": len(fresh["events"])}
     assert [e["step"] for e in fresh["events"]] == list(range(1, len(fresh["events"]) + 1))
     assert all(set(e) == {"step", "node", "summary", "changes"} for e in fresh["events"])

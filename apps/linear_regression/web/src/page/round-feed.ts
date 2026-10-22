@@ -1,6 +1,7 @@
 // The round feed (app-specific, pure): one row for each round the agent has had so far, in plain words. It reads the round
 // views the Scorebook's model list already uses (found/view.ts), so a round means the same thing everywhere. The agent's
 // reasoning is the agent's own words, unchanged. A round is spoken once, in one short line, when it gets its final status.
+import { term } from "./terms";
 import { fromTenths, type RoundView } from "./found/view";
 import type { Labeller } from "./setup";
 
@@ -108,6 +109,6 @@ export function llmNotice(status: string | undefined, failure: string | null | u
   if (status !== "failed" && status !== "not_used") return null;
   const why = failure ? `: ${failure}` : ".";
   return rounds
-    ? `The language model stopped early${why} Its best idea so far was kept, and the brute-force search carried on.`
-    : `The language model did not take part in this run${why} The brute-force search carried on alone.`;
+    ? `The ${term("agent")} stopped early${why} Its best ${term("idea")} so far was kept, and the ${term("brute_force")} carried on.`
+    : `The ${term("agent")} did not take part in this run${why} The ${term("brute_force")} carried on alone.`;
 }

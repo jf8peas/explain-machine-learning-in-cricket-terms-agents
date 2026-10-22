@@ -18,6 +18,8 @@ from typing import Callable, Mapping
 
 from fastapi import Request
 
+from .methods import term
+
 from .graph_api import Refusal
 from .limit_store import LimitStore, StoreUnavailable, store_from_env
 from .model_options import ModelOption, ModelOptions
@@ -28,8 +30,8 @@ log = logging.getLogger("linreg.gate")
 
 NOT_AVAILABLE = ("That model is no longer available. The default model has been selected for you; press Play "
                  "again to use it.")
-STORE_DOWN = ("The run limits could not be checked just now, so the language model was not used. Forward "
-              "selection, which needs no model, still ran.")
+STORE_DOWN = (f"The run limits could not be checked just now, so the {term('agent')} was not used. The "
+              f"{term('brute_force')}, which needs no AI, still ran.")
 
 
 @dataclass

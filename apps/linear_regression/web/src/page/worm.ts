@@ -5,6 +5,7 @@
 // wormPlan only turns them into places on the chart and drawWorm draws the plan. Wide: one SVG, the plot split 60/40, so
 // the lens lines are drawn in the same drawing. Narrow: two SVGs, the zoom stacked under the line graph. Colours are the page's
 // CSS variables, and the series are also told apart by shape, line style and label, never by colour alone.
+import { cap, term } from "./terms";
 import { fmt } from "./dom";
 import type { Example } from "./reference-types";
 import { layoutMode, missWords, NARROW_BELOW, spreadLabels, yAxis, zoomRange, type Mode, type YAxis, type ZoomRange } from "./worm-layout";
@@ -92,7 +93,7 @@ export function zoomPlan(input: WormInput, g: ZoomGeometry): ZoomPlan {
     { id: "actual" as const, text: `Actual ${actual}`, y: scale(actual) + g.label * 0.35 },
     { id: "miss" as const, text: words, y: wishedMid + g.label * 0.35 },
     { id: "tv" as const, text: `TV ${tv}`, y: scale(tv) + g.label * 0.35 },
-    { id: "nothing" as const, text: `Know-nothing ${nothing}`, y: scale(nothing) + g.label * 0.35 },
+    { id: "nothing" as const, text: `${cap(term("average_total"))} ${nothing}`, y: scale(nothing) + g.label * 0.35 },
   ];
   const placed = spreadLabels(wished.map((w) => ({ id: w.id, y: w.y })), LABEL_GAP, bandTop + g.label * 0.8, bandBottom - 2);
   const labels = wished.map((w) => ({ ...w, y: placed[w.id] })).sort((a, b) => a.y - b.y);

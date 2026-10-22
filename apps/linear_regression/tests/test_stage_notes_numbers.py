@@ -29,10 +29,10 @@ def number_before(text: str, after: str) -> int:
 
 def test_the_feature_limit_the_round_cap_the_stop_rule_and_the_grid_size_in_the_choose_note():
     note = stage_notes()["choose"]
-    assert number_after(note, "feature subset (up to") == state.SET_LIMIT
+    assert number_after(note, "set of clues (up to") == state.SET_LIMIT
     assert number_after(note, "The loop runs up to") == state.ROUND_CAP
     assert number_after(note, "stops after") == state.NO_IMPROVE_STOP
-    assert number_after(note, "grid search tries all") == len(selection.GRID)
+    assert number_after(note, "tries all") == len(selection.GRID)
 
 
 def test_the_goal_margin_in_the_frame_and_assess_notes():
@@ -45,14 +45,14 @@ def test_the_goal_margin_in_the_frame_and_assess_notes():
 def test_changing_a_constant_changes_the_note(monkeypatch, name, value):
     monkeypatch.setattr(state, name, value)
     notes = note_texts()
-    where = {"SET_LIMIT": ("choose", "feature subset (up to"), "ROUND_CAP": ("choose", "The loop runs up to"),
+    where = {"SET_LIMIT": ("choose", "set of clues (up to"), "ROUND_CAP": ("choose", "The loop runs up to"),
              "NO_IMPROVE_STOP": ("choose", "stops after"), "MARGIN_RUNS": ("frame", "beat the TV projection by")}[name]
     assert number_after(notes[where[0]], where[1]) == value
 
 
 def test_changing_the_grid_changes_the_note(monkeypatch):
     monkeypatch.setattr(selection, "GRID", selection.GRID[:7])
-    assert number_after(note_texts()["choose"], "grid search tries all") == 7
+    assert number_after(note_texts()["choose"], "tries all") == 7
 
 
 def test_a_margin_that_is_not_whole_keeps_its_decimal(monkeypatch):

@@ -95,7 +95,7 @@ test("a live run with no language model switches the hero to the plain search's 
   await openPanel(page);
   await page.getByTestId("model-select").selectOption({ label: "Unreliable" });
   await page.getByTestId("live-start").click();
-  await expect(page.getByTestId("hero-title")).toHaveText("The agent couldn't reach its language model, so a plain search ran alone.", { timeout: 30_000 });
+  await expect(page.getByTestId("hero-title")).toHaveText("The AI agent couldn't run, so the brute-force search ran alone.", { timeout: 30_000 });
   await expect(page.getByTestId("scoreboard-card")).toContainText("Brute-force search");
   await expect(page.getByTestId("scoreboard-facts")).not.toContainText("tries");
   await expect(page.getByTestId("run-origin")).toHaveText("From your live run with Unreliable.");
