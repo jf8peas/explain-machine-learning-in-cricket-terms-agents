@@ -56,7 +56,7 @@ form button:disabled { opacity: .5; cursor: default; }
 footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
 .attribution { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
 a { color: var(--accent); }
-.variation-note { margin: 0 0 10px; max-width: 75ch; font-size: .9rem; }
+.variation-note { margin: 0 0 10px; font-size: .9rem; }
 .variation-note strong { color: var(--text); }
 .reason { margin: 4px 0 4px; padding: 6px 12px; border-left: 4px solid var(--accent); background: var(--bg); color: var(--text); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
 .tag { display: inline-block; margin-left: 8px; font-size: .75rem; font-weight: 600; color: var(--muted); }
@@ -65,7 +65,7 @@ ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; mar
 li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
 .exam-banner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; width: 100%; margin: 0 0 8px; padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
 .exam-banner-text { flex: 1 1 18rem; min-width: 0; margin: 0; }
-.final-lead { margin: 0; max-width: 72ch; line-height: 1.5; color: var(--muted); }
+.final-lead { margin: 0; line-height: 1.5; color: var(--muted); }
 .final-lead strong { color: var(--text); }
 .exam-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .exam-card { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); }
@@ -95,7 +95,7 @@ li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 
 .close-bar { display: flex; height: 34px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
 .close-seg { display: flex; align-items: center; justify-content: center; min-width: 0; border-right: 1px solid var(--bg); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .close-seg:last-child { border-right: 0; }
-.close-note { margin: 0; max-width: 75ch; font-size: .875rem; color: var(--muted); line-height: 1.5; }
+.close-note { margin: 0; font-size: .875rem; color: var(--muted); line-height: 1.5; }
 .writer-label { margin: 0; font-size: .8125rem; color: var(--muted); }
 .takeaways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .takeaway { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
@@ -112,7 +112,7 @@ li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 
 @media (max-width: 640px) {
   .close-row { grid-template-columns: minmax(0, 1fr); }
 }
-.found-lead-text { max-width: 72ch; line-height: 1.5; color: var(--muted); }
+.found-lead-text { line-height: 1.5; color: var(--muted); }
 .found-lead-text strong { color: var(--text); }
 .seasons { display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1.3fr; gap: 6px; font-size: .875rem; }
 .season { display: flex; flex-direction: column; min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
@@ -128,7 +128,7 @@ table.grid-table thead th { color: var(--muted); font-weight: 600; }
 table.grid-table tbody th { text-align: left; font-weight: 600; white-space: nowrap; }
 table.grid-table td.grid-none { color: var(--muted); }
 table.grid-table td.grid-best { outline: 3px solid var(--text); outline-offset: -3px; font-weight: 800; }
-.grid-best-line { margin: 0; max-width: 72ch; line-height: 1.5; }
+.grid-best-line { margin: 0; line-height: 1.5; }
 table.ranking { border-collapse: collapse; width: 100%; }
 table.ranking th, table.ranking td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
 table.ranking thead th { color: var(--muted); font-weight: 600; font-size: .85rem; }
@@ -139,7 +139,7 @@ table.ranking td.found-by { font-weight: 700; white-space: nowrap; }
   .seasons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .round-result { text-align: left; }
 }
-.data-intro { max-width: 75ch; margin-top: 0; }
+.data-intro { margin-top: 0; }
 .data-intro strong { color: var(--text); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 tab-set h2[tabindex="-1"]:focus { outline: none; }

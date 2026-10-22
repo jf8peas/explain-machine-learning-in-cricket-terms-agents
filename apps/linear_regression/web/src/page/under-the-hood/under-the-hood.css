@@ -11,7 +11,6 @@
 section { scroll-margin-top: 16px; }
 section h3 { margin: 18px 0 8px; }
 section h4 { margin: 0 0 6px; font-size: .95rem; }
-section p { max-width: 75ch; }
 .part { margin: 0 0 2px; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
 .note { color: var(--muted); font-size: .9rem; }
 .muted { color: var(--muted); }
@@ -20,7 +19,6 @@ section p { max-width: 75ch; }
 
 /* the hero's four counted facts */
 .built-hero { grid-template-columns: minmax(0, 1fr); }
-.built-hero .hero-lead { max-width: 62ch; }
 .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; list-style: none; margin: 0; padding: 0; }
 .facts li { display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--band-line); border-radius: 12px; background: rgba(255, 255, 255, .06); }
 .facts .num { font-size: 2rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }

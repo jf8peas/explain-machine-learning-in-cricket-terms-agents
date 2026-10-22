@@ -4,7 +4,7 @@
 .block { margin: 36px 0 0; }
 .kicker { margin: 0; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
 .block h2 { margin: 6px 0 8px; font-size: 1.6rem; line-height: 1.2; letter-spacing: -.005em; }
-.lead { margin: 0 0 14px; max-width: 62ch; color: var(--muted); font-size: 1.0625rem; line-height: 1.5; }
+.lead { margin: 0 0 14px; color: var(--muted); font-size: 1.0625rem; line-height: 1.5; }
 .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 2px solid var(--accent);
   font-weight: 700; font-size: .9375rem; text-decoration: none; cursor: pointer; font-family: inherit; }
 .btn.filled { background: var(--accent); color: var(--on-accent); }
@@ -25,7 +25,7 @@
 .hero-inner { display: grid; gap: 14px 32px; grid-template-columns: minmax(0, 1fr); }
 .hero-inner > * { min-width: 0; margin: 0; }
 .hero h1, .hero-inner h1 { margin: 0; font-size: 2rem; line-height: 1.12; font-weight: 750; letter-spacing: -.01em; }
-.hero-lead { font-size: 1.0625rem; line-height: 1.5; color: var(--band-muted); max-width: 52ch; }
+.hero-lead { font-size: 1.0625rem; line-height: 1.5; color: var(--band-muted); }
 .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
 .run-origin { font-size: .8125rem; color: var(--band-muted); }
 .run-origin:empty { display: none; }
@@ -69,7 +69,7 @@
 .live-panel .field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; }
 .live-panel select { font: inherit; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .model-note { margin: 6px 0 0; font-size: .875rem; }
-.variation-note { margin: 10px 0; font-size: .9rem; max-width: 70ch; }
+.variation-note { margin: 10px 0; font-size: .9rem; }
 .live-actions { margin: 10px 0 0; }
 .live-actions .btn:disabled { opacity: .55; cursor: default; }
 .live-message { margin: 8px 0 0; font-size: .875rem; min-height: 1.2em; }

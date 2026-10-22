@@ -26,7 +26,7 @@ export const styles = /* css */ `
 .dg-root .dg-headline dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dg-root .dg-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 24px; }
 .dg-root .dg-sections h3 { margin: 0 0 4px; font-size: .9rem; }
-.dg-root .dg-note { margin: 0 0 6px; color: var(--_muted); font-size: .8rem; max-width: 60ch; }
+.dg-root .dg-note { margin: 0 0 6px; color: var(--_muted); font-size: .8rem; }
 .dg-root .dg-sections ul { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
 .dg-root .dg-sections li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--_border); padding: 2px 0; }
 .dg-root .dg-sections li span:last-child { font-variant-numeric: tabular-nums; }
@@ -34,7 +34,7 @@ export const styles = /* css */ `
 .dg-root .dg-help-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 28px; margin-bottom: 12px; }
 .dg-root .dg-help-row details[open] { flex-basis: 100%; }
 .dg-root .dg-guide { font-size: .9rem; }
-.dg-root .dg-note-section p { margin: 8px 0 0; max-width: 75ch; }
+.dg-root .dg-note-section p { margin: 8px 0 0; }
 .dg-root .dg-note-section .dg-caption { color: var(--_muted); font-size: .85rem; margin-top: 12px; }
 .dg-root .dg-example { border-collapse: collapse; margin-top: 4px; font-size: .9rem; font-variant-numeric: tabular-nums; }
 .dg-root .dg-example th, .dg-root .dg-example td { border: 1px solid var(--_grid); padding: 3px 12px; text-align: right; }
@@ -58,7 +58,7 @@ export const styles = /* css */ `
   background: var(--_bg); border: 1px solid var(--_border); border-radius: 8px; padding: 4px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
 .dg-root .dg-menu button { text-align: left; border: 0; background: transparent; }
 .dg-root .dg-menu button:hover:not(:disabled), .dg-root .dg-menu button:focus-visible { background: var(--_surface); }
-.dg-root .dg-attribution { color: var(--_muted); font-size: .8rem; margin: 0; max-width: 60ch; }
+.dg-root .dg-attribution { color: var(--_muted); font-size: .8rem; margin: 0; }
 .dg-root a { color: var(--_accent); }
 
 .dg-root .dg-gridwrap { position: relative; max-width: 100%; }
