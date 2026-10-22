@@ -1,81 +1,65 @@
+// The main page (app-specific): one scrolling page led by the agent. This file wires the sections together; each section has
+// its own module. The recorded run is loaded once and is what the page shows until a live run reaches its final test.
+import "./legacy.css";
+import "./commentary.css";
+import "./simple.css";
 import "../graph-replay/graph-replay";
-import "../tab-set/tab-set";
-import type { TabSet } from "../tab-set/tab-set";
-import type { ReplayChangeDetail } from "../graph-replay/graph-replay";
-import type { Model } from "./predict";
-import { loadCatalogue } from "./catalogue";
-import { setupHero } from "./hero";
-import { setupModels } from "./models";
-import { renderFound } from "./found";
-import { renderFinal } from "./final";
-import { initial, step, type Action, type ResultTab } from "./readiness";
-import { renderSummary } from "./summary";
-import { setupTryIt } from "./tryit";
+import { setupHeader } from "../detail-level/site-header";
+import { loadRecorded } from "./recorded";
+import { resolveAnchor } from "./anchors";
+import { renderHero } from "./hero";
+import { setupScorebook } from "./scorebook";
+import { renderProblem } from "./problem";
+import { agentModel, setupTryIt } from "./tryit";
+import { renderVerdict } from "./verdict";
+import { setupWatch } from "./watch";
+import { loadReference } from "./reference";
+import type { Reference } from "./reference-types";
+import { currentRun, initialSource, type SourceState } from "./run-source";
 
-// Optional ?interval=<ms> sets the starting pace (used by embeds and tests).
-const interval = new URLSearchParams(location.search).get("interval");
-if (interval) document.querySelector("graph-replay")!.setAttribute("interval-ms", interval);
-const replay = document.querySelector("graph-replay") as HTMLElement;
-const results = document.querySelector("[data-testid=results]") as HTMLElement;
-const finalResults = document.querySelector("[data-testid=results-final]") as HTMLElement;
-const summary = document.querySelector("[data-testid=run-summary]") as HTMLElement;
-const tabs = document.querySelector("tab-set") as TabSet;
-// The "not ready" sentence of each result tab (the try-your-own form manages its own hint).
-const notReady: Partial<Record<ResultTab, HTMLElement>> = {
-  found: document.querySelector("[data-testid=found-panel] .not-ready") as HTMLElement,
-  "final-test": document.querySelector("[data-testid=final-panel] .not-ready") as HTMLElement,
-};
-const setModel = setupTryIt(document.querySelector("[data-testid=tryit]") as HTMLElement);
+const section = (id: string) => document.getElementById(id) as HTMLElement;
 
-function modelFrom(state: Record<string, unknown> | null): Model | null {
-  // The winner's model, once the run has finished (its features are the winner's after the final test).
-  if (!state || !state.coefficients || state.intercept === undefined || !state.final || !state.explanation) return null;
-  return {
-    features: state.features as string[],
-    coefficients: state.coefficients as Record<string, number>,
-    intercept: state.intercept as number,
-  };
+setupHeader();
+
+let source: SourceState = initialSource(null);
+let reference: Reference | null = null;
+
+/** Draw everything that shows the results of the run now on the page. */
+const scorebook = setupScorebook(section("scorebook"), () => currentRun(source));
+const setTryModel = setupTryIt(document.querySelector("[data-testid=tryit]") as HTMLElement);
+
+function showResults() {
+  const run = currentRun(source);
+  renderHero(section("hero"), run, reference);
+  renderProblem(section("problem"), reference);
+  renderVerdict(section("verdict"), run);
+  setTryModel(agentModel(run?.state ?? null));
+  scorebook.refresh();
 }
 
-function draw(state: Record<string, unknown>) {
-  renderFound(results, state);
-  renderFinal(finalResults, state);
-  renderSummary(summary, state);
+/** Old links (#working, #found, #final-test, #try-your-own, #data) land on their new places; #data opens the data panel. */
+function followAnchor() {
+  const target = resolveAnchor(location.hash);
+  if (!target) return;
+  history.replaceState(null, "", target.hash);
+  if (target.panel) scorebook.open(target.panel);
+  document.querySelector(target.hash)?.scrollIntoView({ block: "start" });
 }
+window.addEventListener("hashchange", followAnchor);
 
-function perform(actions: Action[]) {
-  for (const a of actions) {
-    if (a.type === "switch") tabs.select(a.tab, { focus: a.focus });
-    else if (a.type === "marker") tabs.setMarker(a.tab, a.on);
-    else if (notReady[a.tab]) notReady[a.tab]!.hidden = !a.show;
-  }
-}
-
-let shown: Record<string, unknown> = {};
-let readiness = initial;
-replay.addEventListener("replaychange", (ev) => {
-  const d = (ev as CustomEvent<ReplayChangeDetail>).detail;
-  shown = d.state;
-  draw(d.state);
-  setModel(modelFrom(d.finalState)); // the completed run's coefficients, whichever step is on display
-  const next = step(readiness, d, tabs.active);
-  readiness = next.state;
-  perform(next.actions);
+const watch = setupWatch(section("watch"), {
+  source: () => source,
+  update(next) {
+    const before = currentRun(source);
+    source = next;
+    if (currentRun(source) !== before) showResults();
+  },
 });
-draw({});
-setupModels(document.querySelector("[data-testid=model-picker]") as HTMLElement, replay);
-void setupHero(document.querySelector("[data-testid=hero]") as HTMLElement);
-void loadCatalogue().then(() => draw(shown)); // feature wording arrives with the catalogue
 
-// The Data tab loads the first time it is shown (or straight away at #data); the Working tab never waits on it.
-let dataStarted = false;
-function startData() {
-  if (dataStarted) return;
-  dataStarted = true;
-  const grid = document.querySelector("data-grid") as import("../data-grid/data-grid").DataGrid;
-  void import("./data-tab").then((m) => m.init(grid));
-}
-if (tabs.active === "data") startData();
-tabs.addEventListener("tab-show", (ev) => {
-  if ((ev as CustomEvent<{ id: string }>).detail.id === "data") startData();
+void Promise.all([loadRecorded(), loadReference()]).then(([recorded, ref]) => {
+  reference = ref;
+  source = initialSource(recorded && { kind: "recorded", modelName: recorded.modelName, recordedOn: recorded.recordedOn, events: recorded.events, state: recorded.state });
+  showResults();
+  watch.setRecorded(currentRun(source));
+  followAnchor();
 });

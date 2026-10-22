@@ -103,3 +103,18 @@ def test_no_word_of_the_lead_is_typed_in_the_page():
     assert "projected score. the agent tries" not in page.lower()
     assert "less on average" not in page.lower()
     assert lead  # the sentence exists on the server
+
+
+def test_the_headlines_take_the_goal_from_goal_py_and_type_no_margin():
+    """The hero, card and verdict headlines (feature 020) judge the agent through goal.agent_verdict, so a changed margin
+    changes them; nothing in headlines.py names the margin or its value."""
+    source = (APP / "backend" / "linreg" / "headlines.py").read_text(encoding="utf-8")
+    assert "agent_verdict" in source and "MARGIN_RUNS" not in source
+    assert not re.search(r"\b3 runs\b|at least \d", source)
+
+
+def test_a_changed_margin_changes_the_headline_case(monkeypatch):
+    from linreg import headlines
+    assert headlines.case_for(17.5, 20.5) == "beat"
+    monkeypatch.setattr(goal_module, "MARGIN_RUNS", 4)
+    assert headlines.case_for(17.5, 20.5) == "edged"

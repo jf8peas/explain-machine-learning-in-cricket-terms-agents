@@ -19,17 +19,32 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
 h1 { font-size: 1.6rem; margin: 0 0 6px; }
 h2 { font-size: 1.15rem; margin: 28px 0 8px; }
 h3 { font-size: 1rem; margin: 16px 0 6px; }
 
-/* The two links to the "How this app was built" page and the project's feedback page (feature 018), used on both pages */
-.about-nav { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; }
-.about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border-radius: 8px; color: var(--accent); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; }
+/* The page header, used on both pages (features 018 and 020): the breadcrumb, then the Show me everything switch, the link to the
+   other page and Feedback. One row that fits at 390 px: below 560 px the breadcrumb shows the app name only and the three
+   controls are 44 px icon buttons whose accessible names (aria-label) are their full labels. */
+.site-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 16px; margin: 0 0 14px; }
+.breadcrumb { display: flex; flex-wrap: nowrap; gap: 2px 8px; align-items: center; margin: 0; font-size: .875rem; color: var(--muted); min-width: 0; }
+.breadcrumb a { color: var(--accent); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb [aria-current] { color: var(--text); font-weight: 600; white-space: nowrap; }
+.about-nav { display: flex; flex-wrap: nowrap; gap: 0 4px; align-items: center; }
+.about-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border-radius: 8px; border: 0; background: none; font-family: inherit; cursor: pointer; color: var(--accent); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; white-space: nowrap; }
 .about-link:hover { background: var(--surface); }
 .about-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .about-link svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.about-link.switch { border: 1px solid var(--border); border-radius: 999px; padding: 0 14px; }
+.about-link.switch[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+@media (max-width: 559px) {
+  .breadcrumb .crumb-site, .breadcrumb .crumb-sep, .breadcrumb .crumb-page { display: none; }
+  .about-link { justify-content: center; width: 44px; padding: 0; }
+  .about-link .label, .about-link .external { display: none; }
+  .about-link.switch { padding: 0; }
+}
 
 /* The VALIDATION and TEST pills (feature 016), used on the result tabs and the Under the hood page */
 .exam-pill { display: inline-block; flex: none; padding: 3px 12px; border-radius: 999px; font-size: .8125rem; font-weight: 800; letter-spacing: .08em; line-height: 1.4; }

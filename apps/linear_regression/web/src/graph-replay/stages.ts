@@ -1,4 +1,4 @@
-// Stage helpers: pure functions over what the structure response says. No stage name or app knowledge lives here;
+// Stage helpers: pure functions of what the structure response says. No stage name or app knowledge lives here;
 // the stage set, the loop, the notes and the items all arrive in the structure.
 
 /** One stage of the set the app supplies, in order. */

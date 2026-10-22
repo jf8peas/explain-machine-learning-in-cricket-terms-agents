@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   EXPLANATIONS,
   buildFigures,
+  numberWord,
   type DataResponse,
   type ReferenceResponse,
 } from "../../src/page/under-the-hood/figures";
@@ -120,5 +121,59 @@ describe("the explanations", () => {
     const labels = [...block.slice(0, block.indexOf("}")).matchAll(/:\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(labels.length).toBeGreaterThanOrEqual(7);
     for (const key of Object.keys(EXPLANATIONS)) expect(labels).toContain(key);
+  });
+});
+
+// ---------------- feature 020: the counts and the gate's limits, from the structure, the catalogue and the models list ----------------
+
+const structure = JSON.parse(readFileSync("tests/fixtures/linreg-structure.json", "utf8"));
+const catalogue = { features: Array.from({ length: 19 }, (_, i) => ({ id: `f${i}` })) };
+const models = { run: { per_hour: 5, per_day: 300, deadline_seconds: 80 } };
+
+describe("the counted facts and the gate's limits", () => {
+  const figures = buildFigures(data, reference, { structure, catalogue, models });
+
+  it("count the agent's steps and the ones that use a language model from the structure, not counting start and end", () => {
+    expect(figures.agentSteps).toBe("12");
+    expect(figures.llmSteps).toBe("2");
+    expect(figures.stepsWord).toBe("Twelve");
+  });
+
+  it("count the clues from the catalogue", () => {
+    expect(figures.clues).toBe("19");
+  });
+
+  it("read the gate's limits from the models list", () => {
+    expect(figures.perHour).toBe("5");
+    expect(figures.perDay).toBe("300");
+    expect(figures.deadline).toBe("80");
+  });
+
+  it("leave out whatever source is missing, and only that", () => {
+    const none = buildFigures(data, reference, { structure: null, catalogue: undefined, models: { run: { per_hour: 5 } } });
+    expect(none.agentSteps).toBeUndefined();
+    expect(none.llmSteps).toBeUndefined();
+    expect(none.clues).toBeUndefined();
+    expect(none.perHour).toBe("5");
+    expect(none.perDay).toBeUndefined();
+    expect(none.totalInnings).toBeDefined();
+    expect(Object.keys(buildFigures(undefined, undefined))).toEqual([]);
+  });
+
+  it("do not count a structure with no steps or a catalogue with no clues", () => {
+    const empty = buildFigures(undefined, undefined, { structure: { nodes: [{ kind: "start" }, { kind: "end" }] }, catalogue: { features: [] } });
+    expect(empty.agentSteps).toBeUndefined();
+    expect(empty.clues).toBeUndefined();
+  });
+});
+
+describe("a count in words for a heading", () => {
+  it("capitalises the word up to twenty and uses digits after", () => {
+    expect(numberWord(12)).toBe("Twelve");
+    expect(numberWord(1)).toBe("One");
+    expect(numberWord(20)).toBe("Twenty");
+    expect(numberWord(21)).toBe("21");
+    expect(numberWord(-1)).toBe("-1");
+    expect(numberWord(2.5)).toBe("2.5");
   });
 });

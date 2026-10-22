@@ -7,27 +7,32 @@
     {
       "id": "fetch",
       "kind": "node",
-      "stage": "intake"
+      "stage": "intake",
+      "row": "in"
     },
     {
       "id": "parse",
       "kind": "node",
-      "stage": "read"
+      "stage": "read",
+      "row": "in"
     },
     {
       "id": "validate",
       "kind": "node",
-      "stage": "check"
+      "stage": "check",
+      "row": "fix"
     },
     {
       "id": "retry",
       "kind": "node",
-      "stage": "repair"
+      "stage": "repair",
+      "row": "fix"
     },
     {
       "id": "store",
       "kind": "node",
-      "stage": "deliver"
+      "stage": "deliver",
+      "row": "out"
     },
     {
       "id": "__end__",
@@ -165,6 +170,23 @@
           "href": "http://example.com/"
         }
       }
+    }
+  ],
+  "rows": [
+    {
+      "id": "in",
+      "title": "Bring it in",
+      "note": "the first pass"
+    },
+    {
+      "id": "fix",
+      "title": "Check and fix",
+      "note": "repeats until every record is valid"
+    },
+    {
+      "id": "out",
+      "title": "Hand it over",
+      "note": ""
     }
   ]
 }

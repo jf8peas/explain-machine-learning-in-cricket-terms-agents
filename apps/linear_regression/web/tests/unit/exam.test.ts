@@ -77,10 +77,11 @@ describe("where the threshold lives", () => {
     expect(defs.map((f) => f.replace(/\\/g, "/").split("/src/")[1])).toEqual(["page/exam.ts"]);
   });
 
-  it("is not held by the server, which never decides too close to call", () => {
-    for (const f of sourceFiles(backend, [".py"])) {
-      const text = readFileSync(f, "utf8");
-      expect(/TOO_CLOSE|too_close|too close to call/i.test(text), f).toBe(false);
-    }
+  // Feature 020: the server words the agent-vs-search sentence ("matched … using just N tries"), so it must decide "too close to
+  // call" for that one sentence. It holds the rule in one place, with the same value, and nowhere else.
+  it("is held by the server only in headlines.py, with the same value", () => {
+    const holders = sourceFiles(backend, [".py"]).filter((f) => /TOO_CLOSE|too_close|too close to call/i.test(readFileSync(f, "utf8")));
+    expect(holders.map((f) => f.replace(/\\/g, "/").split("/backend/")[1])).toEqual(["linreg/headlines.py"]);
+    expect(readFileSync(holders[0], "utf8")).toMatch(/TOO_CLOSE_RUNS\s*=\s*0\.5\b/);
   });
 });

@@ -21,7 +21,7 @@ from fastapi import Request
 from .graph_api import Refusal
 from .limit_store import LimitStore, StoreUnavailable, store_from_env
 from .model_options import ModelOption, ModelOptions
-from .run_budget import RunBudget
+from .run_budget import DEFAULT_DEADLINE_SECONDS, RunBudget
 from .settings import read as read_setting
 
 log = logging.getLogger("linreg.gate")
@@ -57,6 +57,10 @@ def _when(seconds: float) -> str:
     return f"in about {hours} hour{'s' if hours != 1 else ''}"
 
 
+DEFAULT_PER_HOUR = 5     # live runs a visitor may start in an hour, unless RUN_LIMIT_PER_HOUR says otherwise
+DEFAULT_PER_DAY = 300    # live runs the whole site allows in a day, unless RUN_LIMIT_PER_DAY says otherwise
+
+
 class RunGate:
     def __init__(self, options: ModelOptions, environ: Mapping[str, str] | None = None, store: LimitStore | None = None,
                  clock: Callable[[], float] = time.time):
@@ -76,6 +80,13 @@ class RunGate:
             return int(self.environ.get(name, default))
         except (TypeError, ValueError):
             return default
+
+    def limits(self) -> dict[str, int]:
+        """The numbers the pages tell a visitor about a live run: how long one may take, how many an hour a visitor may start and
+        how many a day the site allows, read from the same settings the gate enforces."""
+        return {"per_hour": self._number("RUN_LIMIT_PER_HOUR", DEFAULT_PER_HOUR),
+                "per_day": self._number("RUN_LIMIT_PER_DAY", DEFAULT_PER_DAY),
+                "deadline_seconds": self._number("RUN_DEADLINE_SECONDS", DEFAULT_DEADLINE_SECONDS)}
 
     def _model(self, request: Request) -> ModelOption:
         chosen = request.query_params.getlist("model")
@@ -112,7 +123,7 @@ class RunGate:
             day_key = f"runs:day:{now:%Y-%m-%d}"
             count, _ = self.store.incr(day_key, 86400)
             counted.append(day_key)
-            if count > self._number("RUN_LIMIT_PER_DAY", 300):
+            if count > self._number("RUN_LIMIT_PER_DAY", DEFAULT_PER_DAY):
                 midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
                 wait = (midnight - now).total_seconds()
                 raise Refusal(429, "daily_limit", f"Today's limit of runs has been reached for everyone. Try again "
@@ -120,7 +131,7 @@ class RunGate:
             hour_key = f"runs:hour:{vid}:{now:%Y-%m-%d-%H}"
             count, left = self.store.incr(hour_key, 3600)
             counted.append(hour_key)
-            if count > self._number("RUN_LIMIT_PER_HOUR", 5):
+            if count > self._number("RUN_LIMIT_PER_HOUR", DEFAULT_PER_HOUR):
                 raise Refusal(429, "hourly_limit", f"You have started as many runs as are allowed in an hour. You can "
                               f"start another run {_when(left)}.", retry_after=left)
         except Refusal:

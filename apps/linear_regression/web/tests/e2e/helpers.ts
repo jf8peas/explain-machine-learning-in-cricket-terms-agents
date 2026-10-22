@@ -1,9 +1,16 @@
 import { expect, type Page } from "@playwright/test";
 
-/** Open the page with a fast starting pace so a full run takes a couple of seconds. */
+/** Open the page at the fast pace with every Commentary panel open (the agent graph is in one), and wait until the graph is drawn.
+ *  (Feature 020: the page plays the recorded run by itself once it scrolls into view; nothing is pressed.) */
 export async function open(page: Page, interval = 120) {
-  await page.goto(`/?interval=${interval}`);
+  await page.goto(`/?interval=${interval}&view=everything`);
   await expect(page.locator('[data-node="load_data"]')).toBeVisible();
+  await openPath(page);
+}
+
+/** The graph's "Path taken" list is closed until asked for (it is one of the longest pieces of text); open it to use the timeline. */
+export async function openPath(page: Page, host = "graph-replay") {
+  await page.locator(`${host} [data-testid=path] > summary`).click();
 }
 
 /** Counts every request the page makes to /api/run. */
@@ -27,65 +34,22 @@ export const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${J
 
 export const timelineItems = (page: Page) => page.getByTestId("timeline-item");
 
-/** Wait until the run in progress has been shown to the end (it does not press Play). */
+/** Scroll to the player once the page above it has filled in (scrolling earlier would be undone when the hero and the problem appear). */
+export async function toPlayer(page: Page) {
+  await expect(page.getByTestId("scoreboard-agent")).toBeVisible();
+  await page.getByTestId("player").scrollIntoViewIfNeeded();
+}
+
+/** Scroll to the player and wait until the recorded run has played to its end ("Watch again"). */
 export async function finishRun(page: Page) {
-  await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 45_000 });   // it lives in The final test tab
-  await expect(page.getByTestId("pause")).toBeDisabled();
-  // Reaching the end moves the page to What the agent found; the graph and its panels are on Working, so go back there.
-  // A test that wants a result tab opens it itself (openTab).
-  await expect(page.getByTestId("tab-found")).toHaveAttribute("aria-selected", "true", { timeout: 5_000 }).catch(() => undefined);
-  await openTab(page, "working");
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());   // arrow keys step the replay, not the tabs
+  await toPlayer(page);
+  await expect(page.getByTestId("watch-button")).toHaveText(/Watch (your run )?again/, { timeout: 45_000 });
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());   // arrow keys step the replay
 }
 
-/** Press Play and wait until the whole run has been shown. */
+/** The run is played by itself now, so this is the same as waiting for it to finish. */
 export async function playToEnd(page: Page) {
-  await page.getByTestId("play").click();
   await finishRun(page);
-}
-
-/** Open one of the page's tabs by its id (data, working, found, final-test, try-your-own). */
-export async function openTab(page: Page, id: "data" | "working" | "found" | "final-test" | "try-your-own") {
-  await page.getByTestId(`tab-${id}`).click();
-  await expect(page.getByTestId(`tab-${id}`)).toHaveAttribute("aria-selected", "true");
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());   // arrow keys step the replay, not the tabs
-}
-
-/** After a run has been shown to the end the page is on What the agent found; open another tab from there. */
-export async function afterRunOpen(page: Page, id: "working" | "found" | "final-test" | "try-your-own") {
-  await expect(page.getByTestId("tab-found")).toHaveAttribute("aria-selected", "true", { timeout: 15_000 });
-  await openTab(page, id);
-}
-
-/** The text a visitor can see inside a test id (hidden text is not included). */
-export async function visibleText(page: Page, testid: string): Promise<string> {
-  return page.getByTestId(testid).evaluate((root) => {
-    const out: string[] = [];
-    const walk = (node: Node) => {
-      if (node.nodeType === Node.TEXT_NODE) { out.push(node.textContent ?? ""); return; }
-      if (!(node instanceof HTMLElement)) return;
-      const style = getComputedStyle(node);
-      if (style.display === "none" || style.visibility === "hidden" || node.hidden) return;
-      if (node.classList.contains("visually-hidden")) return;
-      node.childNodes.forEach(walk);
-    };
-    walk(root);
-    return out.join(" ");
-  });
-}
-
-/** Every `[data-key]` panel of the state panel as one object: the whole run state as the page holds it. */
-export async function wholeState(page: Page): Promise<Record<string, unknown>> {
-  return page.locator("[data-key]").evaluateAll((els) => {
-    const state: Record<string, unknown> = {};
-    for (const el of els) {
-      const pre = el.querySelector("pre");
-      const key = el.getAttribute("data-key");
-      if (!key || !pre) continue;
-      try { state[key] = JSON.parse(pre.textContent ?? "null"); } catch { /* a panel that is not JSON is not state */ }
-    }
-    return state;
-  });
 }
 
 /** The contrast ratio (WCAG) between an element's text colour and its effective background, in the theme now showing. */
@@ -104,7 +68,8 @@ export async function contrastOf(page: Page, selector: string, nth = 0): Promise
     const over = (top: [number, number, number, number], under: [number, number, number]): [number, number, number] =>
       [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])) as [number, number, number];
     const layers: [number, number, number, number][] = [];
-    for (let n: Element | null = el; n; n = n.parentElement) {
+    const up = (n: Element): Element | null => n.parentElement ?? ((n.getRootNode() as ShadowRoot).host ?? null);   // out of a shadow root into its host
+    for (let n: Element | null = el; n; n = up(n)) {
       const bg = rgba(getComputedStyle(n).backgroundColor);
       if (bg[3] > 0) layers.push(bg);
       if (bg[3] >= 1) break;
@@ -122,14 +87,31 @@ export async function contrastOf(page: Page, selector: string, nth = 0): Promise
   });
 }
 
-/** The whole state of a finished run, from the server's own event stream (the state panel shows large values as counts, not data).
- *  The fake model is deterministic, so this equals the run just shown. It counts as one run against the visitor's limit. */
-export async function apiState(page: Page, query = ""): Promise<Record<string, unknown>> {
-  const text = await (await page.request.get(`/api/run${query}`)).text();
-  const state: Record<string, unknown> = {};
-  for (const block of text.trim().split("\n\n")) {
-    const [event, data] = block.split("\n");
-    if (event === "event: step") Object.assign(state, JSON.parse(data.replace("data: ", "")).changes);
-  }
-  return state;
+/** The text a visitor can see inside `<main>`, shadow roots included, without the agent's quoted reasoning (marked `data-reasoning`),
+ *  visually hidden text, or anything not displayed. This is what the word-count test measures (feature 020, FR-015). */
+export async function visibleMainText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const out: string[] = [];
+    const shown = (el: Element) => {
+      const cs = getComputedStyle(el);
+      return cs.display !== "none" && cs.visibility !== "hidden" && !(el as HTMLElement).hidden &&
+        !el.classList.contains("visually-hidden") && !el.classList.contains("sr-only") && !el.hasAttribute("data-reasoning");
+    };
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) { out.push(node.textContent ?? ""); return; }
+      if (!(node instanceof Element)) return;
+      if (!shown(node)) return;
+      if (node.tagName === "STYLE" || node.tagName === "SCRIPT") return;
+      if (node.tagName === "SELECT") { out.push((node as HTMLSelectElement).selectedOptions[0]?.textContent ?? ""); return; }   // a closed select shows its choice
+      if (node.tagName === "DETAILS" && !(node as HTMLDetailsElement).open) { node.querySelectorAll(":scope > summary").forEach(walk); return; }   // closed: its summary only
+      if (node.shadowRoot) node.shadowRoot.childNodes.forEach(walk);
+      node.childNodes.forEach(walk);
+    };
+    const main = document.querySelector("main");
+    if (main) walk(main);
+    return out.join(" ");
+  });
 }
+
+/** Words as a reader counts them: runs of letters or digits, so arrows and bullets are not words. */
+export const wordCount = (text: string): number => (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’.,:%/·\-–]*/gu) ?? []).length;

@@ -80,3 +80,19 @@ def test_the_run_state_holds_the_name_not_the_id():
     r = run_events("?model=m4")
     state_text = json.dumps([s["changes"] for s in steps(r)])
     assert "Markup" in state_text and "fake/markup" not in state_text
+
+
+def test_models_also_gives_the_run_limits_the_gate_enforces():
+    r = client.get("/api/models")
+    run = r.json()["run"]
+    assert set(run) == {"per_hour", "per_day", "deadline_seconds"} and all(isinstance(v, int) and v > 0 for v in run.values())
+    assert "fake/" not in r.text
+
+
+def test_the_limits_are_read_from_settings_not_typed():
+    from linreg.model_options import ModelOptions
+    from linreg.run_gate import RunGate
+    from linreg.limit_store import MemoryStore
+    gate = RunGate(ModelOptions.from_env({"MODEL_OPTIONS": json.dumps([{"id": "x/y", "name": "Y", "note": "n", "default": True}])}),
+                   {"RUN_LIMIT_PER_HOUR": "7", "RUN_LIMIT_PER_DAY": "90", "RUN_DEADLINE_SECONDS": "45"}, MemoryStore())
+    assert gate.limits() == {"per_hour": 7, "per_day": 90, "deadline_seconds": 45}

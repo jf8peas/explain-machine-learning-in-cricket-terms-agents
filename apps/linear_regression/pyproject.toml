@@ -27,3 +27,5 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["backend", "scripts", "."]
 testpaths = ["tests"]
+addopts = "-m 'not release'"
+markers = ["release: checks to run before releasing (pytest -m release), not on every change"]

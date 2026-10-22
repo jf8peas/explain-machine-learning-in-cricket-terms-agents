@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import type { Structure } from "../../src/graph-replay/layout";
+import type { Structure } from "../../src/graph-replay/structure";
 import { NEUTRAL_TOKEN, colourToken, loopEdges, resolveStage, roundAt, stageNumberOf, visitTick, type StageDef } from "../../src/graph-replay/stages";
 
 // A stage set that is not this app's: the helpers must work for any names and ids.

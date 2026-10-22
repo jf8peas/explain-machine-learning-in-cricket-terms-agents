@@ -42,8 +42,9 @@ export function writerLabel(e: Pick<CricketExplanation, "source" | "model">): st
 
 // ---------------- rendering ----------------
 
-function driversChart(rows: DriverRow[]): HTMLElement {
-  const list = bars(rows);
+function driversChart(rows: DriverRow[], show = Infinity): HTMLElement {
+  const all = bars(rows);
+  const list = all.slice(0, show);
   const chart = h("div", { class: "drivers-chart", "data-testid": "drivers-chart", "aria-hidden": "true" });
   for (const b of list) {
     const track = h("span", { class: "bar-track" });
@@ -58,16 +59,17 @@ function driversChart(rows: DriverRow[]): HTMLElement {
   const table = h("table", { "data-testid": "drivers-table" },
     h("caption", {}, "Runs a typical difference in each feature moves the predicted final total"),
     h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Feature"), h("th", { scope: "col" }, "Effect"), h("th", { scope: "col" }, "Runs"))),
-    h("tbody", {}, ...list.map((b) => h("tr", {}, h("th", { scope: "row" }, b.label), h("td", {}, b.sign), h("td", {}, b.display)))));
+    h("tbody", {}, ...all.map((b) => h("tr", {}, h("th", { scope: "row" }, b.label), h("td", {}, b.sign), h("td", {}, b.display)))));
   const wrap = h("div", { class: "drivers" });
   wrap.append(chart, h("div", { class: "visually-hidden" }, table));
   return wrap;
 }
 
-function card(b: Block, n: number): HTMLElement {
+function card(b: Block, n: number, sentences = true): HTMLElement {
   const el = h("article", { class: `takeaway takeaway-${b.id}`, "data-testid": "takeaway", "data-block": b.id, "data-n": String(n) },
-    h("p", { class: "takeaway-n" }, `Takeaway ${n}`), h("h4", {}, b.title));
+    ...(sentences ? [h("p", { class: "takeaway-n" }, `Takeaway ${n}`), h("h4", {}, b.title)] : []));
   const rows = b.id === "takeaway_drivers" && Array.isArray((b.visual ?? {}).rows) ? ((b.visual as { rows: DriverRow[] }).rows) : null;
+  if (!sentences && rows) { el.append(driversChart(rows, 4)); return el; }
   b.sentences.forEach((s, i) => {
     el.append(h("p", { class: "takeaway-sentence" }, s));
     if (i === 0 && rows) el.append(driversChart(rows));
@@ -76,9 +78,21 @@ function card(b: Block, n: number): HTMLElement {
   return el;
 }
 
-function ruleOfThumb(b: Block): HTMLElement {
+/** Just the card for what moves the final total (the drivers chart), for the verdict's Commentary; null if the run has none. */
+export function renderDriversCard(e: CricketExplanation): HTMLElement | null {
+  const block = e.blocks.find((x) => x.id === "takeaway_drivers");
+  return block ? card(block, 2, false) : null;
+}
+
+/** The rule of thumb on its own, or null if the run has none. */
+export function renderRuleOfThumb(e: CricketExplanation, withTitle = true): HTMLElement | null {
+  const block = e.blocks.find((x) => x.id === "rule_of_thumb");
+  return block ? ruleOfThumb(block, withTitle) : null;
+}
+
+function ruleOfThumb(b: Block, withTitle = true): HTMLElement {
   return h("div", { class: "rule-of-thumb", "data-testid": "rule-of-thumb" },
-    h("p", { class: "rule-label" }, "Rule of thumb"), h("h4", {}, b.title),
+    h("p", { class: "rule-label" }, "Rule of thumb"), ...(withTitle ? [h("h4", {}, b.title)] : []),
     ...b.sentences.map((s) => h("p", { class: "rule-sentence" }, s)));
 }
 

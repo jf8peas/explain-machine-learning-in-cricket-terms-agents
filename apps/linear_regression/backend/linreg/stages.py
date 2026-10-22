@@ -65,3 +65,30 @@ def check_stages(app, mapping: Mapping[str, str], stages: Sequence[Stage] = STAG
     problems += [f"'{k}' is in the stage mapping but is not a node of the graph" for k in sorted(mapping) if k not in nodes]
     if problems:
         raise StageError("; ".join(problems))
+
+
+@dataclass(frozen=True)
+class Row:
+    id: str
+    title: str
+    note: str            # one plain line under the title
+
+
+class RowError(ValueError):
+    """A node has no display row, names a row that is not in the set, or the mapping names a node that is not there."""
+
+
+def row_set(rows: Sequence[Row]) -> list[dict[str, Any]]:
+    return [{"id": r.id, "title": r.title, "note": r.note} for r in rows]
+
+
+def check_rows(app, mapping: Mapping[str, str], rows: Sequence[Row]) -> None:
+    """Raise RowError listing every problem. `app` is a compiled graph; `__start__` and `__end__` need no row."""
+    known = {r.id for r in rows}
+    nodes = {n for n in app.get_graph().nodes if n not in ("__start__", "__end__")}
+    problems = [f"node '{n}' has no row" for n in sorted(nodes) if n not in mapping]
+    problems += [f"node '{n}' names the unknown row '{mapping[n]}'" for n in sorted(nodes)
+                 if n in mapping and mapping[n] not in known]
+    problems += [f"'{k}' is in the row mapping but is not a node of the graph" for k in sorted(mapping) if k not in nodes]
+    if problems:
+        raise RowError("; ".join(problems))

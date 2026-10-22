@@ -8,73 +8,85 @@
       "id": "load_data",
       "kind": "node",
       "actor": "code",
-      "stage": "prepare"
+      "stage": "prepare",
+      "row": "start"
     },
     {
       "id": "split",
       "kind": "node",
       "actor": "code",
-      "stage": "split"
+      "stage": "split",
+      "row": "start"
     },
     {
       "id": "explore",
       "kind": "node",
       "actor": "code",
-      "stage": "understand"
+      "stage": "understand",
+      "row": "start"
     },
     {
       "id": "baseline",
       "kind": "node",
       "actor": "code",
-      "stage": "frame"
+      "stage": "frame",
+      "row": "start"
     },
     {
       "id": "check_proposal",
       "kind": "node",
       "actor": "code",
-      "stage": "choose"
+      "stage": "choose",
+      "row": "round"
     },
     {
       "id": "fit_model",
       "kind": "node",
       "actor": "code",
-      "stage": "fit"
+      "stage": "fit",
+      "row": "round"
     },
     {
       "id": "evaluate",
       "kind": "node",
       "actor": "code",
-      "stage": "choose"
+      "stage": "choose",
+      "row": "round"
     },
     {
       "id": "grid_search",
       "kind": "node",
       "actor": "code",
-      "stage": "choose"
+      "stage": "choose",
+      "row": "yardstick"
     },
     {
       "id": "final_test",
       "kind": "node",
       "actor": "code",
-      "stage": "assess"
+      "stage": "assess",
+      "row": "end"
     },
     {
       "id": "explain_in_cricket_terms",
       "kind": "node",
       "actor": "code",
-      "stage": "interpret"
+      "stage": "interpret",
+      "row": "end"
     },
     {
       "id": "propose_features",
       "kind": "node",
       "actor": "llm",
-      "stage": "choose"
+      "stage": "choose",
+      "row": "round"
     },
     {
       "id": "write_in_cricket_terms",
       "kind": "node",
       "actor": "llm",
-      "stage": "interpret"
+      "stage": "interpret",
+      "row": "end"
     },
     {
       "id": "__end__",
@@ -241,6 +253,28 @@
       "name": "Interpret and communicate",
       "question": "What does it mean?",
       "description": "Explain in plain words what the result means."
+    }
+  ],
+  "rows": [
+    {
+      "id": "start",
+      "title": "Once, at the start",
+      "note": "data preparation script ran beforehand"
+    },
+    {
+      "id": "round",
+      "title": "Each round",
+      "note": "up to 6 rounds; rejected ideas count"
+    },
+    {
+      "id": "yardstick",
+      "title": "The yardstick",
+      "note": "runs when the agent stops"
+    },
+    {
+      "id": "end",
+      "title": "Once, at the end",
+      "note": "the test season is unlocked here"
     }
   ],
   "loop": {

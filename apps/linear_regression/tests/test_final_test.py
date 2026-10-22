@@ -158,3 +158,12 @@ def test_the_winners_model_is_refitted_on_every_year_before_the_test_year_for_th
     fit = regression.fit(rows, state["features"], weights=weights)
     for name, value in fit["coefficients"].items():
         assert state["coefficients"][name] == pytest.approx(value, abs=0.002)
+
+
+def test_the_final_test_also_emits_the_agent_model_headlines_and_agent_verdict(run_graph, path):
+    """Feature 020 adds display fields only: the old scores and the pick's fields are as before."""
+    state = run(run_graph, path)
+    f = state["final"]
+    assert {"agent_model", "headlines", "agent_verdict"} <= set(f)
+    assert f["agent_model"]["features"] == f["sets"]["llm"]
+    assert state["features"] == f["sets"][f["winner"]] and f["winner_mae"] == f["test_mae"][f["winner"]]

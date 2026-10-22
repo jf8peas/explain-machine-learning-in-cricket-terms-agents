@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ReplayBuffer, type Clock, type StepEvent } from "../../src/graph-replay/buffer";
+import { foldState, ReplayBuffer, type Clock, type StepEvent } from "../../src/graph-replay/buffer";
 
 class FakeClock implements Clock {
   fn: (() => void) | null = null;
@@ -148,5 +148,46 @@ describe("navigation replays from the buffer", () => {
     expect(b.cursor).toBe(-1);
     expect(b.finished).toBe(false);
     expect(b.playing).toBe(false);
+  });
+});
+
+describe("playing a saved run (feature 020)", () => {
+  const saved = () => { b.push(ev(1, "a", { x: 1 })); b.push(ev(2, "b", { y: 2 })); b.push(ev(3, "c", { x: 3 })); b.finish(); };
+
+  it("foldState merges the changes up to a step, and equals the buffer's own state", () => {
+    saved();
+    expect(foldState(b.events)).toEqual({ x: 3, y: 2 });
+    expect(foldState(b.events, 1)).toEqual({ x: 1, y: 2 });
+    expect(foldState(b.events)).toEqual(b.stateAt(2));
+    expect(foldState([])).toEqual({});
+  });
+
+  it("rewind goes back to before the first step but keeps every event, so the run can be played again", () => {
+    saved();
+    b.play(); clock.tick(2);
+    expect(b.cursor).toBe(2);
+    b.rewind();
+    expect(b.cursor).toBe(-1);
+    expect(b.events).toHaveLength(3);
+    expect(b.playing).toBe(false);
+    b.play();
+    expect(b.cursor).toBe(0);
+    clock.tick(2);
+    expect(b.atEnd).toBe(true);
+  });
+
+  it("showEnd shows the finished run at once, with no playback, and lets the timeline reach every step", () => {
+    saved();
+    b.showEnd();
+    expect(b.cursor).toBe(2);
+    expect(b.atEnd).toBe(true);
+    expect(b.playing).toBe(false);
+    expect(b.reached).toHaveLength(3);
+    expect(b.stateAt()).toEqual({ x: 3, y: 2 });
+  });
+
+  it("showEnd with nothing received does nothing", () => {
+    b.showEnd();
+    expect(b.cursor).toBe(-1);
   });
 });

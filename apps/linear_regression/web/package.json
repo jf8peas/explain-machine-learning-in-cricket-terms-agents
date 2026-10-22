@@ -10,7 +10,6 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.4",
     "tabulator-tables": "^6.6.1"
   },
   "devDependencies": {

@@ -21,6 +21,14 @@ export const realClock: Clock = {
 
 export const DEFAULT_INTERVAL_MS = 1500;
 
+/** The state after step `index` of a list of events: a shallow merge of every `changes` up to it (all of them by default).
+ *  Pure, so a page can work out a finished run's state without playing it. */
+export function foldState(events: Pick<StepEvent, "changes">[], index = events.length - 1): Record<string, unknown> {
+  const state: Record<string, unknown> = {};
+  for (let i = 0; i <= index && i < events.length; i++) Object.assign(state, events[i].changes);
+  return state;
+}
+
 export class ReplayBuffer {
   events: StepEvent[] = [];
   /** Index of the step on display; -1 before the first step is shown. */
@@ -125,6 +133,20 @@ export class ReplayBuffer {
     }
   }
 
+  /** Back to before the first step, keeping every event, so the run can be watched again from the start. */
+  rewind(): void {
+    this.stopTimer(true);
+    this.cursor = -1;
+    this.onChange();
+  }
+
+  /** Show the last step at once (everything already received counts as reached): the finished run, with no playback. */
+  showEnd(): void {
+    this.stopTimer(true);
+    if (this.events.length) this.setCursor(this.events.length - 1);
+    this.onChange();
+  }
+
   jump(index: number): void {
     this.pause();
     if (index >= 0 && index <= this.maxCursor && index < this.events.length) {
@@ -154,9 +176,7 @@ export class ReplayBuffer {
 
   /** Accumulated state after step `index`: shallow merge of every `changes` up to it. */
   stateAt(index = this.cursor): Record<string, unknown> {
-    const state: Record<string, unknown> = {};
-    for (let i = 0; i <= index && i < this.events.length; i++) Object.assign(state, this.events[i].changes);
-    return state;
+    return foldState(this.events, index);
   }
 
   /** Keys that the step at `index` changed. */

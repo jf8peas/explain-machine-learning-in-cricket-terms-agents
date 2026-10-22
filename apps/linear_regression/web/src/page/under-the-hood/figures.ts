@@ -1,5 +1,5 @@
-// The figures on the Under the hood page that change when the data is refreshed. They come from two routes the app
-// already serves (/api/data's summary and /api/reference), never from typed text. Pure: no DOM, so it is unit-tested.
+// The figures on the "How this app was built" page that change when the data or the agent changes. They come from routes the
+// app already serves (/api/data's summary, /api/reference, /api/structure, /api/catalogue and /api/models), never from typed text. Pure: no DOM, so it is unit-tested.
 // A missing or unreadable piece leaves its key out, and the page then shows a placeholder instead of a figure.
 
 export const PLACEHOLDER = "not available right now";
@@ -14,6 +14,12 @@ export interface ReferenceResponse {
   figures?: { know_nothing?: Method | null; broadcaster?: Method | null } | null;
   goal?: { margin_runs?: number } | null;
 }
+
+export interface StructureResponse { nodes?: { kind?: string; actor?: string }[] }
+export interface CatalogueResponse { features?: unknown[] }
+export interface ModelsResponse { run?: { per_hour?: number; per_day?: number; deadline_seconds?: number } }
+/** What the page reads besides the data and the reference. Any of them may be missing. */
+export interface Extras { structure?: StructureResponse | null; catalogue?: CatalogueResponse | null; models?: ModelsResponse | null }
 
 export interface Competition { name: string; innings: string }
 export interface Exclusion { label: string; count: string; explanation?: string }
@@ -32,6 +38,13 @@ export interface LiveFigures {
   tvBias?: string;
   tvBiasWords?: string;
   goalMargin?: string;
+  agentSteps?: string;
+  llmSteps?: string;
+  stepsWord?: string;
+  clues?: string;
+  perHour?: string;
+  perDay?: string;
+  deadline?: string;
   competitions?: Competition[];
   exclusions?: Exclusion[];
 }
@@ -39,7 +52,8 @@ export interface LiveFigures {
 /** The keys that fill a `[data-figure]` span with text (the two lists are built separately). */
 export const TEXT_KEYS = [
   "totalInnings", "dateRange", "downloaded", "testPopulation", "excludedTotal", "refInnings", "refFirstYear",
-  "refLastYear", "knowNothingMiss", "tvMiss", "tvBias", "tvBiasWords", "goalMargin",
+  "refLastYear", "knowNothingMiss", "tvMiss", "tvBias", "tvBiasWords", "goalMargin", "agentSteps", "llmSteps", "stepsWord",
+  "clues", "perHour", "perDay", "deadline",
 ] as const;
 export type TextKey = (typeof TEXT_KEYS)[number];
 
@@ -66,7 +80,16 @@ const isNumber = (n: unknown): n is number => typeof n === "number" && Number.is
 const count = (n: number): string => n.toLocaleString("en-US");
 const parseCount = (value: string): number => (/^\d{1,3}(,\d{3})*$|^\d+$/.test(value) ? Number(value.replace(/,/g, "")) : NaN);
 
-export function buildFigures(data?: DataResponse | null, reference?: ReferenceResponse | null): LiveFigures {
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen",
+  "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+
+/** A count in words, capitalised, for the start of a heading ("Twelve"); the digits above twenty. */
+export function numberWord(n: number): string {
+  const word = Number.isInteger(n) && n >= 0 && n < WORDS.length ? WORDS[n] : String(n);
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+export function buildFigures(data?: DataResponse | null, reference?: ReferenceResponse | null, extras: Extras = {}): LiveFigures {
   const out: LiveFigures = {};
 
   const headline = data?.summary?.headline;
@@ -110,6 +133,19 @@ export function buildFigures(data?: DataResponse | null, reference?: ReferenceRe
 
   const margin = reference?.goal?.margin_runs;
   if (isNumber(margin)) out.goalMargin = String(margin);
+
+  const steps = extras.structure?.nodes?.filter((n) => n.kind === "node");
+  if (steps && steps.length > 0) {
+    out.agentSteps = String(steps.length);
+    out.llmSteps = String(steps.filter((n) => n.actor === "llm").length);
+    out.stepsWord = numberWord(steps.length);
+  }
+  const clues = extras.catalogue?.features;
+  if (Array.isArray(clues) && clues.length > 0) out.clues = String(clues.length);
+  const run = extras.models?.run;
+  if (run && isNumber(run.per_hour)) out.perHour = String(run.per_hour);
+  if (run && isNumber(run.per_day)) out.perDay = String(run.per_day);
+  if (run && isNumber(run.deadline_seconds)) out.deadline = String(run.deadline_seconds);
 
   // leave out what could not be worked out, so "has a value" is just "is present"
   for (const key of Object.keys(out) as (keyof LiveFigures)[]) if (out[key] === undefined) delete out[key];

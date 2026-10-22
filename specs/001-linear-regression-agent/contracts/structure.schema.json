@@ -39,6 +39,10 @@
           "stage": {
             "type": "string",
             "description": "Optional. The id of the stage (one of `stages`) this node belongs to. A missing or unknown id shows the node as unassigned. start and end nodes carry none."
+          },
+          "row": {
+            "type": "string",
+            "description": "Optional (feature 020). The id of the display row (one of `rows`) this node is drawn in. start and end nodes carry none."
           }
         }
       }
@@ -102,6 +106,30 @@
             "type": "string"
           },
           "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "description": "Optional (feature 020). The ordered display rows the graph is drawn in; each node names its row in `row`.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "note"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "note": {
             "type": "string"
           }
         }

@@ -1,0 +1,344 @@
+[
+  {
+    "name": "beat the TV by more than the margin, ahead of the search",
+    "inputs": {
+      "agent_miss": 17.0,
+      "search_miss": 18.0,
+      "tv_miss": 20.5,
+      "tries": 5
+    },
+    "expected": {
+      "case": "beat",
+      "hero_h1": "An AI agent built its own prediction model. Then it beat the TV.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent beat the TV by 3.5 runs.",
+      "vs_search": "The agent beat the brute-force search by 1 run.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 17.0,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "5 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "3.5 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "beat the TV by exactly the margin, level with the search",
+    "inputs": {
+      "agent_miss": 17.5,
+      "search_miss": 17.5,
+      "tv_miss": 20.5,
+      "tries": 4
+    },
+    "expected": {
+      "case": "beat",
+      "hero_h1": "An AI agent built its own prediction model. Then it beat the TV.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent beat the TV by 3 runs.",
+      "vs_search": "The agent matched the brute-force search, using just 4 tries.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 17.5,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "4 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "3 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "beat the TV by less than the margin, behind the search",
+    "inputs": {
+      "agent_miss": 18.5,
+      "search_miss": 17.0,
+      "tv_miss": 20.5,
+      "tries": 6
+    },
+    "expected": {
+      "case": "edged",
+      "hero_h1": "An AI agent built its own prediction model. It edged the TV, just short of the goal.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent edged the TV by 2 runs, short of the goal.",
+      "vs_search": "The agent finished 1.5 runs behind the brute-force search.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 18.5,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "6 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "2 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "beat the TV by a tenth of a run, half a run ahead of the search",
+    "inputs": {
+      "agent_miss": 20.4,
+      "search_miss": 20.9,
+      "tv_miss": 20.5,
+      "tries": 5
+    },
+    "expected": {
+      "case": "edged",
+      "hero_h1": "An AI agent built its own prediction model. It edged the TV, just short of the goal.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent edged the TV by 0.1 runs, short of the goal.",
+      "vs_search": "The agent beat the brute-force search by 0.5 runs.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 20.4,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "5 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "0.1 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "level with the TV",
+    "inputs": {
+      "agent_miss": 20.5,
+      "search_miss": 20.0,
+      "tv_miss": 20.5,
+      "tries": 5
+    },
+    "expected": {
+      "case": "held",
+      "hero_h1": "An AI agent built its own prediction model. The TV held on this time.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent and the TV missed by the same amount.",
+      "vs_search": "The agent finished 0.5 runs behind the brute-force search.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 20.5,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "5 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "level with the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "worse than the TV",
+    "inputs": {
+      "agent_miss": 22.0,
+      "search_miss": 21.0,
+      "tv_miss": 20.5,
+      "tries": 3
+    },
+    "expected": {
+      "case": "held",
+      "hero_h1": "An AI agent built its own prediction model. The TV held on this time.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the TV beat the agent by 1.5 runs.",
+      "vs_search": "The agent finished 1 run behind the brute-force search.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 22.0,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "3 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "1.5 runs behind the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "no language model: the plain search ran alone",
+    "inputs": {
+      "agent_miss": null,
+      "search_miss": 17.5,
+      "tv_miss": 20.5,
+      "tries": 0
+    },
+    "expected": {
+      "case": "no_llm",
+      "hero_h1": "The agent couldn't reach its language model, so a plain search ran alone.",
+      "lead": "Halfway through a T20 innings, where will it finish? A plain search chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the plain search missed by 17.5 runs; the TV missed by 20.5 runs.",
+      "vs_search": null,
+      "scoreboard": {
+        "subject_label": "Brute-force search",
+        "subject_miss": 17.5,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "gap",
+            "text": "3 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "within half a run of the search is too close to call",
+    "inputs": {
+      "agent_miss": 17.0,
+      "search_miss": 17.4,
+      "tv_miss": 20.5,
+      "tries": 5
+    },
+    "expected": {
+      "case": "beat",
+      "hero_h1": "An AI agent built its own prediction model. Then it beat the TV.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent beat the TV by 3.5 runs.",
+      "vs_search": "The agent matched the brute-force search, using just 5 tries.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 17.0,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "5 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "3.5 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "the search is clearly ahead of the agent (it would be the pick; the hero still judges the agent)",
+    "inputs": {
+      "agent_miss": 19.0,
+      "search_miss": 16.0,
+      "tv_miss": 20.5,
+      "tries": 5
+    },
+    "expected": {
+      "case": "edged",
+      "hero_h1": "An AI agent built its own prediction model. It edged the TV, just short of the goal.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent edged the TV by 1.5 runs, short of the goal.",
+      "vs_search": "The agent finished 3 runs behind the brute-force search.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 19.0,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "5 tries"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "1.5 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "one try",
+    "inputs": {
+      "agent_miss": 17.0,
+      "search_miss": 17.0,
+      "tv_miss": 20.5,
+      "tries": 1
+    },
+    "expected": {
+      "case": "beat",
+      "hero_h1": "An AI agent built its own prediction model. Then it beat the TV.",
+      "lead": "Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.",
+      "verdict_h2": "On a season it never saw, the agent beat the TV by 3.5 runs.",
+      "vs_search": "The agent matched the brute-force search, using just 1 try.",
+      "scoreboard": {
+        "subject_label": "AI agent",
+        "subject_miss": 17.0,
+        "tv_miss": 20.5,
+        "facts": [
+          {
+            "id": "tries",
+            "text": "1 try"
+          },
+          {
+            "id": "no_made_up",
+            "text": "0 numbers made up by the AI"
+          },
+          {
+            "id": "gap",
+            "text": "3.5 runs closer than the TV"
+          }
+        ]
+      }
+    }
+  }
+]

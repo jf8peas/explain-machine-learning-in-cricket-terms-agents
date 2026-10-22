@@ -28,6 +28,16 @@ NODE_STAGES = {
     "final_test": "assess", "explain_in_cricket_terms": "interpret", "write_in_cricket_terms": "interpret",
 }
 
+# Which display row each node is drawn in (feature 020): once at the start, each round, the yardstick, once at the end. The
+# order is the order of ROW_DEFS; the titles and notes are sent with the structure (see stage_info.row_set), so the page
+# holds none of them. Checked by `stages.check_rows`.
+NODE_ROWS = {
+    "load_data": "start", "split": "start", "explore": "start", "baseline": "start",
+    "propose_features": "round", "check_proposal": "round", "fit_model": "round", "evaluate": "round",
+    "grid_search": "yardstick",
+    "final_test": "end", "explain_in_cricket_terms": "end", "write_in_cricket_terms": "end",
+}
+
 
 def route_after_load(state: RunState) -> str:
     return "stop" if state.get("data_error") else "ok"

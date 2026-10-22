@@ -14,7 +14,7 @@ import numpy as np
 from . import accuracy_text, regression
 from .accuracy import TOLERANCES, accuracy, display, same_direction_large_bias
 from .evaluation import broadcaster_projection, know_nothing_guess
-from .goal import compare, reference_finding, verdict, verdict_sentence
+from .goal import agent_verdict, compare, reference_finding, verdict, verdict_sentence
 from .methods import METHODS, method_defs
 
 # The methods whose bias the "everyone leans the same way" finding looks at. The know-nothing guess is the training
@@ -70,6 +70,9 @@ def final_scoring(know_nothing_totals, test, fitted_models: Mapping[str, dict],
     finding["sentence"] = accuracy_text.finding_sentence(finding["finding"], finding["gap_runs"], finding["gap_percent"])
     bias = bias_finding(acc)
     the_verdict = verdict(acc["broadcaster"]["average_miss"], acc[winner]["average_miss"], winner)
+    # the agent's own model against the goal, whichever method is the pick (None when no language model took part)
+    the_agent_verdict = (agent_verdict(acc["broadcaster"]["average_miss"], acc["llm"]["average_miss"])
+                         if "llm" in acc else None)
     additions = {
         "accuracy": acc,
         "methods": list(preds),
@@ -82,6 +85,7 @@ def final_scoring(know_nothing_totals, test, fitted_models: Mapping[str, dict],
         "reference_finding": finding,
         "verdict": the_verdict,
         "verdict_sentence": verdict_sentence(the_verdict),
+        "agent_verdict": the_agent_verdict,
         "versus_know_nothing": compare(acc["know_nothing"]["average_miss"], acc[winner]["average_miss"]),
         "tolerances": list(TOLERANCES),
     }

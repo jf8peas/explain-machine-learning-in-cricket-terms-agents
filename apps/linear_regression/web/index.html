@@ -6,429 +6,73 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>Linear Regression Agent: Can It Beat the TV Score?</title>
   <meta name="description" content="App 1 of 8 in Explain Machine Learning in Cricket Terms. Watch a LangGraph agent predict a T20 first-innings total from the score at 10 overs and try to beat the broadcaster's projected score." />
+  <!-- What LinkedIn and others show when the link is posted. Fixed copy, worded for the winning case: their crawlers do not run scripts. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="An AI agent built its own prediction model. Then it beat the TV." />
+  <meta property="og:description" content="Halfway through a T20 innings, where will it finish? Watch an AI agent choose the clues, code do the maths, and the result tested on a season it had never seen." />
+  <meta property="og:url" content="%VITE_APP_URL%" />
+  <meta name="twitter:card" content="summary" />
   <link rel="stylesheet" href="/src/page/theme.css" />
-  <style>
-    /* the breadcrumb above the tab bar, and The Run tab's hero (feature 013) */
-    .header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 16px; margin: 0 0 14px; }
-    .header-row .breadcrumb { margin: 0; }
-    @media (max-width: 640px) { .about-nav { flex-basis: 100%; margin-left: -10px; } }
-    .breadcrumb { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; margin: 0 0 14px; font-size: .875rem; color: var(--muted); }
-    .breadcrumb a { color: var(--accent); text-decoration: none; }
-    .breadcrumb a:hover { text-decoration: underline; }
-    .breadcrumb [aria-current] { color: var(--text); font-weight: 600; }
-    .hero { margin: 0 0 14px; }
-    .hero [hidden] { display: none !important; }
-    .hero-head { display: flex; flex-direction: column; gap: 6px; margin: 0 0 16px; }
-    .hero-eyebrow { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
-    .hero h1 { margin: 0; font-size: 44px; line-height: 1.1; font-weight: 750; letter-spacing: -.01em; }
-    .hero-lead { margin: 0; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
-    .hero-unavailable { margin: 0 0 12px; color: var(--muted); font-style: italic; }
-    .hero-grid { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: flex-start; }
-    .worm-card { flex: 3 1 560px; min-width: 0; margin: 0; padding: 12px 16px 6px; border: 1px solid var(--border); border-radius: 14px; }
-    .worm { display: block; width: 100%; height: auto; }
-    .worm + .worm { margin-top: 10px; }                /* narrow: the zoom stacked under the line graph */
-    .worm text { font-family: inherit; }
-    .worm-card figcaption { padding: 4px 4px 0; font-size: .8125rem; line-height: 1.5; color: var(--muted); }
-    .hero-side { flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-    .tv-panel { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--surface); }
-    .tv-panel h2 { margin: 0; font-size: 1.125rem; }
-    .tv-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .tv-figure { display: flex; flex-direction: column; gap: 2px; }
-    .tv-figure .num { font-size: 1.875rem; font-weight: 750; line-height: 1.1; font-variant-numeric: tabular-nums; }
-    .tv-figure .what { font-size: .8125rem; color: var(--muted); }
-    .tv-figure.tv .num { color: var(--tv); }
-    .tv-figure.nothing .num { color: var(--muted); }
-    .tv-sentence { margin: 0; font-size: .875rem; line-height: 1.5; }
-    .tv-footnote { margin: 0; font-size: .75rem; color: var(--muted); }
-    .hero-steps { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: .9375rem; line-height: 1.45; }
-    .hero-steps li { display: flex; gap: 12px; align-items: flex-start; }
-    .hero-steps .num { flex: none; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; }
-    .hero-steps .then { color: var(--muted); }
-    @media (max-width: 640px) {
-      .hero h1 { font-size: 30px; }
-      .hero-lead { font-size: 1rem; }
-      .worm-card { padding: 10px 10px 6px; }
-    }
-    .table-scroll { overflow-x: auto; margin: 4px 0 6px; }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    section.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-    .muted { color: var(--muted); }
-    .error { color: var(--lose); font-weight: 600; }
-    table.attempts { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
-    table.attempts caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
-    table.attempts th, table.attempts td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }
-    table.attempts td { text-align: right; font-variant-numeric: tabular-nums; }
-    table.attempts tr.baseline th { color: var(--muted); font-weight: 600; }
-    .drivers-chart { display: grid; gap: 6px; }
-    .bar-row { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr 6.5rem; gap: 8px; align-items: center; font-size: .9rem; }
-    .bar-label { overflow-wrap: anywhere; }
-    .bar-value { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
-    .bar-track { position: relative; height: 18px; border-radius: 4px; background: var(--surface); }
-    .bar-track .bar-zero { position: absolute; top: -2px; bottom: -2px; left: 50%; width: 2px; background: var(--muted); }
-    .bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; border: 2px solid var(--text); box-sizing: border-box; }
-    .bar.adds { background: var(--win-bg); border-color: var(--win); }
-    .bar.costs { background: var(--lose-bg); border-color: var(--lose); border-style: dashed; }
-    @media (max-width: 520px) {
-      .bar-row { grid-template-columns: 1fr 5.5rem; }
-      .bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
-    }
-
-
-    form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-    .tryit-fields { display: contents; }
-    form label { display: flex; flex-direction: column; font-size: .9rem; color: var(--muted); gap: 4px; }
-    form input { font: inherit; width: 9.5em; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
-    form button { font: inherit; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
-    form button:disabled { opacity: .5; cursor: default; }
-    :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-    footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .85rem; }
-    .attribution { color: var(--muted); font-size: .8rem; margin: 10px 0 0; }
-    a { color: var(--accent); }
-    .variation-note { margin: 0 0 10px; max-width: 75ch; font-size: .9rem; }
-    .variation-note strong { color: var(--text); }
-    .model-picker { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; margin: 0 0 10px; }
-    .model-picker select { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-left: 6px; }
-    .reason { margin: 4px 0 4px; padding: 6px 12px; border-left: 4px solid var(--accent); background: var(--bg); color: var(--text); border-radius: 0 6px 6px 0; white-space: pre-wrap; }
-    .tag { display: inline-block; margin-left: 8px; font-size: .75rem; font-weight: 600; color: var(--muted); }
-    .notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); }
-    /* setups: chips on the leaderboard and the rounds, and the rival's grid search */
-    ul.setup-chips { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 4px 0 0; padding: 0; }
-    li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .75rem; font-weight: 400; color: var(--muted); }
-    /* the two exams (feature 016): a pill and a full-width banner on each result tab. Words always accompany the colour. */
-    .exam-banner { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; width: 100%; margin: 0 0 8px; padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
-    .exam-banner-text { flex: 1 1 18rem; min-width: 0; margin: 0; }
-    .exam-banner-validation { background: var(--val-bg); border: 1px solid var(--val); color: var(--text); }
-    .exam-banner-test { background: var(--text); color: var(--bg); border: 1px solid var(--text); }
-    .exam-banner-test .exam-pill-test { background: var(--bg); color: var(--text); }
-    /* Hold-Out Test (feature 015): three numbered sections, never collapsible, nothing animates */
-    .final-header-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
-    .final-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
-    .final-section > h3, .final-section-head > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
-    .final-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
-    .final-lead { margin: 0; max-width: 72ch; line-height: 1.5; color: var(--muted); }
-    .final-lead strong { color: var(--text); }
-    /* 1. the prediction race: bars from zero on one scale */
-    .race { display: flex; flex-direction: column; gap: 10px; }
-    .race-row { display: grid; grid-template-columns: minmax(10rem, 15rem) minmax(0, 1fr); gap: 4px 14px; align-items: center; }
-    .race-name { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
-    .race-desc { font-size: .8125rem; color: var(--muted); }
-    .race-pick { align-self: flex-start; margin-top: 2px; padding: 0 8px; border: 2px solid var(--text); border-radius: 999px; font-size: .75rem; font-weight: 700; letter-spacing: .04em; color: var(--text); }
-    .race-area { position: relative; display: block; height: 28px; margin-right: 3.6rem;
-      background: repeating-linear-gradient(to right, var(--border) 0, var(--border) 1px, transparent 1px, transparent var(--step, 25%)); }
-    .race-bar { position: absolute; left: 0; top: 3px; bottom: 3px; border-radius: 0 4px 4px 0; background: var(--text); min-width: 2px; }
-    .race-bar-llm { background: var(--m-llm); }
-    .race-bar-forward { background: var(--m-forward); }
-    .race-bar-know_nothing { background: var(--m-know-nothing); }
-    .race-bar-broadcaster { background: repeating-linear-gradient(45deg, var(--tv) 0, var(--tv) 6px, color-mix(in srgb, var(--tv) 30%, var(--bg)) 6px, color-mix(in srgb, var(--tv) 30%, var(--bg)) 12px); outline: 2px solid var(--tv); outline-offset: -2px; }
-    .race-value { position: absolute; top: 50%; transform: translateY(-50%); margin-left: 8px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .race-axis { margin-top: -4px; }
-    .race-axis-area { height: 1.4rem; background: none; border-top: 1px solid var(--muted); }
-    .race-tick { position: absolute; top: 3px; transform: translateX(-50%); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-    .race-axis-caption { grid-column: 2; font-size: .8125rem; color: var(--muted); }
-    .verdict-line { display: flex; gap: 10px; align-items: flex-start; margin: 4px 0 0; padding: 12px 16px; border-radius: 10px; border-left: 8px solid; line-height: 1.45; }
-    .verdict-line.win { border-color: var(--win); background: var(--win-bg); }
-    .verdict-line.lose { border-color: var(--lose); background: var(--lose-bg); }
-    .verdict-line.win strong { color: var(--win); }
-    .verdict-line.lose strong { color: var(--lose); }
-    .verdict-shape { flex: none; display: inline-flex; padding-top: 1px; }
-    .verdict-mark { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-    .verdict-line.win .verdict-shape { color: var(--win); }
-    .verdict-line.lose .verdict-shape { color: var(--lose); }
-    .verdict-leader { margin: 0; max-width: 72ch; color: var(--muted); }
-    /* 1. how did our pick do: the pick card beside the goal verdict, and the sentence under the bars */
-    .pick-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
-    .pick-card { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border: 1px solid var(--border); border-left: 8px solid var(--text); border-radius: 12px; background: var(--surface); }
-    .pick-card p { margin: 0; }
-    .pick-title { font-weight: 800; font-size: 1.05rem; }
-    .pick-figure { line-height: 1.1; }
-    .pick-miss { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .pick-unit { color: var(--muted); }
-    .pick-note { font-size: .875rem; color: var(--muted); }
-    .pick-row .verdict-line { flex: 1 1 18rem; min-width: 0; margin: 0; align-items: center; }
-    .compare-line { margin: 0; line-height: 1.5; }
-    /* 2. why the scores differ: the two exams side by side on one scale, then three reasons */
-    .exam-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-    .exam-card { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); }
-    .exam-card-validation { border-color: var(--val); background: var(--val-bg); color: var(--text); }
-    .exam-card-test { border-color: var(--text); background: var(--surface); }
-    .exam-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-    .exam-caption { margin: 0 0 4px; font-size: .875rem; color: var(--muted); }
-    .exam-row { display: grid; grid-template-columns: minmax(7rem, 9.5rem) minmax(0, 1fr) 3rem; gap: 8px; align-items: center; }
-    .exam-name { font-size: .875rem; font-weight: 700; line-height: 1.25; }
-    .exam-track { position: relative; display: block; height: 22px; background: color-mix(in srgb, var(--text) 8%, transparent); border-radius: 0 4px 4px 0; }
-    .exam-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; min-width: 2px; }
-    .exam-card-test .exam-bar { outline: 2px solid var(--text); outline-offset: -2px; }
-    .exam-value { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
-    .exam-scale { position: relative; display: block; height: 1.2rem; border-top: 1px solid var(--muted); }
-    .exam-tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-    .exam-tick:last-child { transform: translateX(-100%); }
-    .exam-tick:first-child { transform: none; }
-    .reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-    .reason { min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .reason h4 { margin: 0 0 6px; font-size: 1.05rem; }
-    .reason p { margin: 0; line-height: 1.5; }
-    /* 3. how close: one stacked bar per method, three steps of the text colour */
-    .close { display: flex; flex-direction: column; gap: 14px; }
-    .close-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .875rem; color: var(--muted); }
-    .close-key-item { display: inline-flex; align-items: center; gap: 6px; }
-    .close-swatch { width: 18px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
-    .band-within10 { background: var(--text); color: var(--bg); }
-    .band-within20 { background: color-mix(in srgb, var(--text) 35%, var(--bg)); color: var(--text); }
-    .band-over20 { background: color-mix(in srgb, var(--text) 12%, var(--bg)); color: var(--text); }
-    .close-row { display: grid; grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr); gap: 4px 14px; align-items: center; }
-    .close-name { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
-    .close-bias { font-size: .875rem; color: var(--muted); }
-    .close-bias-large { color: var(--tv); font-weight: 700; }
-    .close-bar { display: flex; height: 34px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
-    .close-seg { display: flex; align-items: center; justify-content: center; min-width: 0; border-right: 1px solid var(--bg); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .close-seg:last-child { border-right: 0; }
-    .close-note { margin: 0; max-width: 75ch; font-size: .875rem; color: var(--muted); line-height: 1.5; }
-    /* 4. in cricket terms: three takeaways and a rule of thumb */
-    .writer-label { margin: 0; font-size: .8125rem; color: var(--muted); }
-    .takeaways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-    .takeaway { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .takeaway h4 { margin: 0; font-size: 1.1rem; line-height: 1.3; }
-    .takeaway-n { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-    .takeaway-sentence { margin: 0; line-height: 1.5; }
-    .rule-of-thumb { display: flex; flex-direction: column; gap: 6px; padding: 18px 22px; border-radius: 12px; background: var(--text); color: var(--bg); }
-    .rule-of-thumb h4 { margin: 0; font-size: 1.15rem; }
-    .rule-of-thumb p { margin: 0; line-height: 1.5; }
-    .rule-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
-    @media (max-width: 760px) {
-      .takeaways, .exam-cards, .reasons { grid-template-columns: minmax(0, 1fr); }
-    }
-    @media (max-width: 640px) {
-      .final-section > h3, .final-section-head > h3 { font-size: 19px; }
-      .race-row { grid-template-columns: minmax(0, 1fr); }
-      .race-axis .race-name { display: none; }
-      .race-axis .race-axis-area, .race-axis .race-axis-caption { grid-column: 1; }
-      .close-row { grid-template-columns: minmax(0, 1fr); }
-    }
-    /* Model Selection (feature 014): six numbered sections, never collapsible */
-    .found-lead { margin: 0 0 8px; font-size: 1.125rem; line-height: 1.5; color: var(--muted); }
-    .found-section { display: flex; flex-direction: column; gap: 14px; margin: 32px 0 0; }
-    .found-section > h3 { margin: 0; font-size: 22px; line-height: 1.25; }
-    .found-section > p { margin: 0; }
-    .found-next { margin: 32px 0 0; padding-top: 14px; border-top: 1px solid var(--border); font-weight: 600; }
-    .found-lead-text { max-width: 72ch; line-height: 1.5; color: var(--muted); }
-    .found-section .small { font-size: .8125rem; color: var(--muted); }
-    .found-section .small strong, .found-lead-text strong { color: var(--text); }
-    .contest-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    .contest-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 18px; border: 2px solid var(--border); border-radius: 14px; }
-    .contest-card p { margin: 0; line-height: 1.5; }
-    .contest-ai { border-color: var(--m-llm); }
-    .contest-rival { border-color: var(--m-forward); }
-    .contest-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 8px; }
-    .contest-name { font-size: 1.25rem; font-weight: 750; }
-    .contest-ai .contest-name { color: var(--m-llm); }
-    .contest-rival .contest-name { color: var(--m-forward); }
-    .contest-kind { font-size: .8125rem; color: var(--muted); }
-    .contest-notice { padding: 8px 12px; border: 1px solid var(--lose); border-radius: 8px; background: var(--lose-bg); font-size: .9rem; }
-    .contest-strip { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 14px 18px; border-radius: 12px; background: var(--surface); }
-    .contest-strip p { flex: 1 1 280px; margin: 0; font-size: .9375rem; line-height: 1.5; }
-    .seasons { display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1.3fr; gap: 6px; font-size: .875rem; }
-    .season { display: flex; flex-direction: column; min-width: 0; padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); }
-    .season span { color: var(--muted); }
-    .season-check { text-align: center; border-color: var(--m-llm); }
-    .season-test { text-align: center; background: var(--text); color: var(--bg); border-color: var(--text); }
-    .season-test span { color: inherit; }
-    .season-check.exam-validation { border: 2px solid var(--val); background: var(--val-bg); color: var(--text); }
-    .season-caption { display: grid; grid-template-columns: 6fr 1fr 1fr 1fr 1.3fr; gap: 6px; margin-top: -2px; font-size: .75rem; font-weight: 800; letter-spacing: .06em; }
-    .season-caption-validation { grid-column: 2 / 5; text-align: center; color: var(--val-text); border-top: 3px solid var(--val); padding-top: 3px; }
-    .season-caption-test { grid-column: 5; text-align: center; color: var(--text); border-top: 3px solid var(--text); padding-top: 3px; }
-    .race-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
-    .race-card { flex: 3 1 480px; min-width: 0; margin: 0; padding: 12px 12px 6px; border: 1px solid var(--border); border-radius: 14px; }
-    .race-scroll { overflow-x: auto; }
-    .race-svg { display: block; width: 100%; height: auto; min-width: 520px; font-size: 12px; }
-    .race-card figcaption { padding: 4px 4px 0; font-size: .8125rem; line-height: 1.5; color: var(--muted); }
-    .race-grid line { stroke: var(--border); stroke-width: 1; }
-    .race-ticks text, .race-axis, .mark-word { fill: var(--muted); font-size: 12px; }
-    .mark-word { font-size: 11px; }
-    .race-line { fill: none; stroke-width: 2.5; }
-    .race-ai { stroke: var(--m-llm); stroke-width: 3; }
-    .race-rival { stroke: var(--m-forward); stroke-dasharray: 3 5; stroke-linecap: round; }
-    .race-tv { stroke: var(--tv); stroke-dasharray: 8 6; }
-    .mark-best { fill: var(--m-llm); }
-    .mark-open { fill: var(--bg); stroke: var(--m-llm); stroke-width: 2.5; }
-    .mark-cross { stroke: var(--muted); stroke-width: 2.5; stroke-linecap: round; }
-    .race-end { font-size: 13px; font-weight: 700; }
-    .race-end-ai { fill: var(--m-llm); }
-    .race-end-rival { fill: var(--m-forward); }
-    .race-end-tv { fill: var(--tv); }
-    .choice-panel { flex: 2 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 14px; border-left: 8px solid var(--border); background: var(--surface); }
-    .choice-panel p { margin: 0; line-height: 1.5; }
-    .choice-ai, .choice-tie { border-left-color: var(--m-llm); background: color-mix(in srgb, var(--m-llm) 10%, var(--bg)); }
-    .choice-rival { border-left-color: var(--m-forward); background: color-mix(in srgb, var(--m-forward) 10%, var(--bg)); }
-    .choice-kicker { font-size: .8125rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--val-text); }
-    .too-close { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
-    .choice-big { font-size: 1.625rem; line-height: 1.2; font-weight: 750; }
-    .choice-panel .small { font-size: .875rem; color: var(--muted); }
-    .round-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-    .round-card { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) 11rem; gap: 8px 16px; align-items: start; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; }
-    .round-rejected { border-style: dashed; background: var(--surface); color: var(--muted); }
-    .round-best { border: 2px solid var(--m-llm); background: color-mix(in srgb, var(--m-llm) 8%, var(--bg)); }
-    .round-number { font-size: .8125rem; font-weight: 700; color: var(--muted); }
-    .round-best .round-number { color: var(--m-llm); }
-    .round-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-    .round-setup { margin: 0; overflow-wrap: anywhere; }
-    .round-body .reason { margin: 0; padding: 0 0 0 12px; border-left: 3px solid var(--m-llm); background: none; font-style: italic; border-radius: 0; overflow-wrap: anywhere; }
-    .round-result { display: flex; flex-direction: column; text-align: right; font-size: .9375rem; overflow-wrap: anywhere; }
-    .round-miss { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-    .round-fitted .round-result span { color: var(--muted); }
-    .round-best .round-result span { color: var(--m-llm); font-weight: 600; }
-    .grid-groups { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-    .grid-groups .table-scroll { flex: 1 1 320px; min-width: 0; }
-    table.grid-table { border-collapse: collapse; width: 100%; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
-    table.grid-table caption { text-align: left; color: var(--muted); font-size: .85rem; padding-bottom: 4px; }
-    table.grid-table th, table.grid-table td { border: 1px solid var(--border); padding: 5px 8px; text-align: center; font-size: .85rem; }
-    table.grid-table thead th { color: var(--muted); font-weight: 600; }
-    table.grid-table tbody th { text-align: left; font-weight: 600; white-space: nowrap; }
-    table.grid-table td.grid-none { color: var(--muted); }
-    table.grid-table td.grid-step-0 { background: color-mix(in srgb, var(--m-forward) 50%, var(--bg)); }
-    table.grid-table td.grid-step-1 { background: color-mix(in srgb, var(--m-forward) 38%, var(--bg)); }
-    table.grid-table td.grid-step-2 { background: color-mix(in srgb, var(--m-forward) 27%, var(--bg)); }
-    table.grid-table td.grid-step-3 { background: color-mix(in srgb, var(--m-forward) 16%, var(--bg)); }
-    table.grid-table td.grid-step-4 { background: color-mix(in srgb, var(--m-forward) 7%, var(--bg)); }
-    table.grid-table td.grid-best { outline: 3px solid var(--text); outline-offset: -3px; font-weight: 800; }
-    .grid-best-line { margin: 0; max-width: 72ch; line-height: 1.5; }
-    table.ranking { border-collapse: collapse; width: 100%; }
-    table.ranking th, table.ranking td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
-    table.ranking thead th { color: var(--muted); font-weight: 600; font-size: .85rem; }
-    table.ranking tbody th { min-width: 15rem; font-weight: 400; }
-    table.ranking td.rank-miss { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
-    table.ranking td.found-by { font-weight: 700; white-space: nowrap; }
-    table.ranking td.found-by-ai { color: var(--m-llm); }
-    table.ranking td.found-by-rival { color: var(--m-forward); }
-    @media (max-width: 640px) {
-      .found-section > h3 { font-size: 19px; }
-      .contest-cards { grid-template-columns: minmax(0, 1fr); }
-      .seasons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .season-caption { grid-template-columns: minmax(0, 1fr); }
-      .season-caption-validation, .season-caption-test { grid-column: 1 / -1; }
-      .season-learning { grid-column: 1 / -1; }
-      .season-test { grid-column: 1 / -1; }
-      .round-card { grid-template-columns: minmax(0, 1fr); }
-      .round-result { text-align: left; }
-    }
-    .data-intro { max-width: 75ch; margin-top: 0; }
-    .data-intro strong { color: var(--text); }
-    .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .run-summary { margin: 10px 0 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: .95rem; }
-    .run-summary .muted { margin: 0; }
-    .not-ready[hidden] { display: none; }
-    tab-set h2[tabindex="-1"]:focus { outline: none; }
-    tab-set h2[tabindex="-1"]:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  </style>
 </head>
 <body>
-  <main>
-    <div class="header-row">
+  <!-- start at the remembered level before the first paint; src/detail-level/detail-level.ts holds the same rule -->
+  <script>try{document.body.dataset.view=new URLSearchParams(location.search).get("view")==="everything"||localStorage.getItem("linreg:view")==="everything"?"everything":"simple"}catch(e){document.body.dataset.view="simple"}</script>
+  <div class="page">
+    <header class="site-header" data-testid="site-header">
       <nav class="breadcrumb" data-testid="breadcrumb" aria-label="Breadcrumb">
-        <a href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
-        <span aria-hidden="true">›</span>
+        <a class="crumb-site" href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
+        <span class="crumb-sep" aria-hidden="true">›</span>
         <span aria-current="page">Linear regression</span>
       </nav>
-      <nav class="about-nav" data-testid="about-nav" aria-label="About this app">
-        <a class="about-link" data-testid="link-under-the-hood" href="/under-the-hood.html">
+      <nav class="about-nav" data-testid="about-nav" aria-label="Page options">
+        <button type="button" class="about-link switch" data-testid="view-switch" aria-pressed="false" aria-label="Show me everything">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7l10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span class="label">Show me everything</span>
+        </button>
+        <a class="about-link" data-testid="link-under-the-hood" href="/under-the-hood.html" aria-label="How it was built">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-          Under the hood
+          <span class="label">How it was built</span>
         </a>
         <a class="about-link" data-testid="link-feedback" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Feedback
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          <span class="label">Feedback</span>
+          <svg class="external" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
         </a>
       </nav>
-    </div>
-    <tab-set default-tab="working" aria-label="Page sections">
-    <div data-tab="data" data-label="Data" data-testid="data-panel">
-      <h2 tabindex="-1">The innings the agent works from</h2>
-      <p class="muted data-intro">
-        Every row is one real first innings. The agent reads these rows, learns from the earlier years
-        (<strong>Training</strong>), chooses features on the year before the latest (<strong>Validation</strong>) and is marked once on the latest year (<strong>Test</strong>). Sort, search and filter
-        them, copy cells into a spreadsheet, or download the lot.
-      </p>
-      <data-grid noun="innings"></data-grid>
-    </div>
-    <div data-tab="working" data-label="The Run" data-testid="working-panel">
-      <h2 class="visually-hidden" tabindex="-1">The Run</h2>
-    <section class="hero" data-testid="hero" aria-labelledby="hero-title">
-      <header class="hero-head">
-        <p class="hero-eyebrow">An AI agent experiment · linear regression</p>
-        <h1 id="hero-title" data-testid="hero-title">Halfway through a T20 innings. Where will it finish?</h1>
-        <p class="hero-lead">An AI agent learns from past innings to predict the final total from the score after 10 overs. Can it beat the TV's projection?</p>
-      </header>
-      <p class="hero-unavailable" data-testid="hero-unavailable" role="status" hidden></p>
-      <div class="hero-grid">
-        <figure class="worm-card" data-testid="worm-card" hidden>
-          <div data-testid="worm-chart"></div>
-          <figcaption data-testid="worm-caption"></figcaption>
-        </figure>
-        <div class="hero-side">
-          <section class="tv-panel" data-testid="tv-panel" aria-labelledby="tv-good" hidden>
-            <h2 id="tv-good">How good is the TV projection?</h2>
-            <div class="tv-figures">
-              <div class="tv-figure tv"><span class="num" data-testid="tv-miss"></span><span class="what">runs off the final total, on average</span></div>
-              <div class="tv-figure nothing"><span class="num" data-testid="nothing-miss"></span><span class="what">runs off for the know-nothing guess</span></div>
-            </div>
-            <p class="tv-sentence" data-testid="tv-sentence"></p>
-            <p class="tv-footnote" data-testid="tv-footnote"></p>
-          </section>
-          <ol class="hero-steps" data-testid="hero-steps">
-            <li><span class="num" aria-hidden="true">1</span><span><strong>An AI agent picks the clues</strong> <span class="then">from the first 10 overs</span></span></li>
-            <li><span class="num" aria-hidden="true">2</span><span><strong>Code fits a linear regression</strong> <span class="then">to past innings</span></span></li>
-            <li><span class="num" aria-hidden="true">3</span><span><strong>Judged on a season it never saw</strong> <span class="then">against the TV and the know-nothing guess</span></span></li>
-          </ol>
-        </div>
-      </div>
-    </section>
-    <div class="model-picker" data-testid="model-picker">
-      <label>Language model <select data-testid="model-select" aria-describedby="model-note"></select></label>
-      <span class="muted" id="model-note" data-testid="model-note"></span>
-    </div>
-    <p class="muted variation-note" data-testid="variation-note">
-      Because a language model is involved, <strong>runs can differ each time</strong>, even with the same settings.
-      That is expected: the code checks and scores everything the model proposes, so the numbers stay honest.
-    </p>
-    <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
-      <div class="run-summary" data-testid="run-summary" aria-live="polite"></div>
-    </div>
-    <div data-tab="found" data-label="Model Selection" data-testid="found-panel">
-      <h2 tabindex="-1">Model Selection</h2>
-      <p class="muted not-ready" data-testid="not-ready">The contest between the AI agent and the rival, how each one searched, and which candidate model goes forward appear here once the agent starts working. <a href="#working">Go to The Run and press Play</a>.</p>
-      <section class="card" data-testid="results-card" aria-live="polite">
-        <div data-testid="results"></div>
-        <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
-      </section>
-    </div>
-    <div data-tab="final-test" data-label="Hold-Out Test" data-testid="final-panel">
-      <h2 tabindex="-1">Hold-Out Test</h2>
-      <p class="muted not-ready" data-testid="not-ready">How every method does on the held-out year, and what it means in cricket terms, appear here when the agent reaches its final test. <a href="#working">Go to The Run and press Play</a>.</p>
-      <section class="card" data-testid="results-final-card" aria-live="polite">
-        <div data-testid="results-final"></div>
-        <p class="attribution" data-testid="attribution">Data: ball-by-ball records from <a href="https://cricsheet.org">Cricsheet</a>.</p>
-      </section>
-    </div>
-    <div data-tab="try-your-own" data-label="Try your own innings" data-testid="tryit-panel">
-      <h2 tabindex="-1">Try your own innings</h2>
-      <section class="card" data-testid="tryit">
-        <p class="muted" data-testid="tryit-hint">Run the agent first on the <a href="#working">The Run tab</a>, then use its model on an innings of your own.</p>
+    </header>
+
+    <main>
+    <section id="hero" class="hero-band on-dark" data-testid="hero" aria-labelledby="hero-title"></section>
+    <section id="problem" class="block" data-testid="problem" aria-labelledby="problem-title"></section>
+    <section id="watch" class="block" data-testid="watch" aria-labelledby="watch-title"></section>
+    <section id="verdict" class="block" data-testid="verdict" aria-labelledby="verdict-title"></section>
+    <section id="try" class="block try-card on-dark" data-testid="tryit-section" aria-labelledby="try-title">
+      <p class="kicker">YOUR TURN</p>
+      <h2 id="try-title">Give it a halfway score.</h2>
+      <p class="lead">See the agent's prediction next to the TV's.</p>
+      <div data-testid="tryit">
+        <p class="muted" data-testid="tryit-hint">Run the agent live first, then use its model on an innings of your own.</p>
+        <p class="muted" data-testid="tryit-model-label"></p>
         <form novalidate>
           <span class="tryit-fields" data-testid="tryit-fields"></span>
-          <button type="submit" disabled>Predict</button>
+          <button type="submit" class="btn filled" disabled>Predict</button>
         </form>
         <p class="error" role="alert" data-testid="tryit-error"></p>
         <div data-testid="tryit-result" hidden></div>
-        <p class="attribution" data-testid="attribution">The model was trained on ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a>.</p>
-      </section>
-    </div>
-    </tab-set>
+      </div>
+    </section>
+    <section id="scorebook" class="block" data-testid="scorebook" aria-labelledby="scorebook-title"></section>
+    </main>
 
     <footer data-testid="footer-attribution">
-      Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> (men's T20 internationals, IPL and BBL),
-      used under the Open Data Commons Attribution License.
+      <p>Built by John Fong · Tested by Alesja Tanabe</p>
+      <p>
+        Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> (men's T20 internationals, IPL and BBL),
+        used under the Open Data Commons Attribution License.
+      </p>
+      <p>Questions or ideas? <a data-testid="link-feedback-footer" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Leave feedback (opens the GitHub issues page in a new tab)">Leave feedback</a></p>
     </footer>
-  </main>
+  </div>
   <script type="module" src="/src/page/main.ts"></script>
 </body>
 </html>

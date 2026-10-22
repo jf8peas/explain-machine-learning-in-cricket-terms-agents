@@ -14,27 +14,14 @@ test("the hero is visible and its breadcrumb links back to the main site in the 
 });
 
 test("the whole graph is drawn before anything runs", async ({ page }) => {
-  await open(page);
+  await page.goto("/?view=everything");
   for (const id of ["load_data", "split", "explore", "baseline", "propose_features", "check_proposal", "fit_model", "evaluate",
     "grid_search", "final_test", "explain_in_cricket_terms", "write_in_cricket_terms"]) {
     await expect(page.locator(`[data-node="${id}"]`)).toBeVisible();
   }
-  expect(await page.locator(".edge:not(.item-edge)").count()).toBe(17);          // the agent's own edges
-  expect(await page.locator(".edge.item-edge").count()).toBe(1);                 // plus the done-beforehand connector
+  expect(await page.locator("graph-replay [data-node]").count()).toBe(12);
   expect(await page.locator(".node.active").count()).toBe(0);
   expect(await page.locator(".node.visited").count()).toBe(0);
-});
-
-test("conditional edges are dashed and labelled with their branch", async ({ page }) => {
-  await open(page);
-  const conditional = page.locator(".edge.conditional");
-  await expect(conditional).toHaveCount(7);
-  const labels = await conditional.locator("text").allTextContents();
-  expect(labels.sort()).toEqual(["continue", "finished", "fit", "ok", "rejected", "stop", "stop"]);
-  const dash = await conditional.first().locator("path").evaluate((p) => getComputedStyle(p).strokeDasharray);
-  expect(dash).not.toBe("none");
-  const plain = await page.locator(".edge:not(.conditional)").first().locator("path").evaluate((p) => getComputedStyle(p).strokeDasharray);
-  expect(plain).toBe("none");
 });
 
 test("the Cricsheet attribution is visible", async ({ page }) => {

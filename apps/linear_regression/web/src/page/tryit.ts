@@ -1,17 +1,34 @@
-// Try-your-own form: client-side only, enabled once a run has finished. The inputs are the ones the winning model
-// needs, built from the feature catalogue.
+// Your turn: client-side only, enabled once a run has finished. The inputs are the ones the agent's own final model needs
+// (the brute-force search's model when no language model ran, and the form says so), built from the feature catalogue.
 import { loadCatalogue } from "./catalogue";
 import { h } from "./dom";
 import { featureValues, fieldsFor, predict, projection, validate, type Catalogue, type Entered, type Field, type Model } from "./predict";
 
-export function setupTryIt(root: HTMLElement): (model: Model | null) => void {
+/** The model the form predicts with, and how to name it: "the agent's model" or "the brute-force search's model". */
+export interface TryModel extends Model { source: "agent" | "search" }
+
+export const modelName = (source: TryModel["source"]): string => (source === "agent" ? "the agent's model" : "the brute-force search's model");
+
+/** The words under the model's number. */
+export const predictedCaption = (source: TryModel["source"]): string =>
+  source === "agent" ? "the agent's predicted total" : "the search's predicted total";
+
+/** The agent's own final model from a run's state, or null before the final test. */
+export function agentModel(state: Record<string, unknown> | null): TryModel | null {
+  const m = (state?.final as { agent_model?: TryModel } | undefined)?.agent_model;
+  if (!m || !Array.isArray(m.features) || !m.coefficients || m.intercept === undefined) return null;
+  return { features: m.features, coefficients: m.coefficients, intercept: m.intercept, source: m.source === "search" ? "search" : "agent" };
+}
+
+export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void {
   const form = root.querySelector("form") as HTMLFormElement;
   const holder = form.querySelector("[data-testid=tryit-fields]") as HTMLElement;
   const out = root.querySelector("[data-testid=tryit-result]") as HTMLElement;
   const err = root.querySelector("[data-testid=tryit-error]") as HTMLElement;
   const hint = root.querySelector("[data-testid=tryit-hint]") as HTMLElement;
   const submit = form.querySelector("button") as HTMLButtonElement;
-  let model: Model | null = null;
+  const whose = root.querySelector("[data-testid=tryit-model-label]") as HTMLElement;
+  let model: TryModel | null = null;
   let catalogue: Catalogue | null = null;
   let fields: Field[] = [];
   /** What the visitor has typed, by field. A new run clears the form for a moment (no model yet) and rebuilds it for the
@@ -69,7 +86,7 @@ export function setupTryIt(root: HTMLElement): (model: Model | null) => void {
     out.hidden = false;
     out.replaceChildren(h("div", { class: "compare" },
       h("div", {}, h("span", { class: "big", "data-testid": "tryit-model" }, mine.toFixed(0)),
-        h("span", { class: "cap" }, "our model's predicted total")),
+        h("span", { class: "cap", "data-testid": "tryit-model-cap" }, predictedCaption(model.source))),
       h("div", {}, h("span", { class: "big", "data-testid": "tryit-tv" }, tv.toFixed(0)),
         h("span", { class: "cap" }, "the TV projected score"))));
   });
@@ -84,6 +101,7 @@ export function setupTryIt(root: HTMLElement): (model: Model | null) => void {
     err.textContent = "";
     submit.disabled = true;
     hint.hidden = !!m;
+    whose.textContent = m ? `Predicting with ${modelName(m.source)}.` : "";
     if (!m) {
       holder.replaceChildren();
       fields = [];

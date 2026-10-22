@@ -12,6 +12,7 @@ from typing import Callable, Mapping
 
 from .state import ROUND_CAP
 
+DEFAULT_DEADLINE_SECONDS = 80   # the whole run, unless RUN_DEADLINE_SECONDS says otherwise
 MIN_CALL_SECONDS = 2.0   # a call given less time than this is not worth starting
 WRITING_RESERVE = 1.0    # the closing writing step needs no time kept back for later steps
 WRITING_CALLS = 1        # one call beyond the proposing cap, kept for the step that writes the closing words
@@ -39,7 +40,7 @@ class RunBudget:
             except (TypeError, ValueError):
                 return default
 
-        return cls(deadline=started + number("RUN_DEADLINE_SECONDS", 80),
+        return cls(deadline=started + number("RUN_DEADLINE_SECONDS", DEFAULT_DEADLINE_SECONDS),
                    max_calls=int(number("LLM_MAX_CALLS", ROUND_CAP + 2)),
                    call_timeout=number("LLM_CALL_TIMEOUT", 25), max_tokens=int(number("LLM_MAX_TOKENS", 800)),
                    clock=clock)

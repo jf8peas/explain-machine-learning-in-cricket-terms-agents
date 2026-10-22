@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>An AI agent builds a prediction model</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F8FAFC}
+a{color:#1D4ED8}a:hover{color:#1E3A8A}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #0F172A; background: #F8FAFC; min-height: 100vh">
+
+  <!-- Top bar -->
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E2E8F0">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between">
+      <div style="font-size: 14px; color: #475569">ML in Cricket Terms <span aria-hidden="true">›</span> <strong style="color: #0F172A">Linear regression</strong></div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+        <button onClick="{{ toggleAll }}" aria-pressed="{{ allOpen }}" style="{{ allBtnStyle }}">{{ allLabel }}</button>
+        <a href="Built.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 6px">How it was built</a>
+        <a href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)" style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 6px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Feedback<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"></path></svg></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 1. HERO: the agent -->
+  <section style="background: #0B1220; color: #FFFFFF">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 64px 24px 56px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
+      <div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #A5B4FC">AN AI AGENT EXPERIMENT</div>
+        <h1 style="margin: 0; font-size: 48px; line-height: 1.08; font-weight: 800; letter-spacing: -0.02em">An AI agent built its own prediction model. Then it beat the TV.</h1>
+        <p style="margin: 0; font-size: 19px; line-height: 1.5; color: #CBD5E1">Halfway through a T20 innings, where will it finish? The agent chose the clues, code did the maths, and it was tested on a season it had never seen.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; padding-top: 4px">
+          <a href="#watch" style="background: #6366F1; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px; padding: 14px 22px; border-radius: 10px">Watch it work</a>
+          <a href="#try" style="color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 22px; border-radius: 10px; border: 1px solid #334155">Try your own innings</a>
+        </div>
+      </div>
+
+      <!-- Scoreboard -->
+      <div style="flex: 1 1 380px; min-width: 0; background: #111A2E; border: 1px solid #1E293B; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: #94A3B8">SCOREBOARD · 2026 SEASON, 171 UNSEEN INNINGS</div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 44px; font-weight: 700; color: #A5B4FC">17.9</div>
+            <div style="font-size: 14px; color: #CBD5E1">runs off on average<br>AI agent</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 44px; font-weight: 700; color: #FDBA74">21.4</div>
+            <div style="font-size: 14px; color: #CBD5E1">runs off on average<br>TV projection</div>
+          </div>
+        </div>
+        <div style="border-top: 1px solid #1E293B; padding-top: 16px; display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: #CBD5E1">
+          <div><strong style="color: #FFFFFF; font-size: 18px">5</strong> tries</div>
+          <div><strong style="color: #FFFFFF; font-size: 18px">0</strong> numbers made up by the AI</div>
+          <div><strong style="color: #FFFFFF; font-size: 18px">3.5</strong> runs closer than the TV</div>
+        </div>
+      </div>
+    </div>
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px 48px">
+        <div style="background: #111A2E; border: 1px dashed #334155; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+          <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #0B1220; background: #A5B4FC; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; font-size: 15px; line-height: 1.55; color: #CBD5E1">
+            <div><strong style="color: #FFFFFF">How good is the TV?</strong> Over 2,133 past innings (2005–2022) it was 22.5 runs off on average. Always guessing the average total was 23.9 runs off, so the run rate barely helps. The TV guesses too low by 14.3 runs on average.</div>
+            <div><strong style="color: #FFFFFF">The goal.</strong> Beat the TV by at least 3 runs on average, on a season none of the models has seen.</div>
+            <div><strong style="color: #FFFFFF">Who does what.</strong> A language model picks the clues. Code fits a linear regression to past innings. Code scores it against the TV and the average-total guess.</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- 2. THE PROBLEM, in one line -->
+  <section style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px">
+    <div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: center">
+      <div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #475569">THE PROBLEM</div>
+        <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">The TV projection is usually about 22 runs out.</h2>
+        <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #475569">It just multiplies the run rate by 20. Can an agent, left to itself, learn something smarter from 5,209 past innings?</p>
+      </div>
+      <div style="flex: 1 1 420px; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">After 10 overs</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700">82/2</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">TV said</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; color: #C2410C">164</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px">
+          <div style="font-size: 13px; color: #475569">They made</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700">186</div>
+        </div>
+        <div style="grid-column: 1 / -1; font-size: 13px; color: #475569">Australia v India, SCG, December 2020</div>
+      </div>
+    </div>
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top: 24px; background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center">
+          <div style="flex: 1 1 520px; min-width: 0; height: 240px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: 15px; color: #475569">[Today's run-by-over chart: the first 10 overs in grey, the TV's straight line, and the zoom on the finish]</div>
+          <div style="flex: 1 1 280px; min-width: 0; font-size: 15px; line-height: 1.55; color: #334155">Australia went from 82/2 to 186. The TV's straight line said 164 and was 22 runs short, which is about its typical miss. The agent learns from every innings like this one to see what the straight line misses.</div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <!-- 3. WATCH IT THINK: the hero mechanic -->
+  <section id="watch" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 720px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #4338CA">WATCH IT THINK</div>
+      <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">Each round, the agent proposes an idea. Code tests it.</h2>
+    </div>
+
+    <!-- Loop strip -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+      <div style="background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE; border-radius: 999px; padding: 10px 16px; font-weight: 700; font-size: 15px">1 · Agent proposes clues</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">2 · Code checks</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">3 · Code fits a regression</div>
+      <div aria-hidden="true" style="color: #94A3B8">→</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 999px; padding: 10px 16px; font-weight: 600; font-size: 15px">4 · Code scores it</div>
+      <div aria-hidden="true" style="color: #94A3B8">↺ repeat until no better</div>
+    </div>
+
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+        <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; color: #334155">
+            <strong style="color: #0F172A">What the agent decides</strong>
+            <div>Each idea has four parts: the clues (up to 8 of 19), how many past seasons to learn from, whether recent seasons count more, and which innings to learn from. Code rejects an idea that is off the menu, already tried, or repeats a clue in disguise.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.55; color: #334155">
+            <strong style="color: #0F172A">How each idea is scored</strong>
+            <div>Each idea predicts three past seasons it hasn't learned from. Its score is the average miss across the three.</div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.3fr; gap: 4px; font-size: 12px; font-weight: 600; text-align: center">
+              <div style="background: #E2E8F0; border-radius: 6px; padding: 8px 4px">2005–22<br>learn</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2023<br>check</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2024<br>check</div>
+              <div style="background: #FEF3C7; border-radius: 6px; padding: 8px 4px">2025<br>check</div>
+              <div style="background: #0F172A; color: #FFFFFF; border-radius: 6px; padding: 8px 4px">2026<br>locked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- Player -->
+    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #E2E8F0; background: #F8FAFC">
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button aria-label="Replay" style="background: #4338CA; color: #FFFFFF; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; font-size: 14px; min-height: 44px">▶ Replay run</button>
+          <button style="background: #FFFFFF; color: #0F172A; border: 1px solid #CBD5E1; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 14px; min-height: 44px">Run it live</button>
+        </div>
+        <div style="font-size: 14px; color: #475569">Lower score = closer predictions (average runs off)</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column">
+        <sc-for list="{{ rounds }}" as="r" hint-placeholder-count="5">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 18px 20px; border-bottom: 1px solid #F1F5F9">
+            <div style="flex: 0 0 72px; font-size: 13px; font-weight: 700; color: #475569; padding-top: 3px">ROUND {{ r.n }}</div>
+            <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+              <div style="font-size: 16px; font-weight: 700">{{ r.idea }}</div>
+              <div style="font-size: 15px; line-height: 1.5; color: #3730A3; font-style: italic">“{{ r.quote }}”</div>
+              <sc-if value="{{ r.showSetup }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 13px; line-height: 1.5; color: #475569; background: #F1F5F9; border-radius: 8px; padding: 6px 10px; align-self: flex-start">{{ r.setup }}</div>
+              </sc-if>
+            </div>
+            <div style="flex: 0 0 150px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700">{{ r.score }}</div>
+              <div style="{{ r.tagStyle }}">{{ r.tag }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; background: #F8FAFC">
+        <div style="font-size: 15px; color: #0F172A">Best idea: <strong>runs at halfway + wickets in hand</strong>, learning from the last 10 seasons.</div>
+        <button onClick="{{ toggleGraph }}" aria-expanded="{{ graphOpen }}" style="background: transparent; border: 0; color: #1D4ED8; font-weight: 600; font-size: 14px; padding: 10px 0; min-height: 44px">{{ graphLabel }}</button>
+      </div>
+
+      <sc-if value="{{ graphOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="border-top: 1px solid #E2E8F0; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #475569">COMMENTARY · THE FULL AGENT GRAPH</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 20px">
+            <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <sc-for list="{{ graphRows }}" as="g" hint-placeholder-count="4">
+                <div style="display: flex; flex-direction: column; gap: 10px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px 14px">
+                  <div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569"><span>{{ g.title }}</span><span style="font-weight: 500; letter-spacing: 0">{{ g.note }}</span></div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+                    <sc-for list="{{ g.nodes }}" as="n" hint-placeholder-count="4">
+                      <div style="display: flex; align-items: center; gap: 8px">
+                        <sc-if value="{{ n.arrowBefore }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="color: #64748B">→</span></sc-if>
+                        <div style="{{ n.pillStyle }}">
+                          <span style="{{ n.badgeStyle }}">{{ n.stage }}</span>
+                          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px">{{ n.name }}</span>
+                          <sc-if value="{{ n.ai }}" hint-placeholder-val="{{ false }}"><span style="font-size: 10px; font-weight: 700; color: #5B21B6; background: #EDE9FE; border-radius: 4px; padding: 1px 5px">AI</span></sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ g.hasLoop }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #4338CA; font-weight: 600">{{ g.loop }}</span></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+              <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+                <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569">GRAPH STATE · STEP 9</div>
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px">
+                  <span style="color: #475569">Now</span><span style="font-family: 'JetBrains Mono', monospace">evaluate</span>
+                  <span style="color: #475569">Round</span><span>2 of up to 6</span>
+                  <span style="color: #475569">This idea</span><span style="font-family: 'JetBrains Mono', monospace">17.8</span>
+                  <span style="color: #475569">Best so far</span><span style="font-family: 'JetBrains Mono', monospace">17.8 (new)</span>
+                  <span style="color: #475569">Next</span><span>propose another idea</span>
+                </div>
+              </div>
+              <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+                <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #475569">THE 8 ML STAGES</div>
+                <sc-for list="{{ stages }}" as="st" hint-placeholder-count="8">
+                  <div style="display: flex; gap: 8px; align-items: center; font-size: 13px"><span style="{{ st.badgeStyle }}">{{ st.n }}</span><span>{{ st.name }}</span></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 14px; color: #475569">The highlighted step is where the replay has reached. Each number is the step's ML stage. Only the two AI steps use a language model; every number is worked out by code. Back and Step move through it one node at a time.</div>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <!-- 4. THE VERDICT -->
+  <section style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #047857">THE VERDICT</div>
+      <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">On a season it never saw, the agent beat the TV by 3.5 runs.</h2>
+      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #475569">It also matched a brute-force search of 24 combinations, using just 5 tries.</p>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+      <sc-for list="{{ bars }}" as="b" hint-placeholder-count="4">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+          <div style="flex: 0 0 200px; font-size: 15px; font-weight: 600">{{ b.label }}</div>
+          <div style="flex: 1 1 300px; min-width: 0; display: flex; align-items: center; gap: 10px">
+            <div style="flex: 1 1 auto; height: 22px; background: #F1F5F9; border-radius: 6px; overflow: hidden">
+              <div style="{{ b.barStyle }}"></div>
+            </div>
+            <div style="flex: 0 0 52px; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px; text-align: right">{{ b.value }}</div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="font-size: 13px; color: #475569">Average runs off the real total, 171 innings from 2026. Shorter is better.</div>
+    </div>
+
+    <sc-if value="{{ allOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="background: #F1F5F9; border: 1px dashed #CBD5E1; border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 20px">
+        <div style="align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #FFFFFF; background: #475569; border-radius: 999px; padding: 3px 10px">COMMENTARY</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+            <strong style="font-size: 15px">Check seasons vs the final test</strong>
+            <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 6px 12px; font-size: 14px">
+              <div style="color: #475569">Runs off</div><div style="color: #475569; font-weight: 600">2023–25</div><div style="color: #475569; font-weight: 600">2026</div>
+              <div>AI agent</div><div style="font-family: 'JetBrains Mono', monospace">17.8</div><div style="font-family: 'JetBrains Mono', monospace; font-weight: 700">17.9</div>
+              <div>Brute-force search</div><div style="font-family: 'JetBrains Mono', monospace">17.0</div><div style="font-family: 'JetBrains Mono', monospace; font-weight: 700">17.8</div>
+            </div>
+            <div style="font-size: 14px; line-height: 1.5; color: #475569">The best of 27 tries always looks a little lucky, so it slips on a new season. The 2026 score is the honest one.</div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+            <strong style="font-size: 15px">How often is it close?</strong>
+            <sc-for list="{{ closeness }}" as="c" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <div style="display: flex; justify-content: space-between; font-size: 14px"><span>{{ c.label }}</span><span style="color: #475569">{{ c.bias }}</span></div>
+                <div style="height: 10px; background: #E2E8F0; border-radius: 5px; overflow: hidden"><div style="{{ c.barStyle }}"></div></div>
+              </div>
+            </sc-for>
+            <div style="font-size: 13px; color: #475569">Share of innings within 10 runs of the real total.</div>
+          </div>
+
+          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px">
+            <strong style="font-size: 15px">What moves the final total</strong>
+            <sc-for list="{{ effects }}" as="e" hint-placeholder-count="6">
+              <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span>{{ e.label }}</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: {{ e.color }}">{{ e.value }}</span></div>
+            </sc-for>
+            <div style="font-size: 13px; color: #475569">Runs added by a typical difference in each clue, in the winning model.</div>
+          </div>
+
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 16px">
+      <div style="flex: 1 1 340px; min-width: 0; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #047857">RULE OF THUMB FOR THE NEXT MATCH</div>
+        <div style="font-size: 18px; font-weight: 700; line-height: 1.4">Take the TV projection, then add about 6 runs for every extra wicket in hand.</div>
+      </div>
+      <div style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+        <button onClick="{{ toggleTrust }}" aria-expanded="{{ trustOpen }}" style="text-align: left; background: transparent; border: 0; padding: 0; font-size: 17px; font-weight: 700; color: #0F172A; min-height: 44px">{{ trustLabel }}</button>
+        <sc-if value="{{ trustOpen }}" hint-placeholder-val="{{ false }}">
+          <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5; color: #334155">
+            <li>The agent chose its model using 2023–2025 only.</li>
+            <li>2026 stayed locked until the end and was used once.</li>
+            <li>A plain grid search ran alongside as a yardstick.</li>
+          </ul>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. TRY IT -->
+  <section id="try" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 8px">
+    <div style="background: #0B1220; color: #FFFFFF; border-radius: 20px; padding: 32px; display: flex; flex-wrap: wrap; gap: 32px; align-items: center">
+      <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #A5B4FC">YOUR TURN</div>
+        <h2 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800">Give it a halfway score.</h2>
+        <p style="margin: 0; font-size: 16px; color: #CBD5E1">See the agent's prediction next to the TV's.</p>
+      </div>
+      <div style="flex: 1 1 420px; min-width: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 110px">
+          <label for="runs" style="font-size: 13px; color: #CBD5E1">Runs</label>
+          <input id="runs" value="82" style="background: #111A2E; color: #FFFFFF; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 18px; font-family: 'JetBrains Mono', monospace">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 110px">
+          <label for="wkts" style="font-size: 13px; color: #CBD5E1">Wickets</label>
+          <input id="wkts" value="2" style="background: #111A2E; color: #FFFFFF; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 18px; font-family: 'JetBrains Mono', monospace">
+        </div>
+        <button style="flex: 1 1 140px; background: #6366F1; color: #FFFFFF; border: 0; border-radius: 8px; padding: 14px; font-weight: 700; font-size: 16px; min-height: 48px">Predict</button>
+        <div style="flex: 1 1 100%; display: flex; gap: 24px; flex-wrap: wrap; font-size: 15px; color: #CBD5E1; padding-top: 6px">
+          <div>Agent: <strong style="color: #A5B4FC; font-family: 'JetBrains Mono', monospace">[prediction]</strong></div>
+          <div>TV: <strong style="color: #FDBA74; font-family: 'JetBrains Mono', monospace">164</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. GO DEEPER: the scorebook -->
+  <section id="deeper" style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 72px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: 0.08em; color: #475569">THE SCOREBOOK</div>
+      <h2 style="margin: 0; font-size: 26px; font-weight: 800">For the data scientists: every detail.</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+      <sc-for list="{{ deeper }}" as="d" hint-placeholder-count="4">
+        <a href="{{ d.href }}" style="text-decoration: none; color: #0F172A; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 16px; font-weight: 700">{{ d.title }}</span>
+          <span style="font-size: 14px; line-height: 1.5; color: #475569">{{ d.body }}</span>
+        </a>
+      </sc-for>
+    </div>
+    <div style="font-size: 13px; color: #475569; padding-top: 16px; border-top: 1px solid #E2E8F0">Built by John Fong · Tested by Alesja Tanabe · Ball-by-ball data from <a href="https://cricsheet.org">Cricsheet</a> · Questions or ideas? <a href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener">Leave feedback</a></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"startAll":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":3400}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { graph: false, trust: false, all: !!p.startAll }; }
+  renderVals() {
+    const s = this.state;
+    const graphOpen = s.all || s.graph;
+    const trustOpen = s.all || s.trust;
+    const tag = (kind) => {
+      const c = { best: ['#ECFDF5', '#047857'], first: ['#F1F5F9', '#334155'], none: ['#F1F5F9', '#475569'], rej: ['#FEF2F2', '#B91C1C'], stop: ['#EEF2FF', '#3730A3'] }[kind];
+      return 'font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: ' + c[0] + '; color: ' + c[1];
+    };
+    const rounds = [
+      { n: 1, idea: 'Runs at halfway', quote: 'Runs at the halfway mark is the obvious place to start for a final total.', score: '18.2', tag: 'first score', tagStyle: tag('first') },
+      { n: 2, idea: '+ Wickets in hand · last 10 seasons', quote: 'A side with wickets in hand can swing harder in the last ten overs, and the last ten seasons are closer to today’s game.', score: '17.8', tag: 'new best', tagStyle: tag('best') },
+      { n: 3, idea: '+ Sixes hit · last 5 seasons', quote: 'Sixes already hit suggest the batters are set to go big.', score: '18.0', tag: 'no better', tagStyle: tag('none') },
+      { n: 4, idea: 'Same idea again', quote: 'Let me try that once more.', score: '✕', tag: 'code rejected: already tried', tagStyle: tag('rej') },
+      { n: 5, idea: 'Stops', quote: 'I think that is as good as it gets.', score: '17.8', tag: 'agent finished', tagStyle: tag('stop') }
+    ];
+    const setups = [
+      'All seasons · every season counts equally · league and full-member innings',
+      'Last 10 seasons · recent seasons count a little more · league and full-member innings',
+      'Last 5 seasons · recent seasons count a little more · all innings, including associate nations',
+      'Same clues, seasons, weighting and innings as round 3',
+      'Runs at halfway + wickets in hand · all seasons · equal weighting'
+    ];
+    rounds.forEach((r, i) => { r.setup = setups[i]; r.showSetup = s.all; });
+    const close = (label, pct, bias, color) => ({ label, bias, barStyle: 'height: 100%; border-radius: 5px; background: ' + color + '; width: ' + pct + '%' });
+    const closeness = [
+      close('AI agent · 34%', 34, '4.0 runs too low', '#4F46E5'),
+      close('Brute-force search · 37%', 37, '1.1 runs too low', '#0F766E'),
+      close('TV projection · 34%', 34, '7.2 runs too low', '#C2410C'),
+      close('Average-total guess · 23%', 23, '20.0 runs too low', '#94A3B8')
+    ];
+    const up = '#047857', down = '#B91C1C';
+    const effects = [
+      { label: 'Runs at halfway', value: '+28.8', color: up },
+      { label: 'Wickets in hand', value: '+12.1', color: up },
+      { label: 'Played in the IPL', value: '+7.0', color: up },
+      { label: 'Wickets lost, overs 7–10', value: '−4.8', color: down },
+      { label: 'Sixes hit', value: '+3.5', color: up },
+      { label: 'Current partnership', value: '−2.7', color: down }
+    ];
+    const stageColor = ['', '#8A5300', '#4D6B00', '#0E7490', '#86437A', '#C2410C', '#A21C5C', '#0F5F4F', '#7C4A3A'];
+    const badge = (n) => 'display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #FFFFFF; flex: 0 0 auto; background: ' + stageColor[n];
+    const stageNames = ['Prepare the data', 'Split the data', 'Understand the data', 'Frame the problem', 'Choose the candidate model', 'Fit the model', 'Final assessment', 'Interpret and communicate'];
+    const stages = stageNames.map((name, i) => ({ n: i + 1, name, badgeStyle: badge(i + 1) }));
+    const node = (name, stage, opts) => {
+      const o = opts || {};
+      let pill = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #FFFFFF; border: 1px solid #CBD5E1';
+      if (o.ai) pill = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #F5F3FF; border: 1.5px dashed #7C3AED';
+      if (o.done) pill = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; background: #F8FAFC; border: 1.5px dashed #94A3B8; color: #475569';
+      if (o.active) pill += '; box-shadow: 0 0 0 3px #4338CA; border-color: #4338CA';
+      return { name, stage, ai: !!o.ai, arrowBefore: !o.first, pillStyle: pill, badgeStyle: badge(stage) };
+    };
+    const graphRows = [
+      { title: 'ONCE, AT THE START', note: 'data preparation script ran beforehand', hasLoop: false, loop: '', nodes: [
+        node('load_data', 1, { first: true }), node('split', 2), node('explore', 3), node('baseline', 4) ] },
+      { title: 'EACH ROUND', note: 'up to 6 rounds; rejected ideas count', hasLoop: true, loop: '↺ continue · rejected → back to propose', nodes: [
+        node('propose_features', 5, { first: true, ai: true }), node('check_proposal', 5), node('fit_model', 6), node('evaluate', 5, { active: true }) ] },
+      { title: 'THE YARDSTICK', note: 'runs when the agent stops', hasLoop: false, loop: '', nodes: [
+        node('grid_search', 5, { first: true }) ] },
+      { title: 'ONCE, AT THE END', note: '2026 unlocked here', hasLoop: false, loop: '', nodes: [
+        node('final_test', 7, { first: true }), node('explain_in_cricket_terms', 8), node('write_in_cricket_terms', 8, { ai: true }) ] }
+    ];
+    const max = 36;
+    const bar = (v, color) => 'height: 100%; border-radius: 6px; background: ' + color + '; width: ' + (v / max * 100).toFixed(1) + '%';
+    const bars = [
+      { label: 'AI agent', value: '17.9', barStyle: bar(17.9, '#4F46E5') },
+      { label: 'Brute-force search', value: '17.8', barStyle: bar(17.8, '#0F766E') },
+      { label: 'TV projection', value: '21.4', barStyle: bar(21.4, '#C2410C') },
+      { label: 'Average-total guess', value: '34.5', barStyle: bar(34.5, '#94A3B8') }
+    ];
+    const deeper = [
+      { title: 'Every model tried', body: 'All 27 candidates, ranked, with the 24-cell grid search.', href: '#deeper' },
+      { title: 'The agent graph, step by step', body: 'All 12 steps, the 8 ML stages and the live graph state.', href: '#watch' },
+      { title: 'The data', body: '5,209 innings: sort, filter, download as CSV.', href: '#deeper' },
+      { title: 'How this app was built', body: 'LangGraph, FastAPI, Vercel, and the specs behind it.', href: 'Built.dc.html' }
+    ];
+    return {
+      rounds, bars, deeper, closeness, effects, graphRows, stages, graphOpen, trustOpen, allOpen: s.all,
+      graphLabel: graphOpen ? 'Hide the full agent graph ↑' : 'Show the full agent graph ↓',
+      trustLabel: (trustOpen ? '− ' : '+ ') + 'Why you can trust this score',
+      allLabel: s.all ? 'Simple view' : 'Show me everything',
+      allBtnStyle: 'min-height: 44px; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; ' + (s.all ? 'background: #0F172A; color: #FFFFFF; border: 1px solid #0F172A' : 'background: #FFFFFF; color: #0F172A; border: 1px solid #CBD5E1'),
+      toggleGraph: () => this.setState({ graph: !graphOpen, all: false }),
+      toggleTrust: () => this.setState({ trust: !trustOpen, all: false }),
+      toggleAll: () => this.setState({ all: !s.all, graph: false, trust: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

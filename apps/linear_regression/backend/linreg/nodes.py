@@ -16,7 +16,7 @@ from typing import Any, NamedTuple
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 
-from . import accuracy_text, cricket_blocks, cricket_facts, features as feature_registry, goal, regression, scoring, selection
+from . import accuracy_text, cricket_blocks, cricket_facts, features as feature_registry, goal, headlines, regression, scoring, selection
 from .accuracy import accuracy, display
 from .competition_dummies import check_dummies
 from .data_loading import DEFAULT_PATH, DataError, load_innings
@@ -437,6 +437,19 @@ def final_test(state: RunState) -> dict[str, Any]:
     earlier = rolling.training_rows(rolling.final, "all", "population")["final_total"]
     extra = scoring.final_scoring(earlier, test, {k: v["fitted"] for k, v in scores.items()}, winner)
     final.update(extra)
+    # The agent's own refitted model (the same fit that was just scored), for the page's "Your turn"; the search's stands in
+    # when no language model took part. The top-level winner fields below stay the pick's.
+    agent_key = "llm" if "llm" in scores else "forward"
+    agent_fit = scores[agent_key]["fitted"]
+    final["agent_model"] = {"source": "agent" if agent_key == "llm" else "search",
+                            "features": list(scores[agent_key]["features"]),
+                            "coefficients": {f: _r(c, 3) for f, c in agent_fit["coefficients"].items()},
+                            "intercept": _r(agent_fit["intercept"], 3)}
+    shown = extra["accuracy"]
+    final["headlines"] = headlines.build(
+        agent_miss=shown["llm"]["average_miss"] if "llm" in shown else None,
+        search_miss=shown["forward"]["average_miss"] if "forward" in shown else None,
+        tv_miss=shown["broadcaster"]["average_miss"], tries=state.get("rounds_used", 0))
     verdict = extra["verdict"]
     final.update({"beat_tv": verdict["beat"], "cleared_margin": verdict["reached"], "improvement": verdict["improvement_runs"]})
     return {

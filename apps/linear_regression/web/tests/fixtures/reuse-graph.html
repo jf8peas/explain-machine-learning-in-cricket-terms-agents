@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reuse fixture: the graph replay with an unrelated agent</title>
+  <style>body { font: 16px system-ui, sans-serif; margin: 16px; }</style>
+</head>
+<body>
+  <!-- A page with no app code: only the component, given a structure and a run URL (the test serves both). -->
+  <graph-replay structure-url="/api/structure" run-url="/api/run"></graph-replay>
+  <script type="module">
+    import "/src/graph-replay/graph-replay.ts";
+    const interval = new URLSearchParams(location.search).get("interval");
+    if (interval) document.querySelector("graph-replay").setAttribute("interval-ms", interval);
+  </script>
+</body>
+</html>

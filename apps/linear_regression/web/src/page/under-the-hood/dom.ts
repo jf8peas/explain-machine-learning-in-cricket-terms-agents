@@ -1,8 +1,6 @@
-// Puts the live figures into the Under the hood page and wires the "Stage by stage" panels to their state.
-// Everything the page says is already in its HTML; this only fills the [data-figure] spans, builds the two lists and
-// makes the stage headers work. Text is only ever set with textContent.
+// Puts the live figures into the "How this app was built" page. Everything the page says is already in its HTML; this only
+// fills the [data-figure] spans and builds the two lists. Text is only ever set with textContent.
 import { GROUP_PLACEHOLDER, PLACEHOLDER, TEXT_KEYS, type LiveFigures, type TextKey } from "./figures";
-import { initial, nextAll, toggle, toggleAllLabel, type PanelState } from "./panels";
 
 const isTextKey = (key: string | undefined): key is TextKey => TEXT_KEYS.includes(key as TextKey);
 
@@ -44,40 +42,16 @@ export function fillFigures(root: ParentNode, figures: LiveFigures): void {
     if (figures.exclusions.length === 0) {
       exclusions.replaceChildren(el("p", "No matches were left out.", "muted"));
     } else {
+      const counts = el("ul", undefined, "chips");
       const list = el("dl", undefined, "reasons");
       for (const reason of figures.exclusions) {
+        counts.append(el("li", `${reason.label}, ${reason.count}`));
         list.append(el("dt", `${reason.label}, ${reason.count}${reason.explanation ? ":" : ""}`));
         if (reason.explanation) list.append(el("dd", reason.explanation));
       }
-      exclusions.replaceChildren(list);
+      const why = el("details", undefined, "why");
+      why.append(el("summary", "Why these were left out"), list);
+      exclusions.replaceChildren(counts, why);
     }
   }
-}
-
-/** Opens and closes the stage panels from the state in panels.ts; the headers and regions are already in the HTML. */
-export function mountPanels(root: ParentNode): void {
-  const heads = [...root.querySelectorAll<HTMLButtonElement>(".stage-head")];
-  const toggleAll = root.querySelector<HTMLButtonElement>('[data-testid="toggle-all"]');
-  let state: PanelState = initial();
-
-  const render = (): void => {
-    heads.forEach((head, i) => {
-      head.setAttribute("aria-expanded", String(state[i] === true));
-      const region = document.getElementById(head.getAttribute("aria-controls") ?? "");
-      if (region) region.hidden = state[i] !== true;
-    });
-    if (toggleAll) toggleAll.textContent = toggleAllLabel(state);
-  };
-
-  heads.forEach((head, i) =>
-    head.addEventListener("click", () => {
-      state = toggle(state, i);
-      render();
-    }),
-  );
-  toggleAll?.addEventListener("click", () => {
-    state = nextAll(state);
-    render();
-  });
-  render();
 }

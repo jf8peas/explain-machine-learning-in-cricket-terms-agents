@@ -125,7 +125,7 @@ export class Legend {
   private showDetail() {
     const stages = this.opts.stages;
     const i = this.selectedId === null ? -1 : stages.findIndex((s) => s.id === this.selectedId);
-    if (i < 0) { this.detail.textContent = "Select a stage to highlight its steps."; return; }
+    if (i < 0) { this.detail.textContent = "Select a stage."; return; }
     const note = this.opts.notes?.stages?.[stages[i].id];
     this.detail.textContent = `${i + 1}. ${stages[i].name}: ${stages[i].question}${note ? ` ${note}` : ""}`;
   }

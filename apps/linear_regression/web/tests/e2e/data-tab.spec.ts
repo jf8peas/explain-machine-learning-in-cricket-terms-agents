@@ -1,7 +1,6 @@
-// Data tab: tabs, spreadsheet grid, sort/search/filter, split visibility, summary, CSV download, failure.
+// The Scorebook's data panel (the old Data tab): spreadsheet grid, sort/search/filter, split visibility, summary, CSV download, failure.
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "./fixtures";
-import { countRunRequests, open, openTab, playToEnd, timelineItems } from "./helpers";
 
 const TOTAL = 5209; // manifest total_innings; checked against the agent's load_data step below
 
@@ -28,99 +27,6 @@ async function runSteps(page: Page): Promise<Record<string, any>> {
   }
   return steps;
 }
-
-test.describe("tabs", () => {
-  test("Working is the default and the Data panel is hidden", async ({ page }) => {
-    await open(page);
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "false");
-    await expect(page.getByTestId("data-panel")).toBeHidden();
-    await expect(page.getByTestId("replay")).toBeVisible();
-  });
-
-  test("switching tabs mid-run does not restart the run", async ({ page }) => {
-    const runs = countRunRequests(page);
-    await open(page, 400);
-    await page.getByTestId("play").click();
-    await expect(timelineItems(page)).not.toHaveCount(0);
-    await page.getByTestId("tab-data").click();
-    await expect(page.getByTestId("data-panel")).toBeVisible();
-    await page.getByTestId("tab-working").click();
-    await page.getByTestId("tab-data").click();
-    await page.getByTestId("tab-working").click();
-    await expect(page.getByTestId("explanation")).toBeAttached({ timeout: 45_000 });
-    expect(runs.count()).toBe(1);
-  });
-
-  test("a finished run keeps its results, step and try-your-own inputs", async ({ page }) => {
-    await open(page);
-    await playToEnd(page);
-    await openTab(page, "try-your-own");
-    const form = page.getByTestId("tryit");
-    await form.locator("[name=runs_at_10]").fill("84");
-    await form.locator("[name=wickets_at_10]").fill("2");
-    const steps = await timelineItems(page).count();
-    const explanation = (await page.getByTestId("explanation").textContent())!;
-    for (let i = 0; i < 3; i++) {
-      await page.getByTestId("tab-data").click();
-      await page.getByTestId("tab-working").click();
-    }
-    await expect(page.getByTestId("explanation")).toHaveText(explanation);
-    await expect(timelineItems(page)).toHaveCount(steps);
-    await expect(form.locator("[name=runs_at_10]")).toHaveValue("84");
-    await expect(form.locator("[name=wickets_at_10]")).toHaveValue("2");
-  });
-
-  test("opening #data directly shows the grid without a run", async ({ page }) => {
-    const runs = countRunRequests(page);
-    await openData(page);
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("data-panel")).toBeVisible();
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "false");
-    expect(runs.count()).toBe(0);
-  });
-
-  test("Back and Forward move between tabs", async ({ page }) => {
-    await open(page);
-    await page.getByTestId("tab-data").click();
-    await expect(page.getByTestId("data-panel")).toBeVisible();
-    await page.goBack();
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
-    await page.goForward();
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
-  });
-
-  test("an unknown hash shows Working without adding a history step", async ({ page }) => {
-    await page.goto("/");
-    const plain = await page.evaluate(() => history.length);
-    await page.goto("/#nonsense");
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("data-panel")).toBeHidden();
-    expect(await page.evaluate(() => history.length)).toBe(plain + 1); // the navigation itself, nothing more
-    expect(new URL(page.url()).hash).toBe("#working");
-  });
-
-  test("tabs work by keyboard and expose the tab roles", async ({ page }) => {
-    await open(page);
-    await expect(page.getByRole("tablist")).toBeVisible();
-    await expect(page.getByRole("tab")).toHaveCount(5);
-    await page.getByTestId("tab-working").focus();
-    await page.keyboard.press("ArrowLeft");                       // Data is first in the order
-    await expect(page.getByTestId("tab-data")).toBeFocused();
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", "tab-data");
-    await page.keyboard.press("ArrowLeft"); // wraps to the last tab
-    await expect(page.getByTestId("tab-try-your-own")).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("Home");
-    await expect(page.getByTestId("tab-data")).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("End");
-    await expect(page.getByTestId("tab-try-your-own")).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("ArrowRight");                      // wraps to Data
-    await page.keyboard.press("ArrowRight");
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("tab-working")).toHaveAttribute("aria-controls", "panel-working");
-  });
-});
 
 test.describe("grid", () => {
   test("shows the innings with friendly headings, full competition names and row numbers", async ({ page }) => {
@@ -393,20 +299,17 @@ test.describe("sort, search and filter", () => {
     await expect(count(page)).toContainText(`Showing ${TOTAL.toLocaleString("en")} of`);
   });
 
-  test("sort, filters and scroll position survive a tab switch", async ({ page }) => {
+  test("sort and filters survive closing and reopening the panel", async ({ page }) => {
     await openData(page);
     await page.getByTestId("data-search").fill("t20 international");
     await heading(page, "final_total").click();
     await heading(page, "final_total").click();
-    const holder = page.locator(".dg-grid .tabulator-tableholder");
-    await holder.evaluate((h) => { h.scrollTop = 600; });
     const shown = await count(page).innerText();
-    await page.getByTestId("tab-working").click();
-    await page.getByTestId("tab-data").click();
+    await page.getByTestId("scorebook-close").click();
+    await page.getByTestId("scorebook-card-data").click();
     await expect(count(page)).toHaveText(shown);
     await expect(page.getByTestId("data-search")).toHaveValue("t20 international");
     await expect(heading(page, "final_total")).toHaveAttribute("aria-sort", "descending");
-    await expect.poll(() => holder.evaluate((h) => h.scrollTop)).toBeGreaterThan(400);
   });
 });
 
@@ -515,9 +418,9 @@ test.describe("summary", () => {
 test.describe("download", () => {
   const lines = (csv: string) => csv.replace(/^﻿/, "").split("\r\n").filter(Boolean);
 
-  test("from Working, Data then Download CSV gives the whole table in two clicks", async ({ page }) => {
+  test("from the page, The data then Download CSV gives the whole table in two clicks", async ({ page }) => {
     await page.goto("/");
-    await page.getByTestId("tab-data").click(); // click 1
+    await page.getByTestId("scorebook-card-data").click(); // click 1
     await expect(count(page)).toContainText(`${TOTAL.toLocaleString("en")} of`);
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-csv").click()]); // click 2
     const downloaded = JSON.parse(readFileSync("../data/manifest.json", "utf8")).download_date; // the data's own download date
@@ -566,17 +469,17 @@ test.describe("download", () => {
 });
 
 test.describe("load failure", () => {
-  test("shows a message and Retry on the Data tab only; Working is unaffected", async ({ page }) => {
+  test("shows a message and Retry in the data panel only; the rest of the page is unaffected", async ({ page }) => {
     let fail = true;
     await page.route("**/api/data", (route) =>
       fail ? route.fulfill({ status: 500, json: { detail: "The innings data file was not found." } }) : route.continue());
-    await open(page);
-    await page.getByTestId("tab-data").click();
+    await page.goto("/");
+    await expect(page.getByTestId("scoreboard-agent")).toBeVisible();          // the hero and the recorded run do not wait on the data
+    await page.getByTestId("scorebook-card-data").click();
     await expect(page.getByTestId("data-state")).toContainText("could not be loaded");
     await expect(page.getByTestId("data-state")).toContainText("not found");
-    await page.getByTestId("tab-working").click();
-    await playToEnd(page); // the agent still runs
-    await page.getByTestId("tab-data").click();
+    await expect(page.getByTestId("scoreboard-agent")).toBeVisible();
+    await expect(page.getByTestId("verdict-title")).toBeVisible();
     fail = false;
     await page.getByTestId("data-retry").click();
     await expect(count(page)).toContainText(`${TOTAL.toLocaleString("en")} of`);

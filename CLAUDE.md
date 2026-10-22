@@ -1,3 +1,5 @@
 # Project guidance
 
-Current feature plan: [specs/019-who-built-this/plan.md](specs/019-who-built-this/plan.md)
+<!-- SPECKIT START -->
+Current feature plan: [specs/020-simpler-pages/plan.md](specs/020-simpler-pages/plan.md)
+<!-- SPECKIT END -->

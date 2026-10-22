@@ -15,7 +15,7 @@ from .data_table import DEFAULT_MANIFEST, exclusion_rows
 from .data_loading import DataError, load_innings
 from .graph import NODE_STAGES
 from .season_split import rolling_checks
-from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, stage_set
+from .stages import CHOOSE_STAGE, FIT_STAGE, STAGES, Row, row_set, stage_set
 
 _COUNT_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
 
@@ -129,10 +129,21 @@ def loop_note(data_path: str | Path | None = None) -> str | None:
         return None
 
 
+def rows() -> tuple[Row, ...]:
+    """The display rows in order, with their notes. Every number in a note is read from its constant."""
+    return (
+        Row("start", "Once, at the start", "data preparation script ran beforehand"),
+        Row("round", "Each round", f"up to {state.ROUND_CAP} rounds; rejected ideas count"),
+        Row("yardstick", "The yardstick", "runs when the agent stops"),
+        Row("end", "Once, at the end", "the test season is unlocked here"),
+    )
+
+
 def structure_extras(manifest_path: str | Path | None = None, data_path: str | Path | None = None) -> dict[str, Any]:
     """Extra fields for GET /api/structure: the stage set, the loop, the notes and the done-beforehand item."""
     return {
         "stages": stage_set(),
+        "rows": row_set(rows()),
         "loop": {"fit": FIT_STAGE, "choose": CHOOSE_STAGE},
         "notes": {**({"general": general} if (general := loop_note(data_path)) else {}), "stages": stage_notes()},
         "items": [prepare_item(manifest_path)],

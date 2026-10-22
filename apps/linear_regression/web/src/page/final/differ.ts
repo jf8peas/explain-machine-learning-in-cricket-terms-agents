@@ -33,15 +33,27 @@ function axis(max: number): HTMLElement {
   return h("div", { class: "exam-row exam-axis" }, h("span", { class: "exam-name" }), ticks, h("span", { class: "exam-value" }, ""));
 }
 
-function card(exam: "validation" | "test", title: string, caption: string, scores: ExamScores, max: number): HTMLElement {
+function card(exam: "validation" | "test", title: string, caption: string, scores: ExamScores, max: number, withAxis = true): HTMLElement {
   const rows = METHODS.flatMap((m) => scores[m.id] === null ? [] : [bar(m.id, m.token, m.name, scores[m.id] as number, max)]);
   return h("div", { class: `exam-card exam-card-${exam}`, "data-testid": "exam-card", "data-exam": exam },
     h("div", { class: "exam-card-head" }, examPill(exam), h("strong", {}, title)),
-    h("p", { class: "exam-caption" }, caption), ...rows, axis(max), h("p", { class: "visually-hidden" }, "runs off, on average"));
+    h("p", { class: "exam-caption" }, caption), ...rows, ...(withAxis ? [axis(max)] : []), h("p", { class: "visually-hidden" }, "runs off, on average"));
 }
 
 function reason(key: string, title: string, ...text: (Node | string)[]): HTMLElement {
   return h("div", { class: "reason", "data-testid": "reason", "data-reason": key }, h("h4", {}, title), h("p", {}, ...text));
+}
+
+/** The shortest form, for the verdict's Commentary: the two exam cards and the one reason that matters (choosing flatters the pick). */
+export function renderDifferCompact(v: ExamView): HTMLElement[] {
+  const max = scaleMax(v);
+  const lead = [leadSentence(v), bothTiny(v)].filter(Boolean).join(" ");
+  const cards = h("div", { class: "exam-cards", "data-testid": "exam-cards" },
+    card("validation", `Check seasons ${yearsText(v.years)}`, "", v.validation, max, false),
+    card("test", `Final test ${v.years.test}`, "", v.test, max, false));
+  const flatters = h("p", { class: "flatters", "data-testid": "flatters" }, h("strong", {}, "Choosing flatters the pick: "),
+    h("span", { "data-testid": "reason-count" }, String(v.candidateModels)), reasonTwo(v).slice(String(v.candidateModels).length));
+  return [cards, flatters];
 }
 
 /** The section's content. */

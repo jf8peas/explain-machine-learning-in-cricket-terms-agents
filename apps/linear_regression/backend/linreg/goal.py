@@ -70,6 +70,12 @@ def verdict(reference_miss: float, winner_miss: float, winner: str) -> dict[str,
     return {**c, "reached": c["improvement_runs"] >= MARGIN_RUNS, "winner": winner}
 
 
+def agent_verdict(reference_miss: float, agent_miss: float) -> dict[str, Any]:
+    """Judge the AGENT's own model against the goal, from the two displayed average misses. The headlines use this; the
+    pick's verdict (`verdict`) is shown only in the Commentary card that compares check seasons with the final test."""
+    return verdict(reference_miss, agent_miss, "llm")
+
+
 def reference_finding(know_nothing_miss: float, projection_miss: float) -> dict[str, Any]:
     """How good the projection is compared with knowing nothing: clearly, only slightly, or not better."""
     gap = round(know_nothing_miss - projection_miss, 1)

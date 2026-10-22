@@ -5,324 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>How this app was built</title>
-  <meta name="description" content="Under the hood of the linear regression agent: the question it answers, the data it learns from, what happens when you press Play, the agent stage by stage, and how it is shipped." />
+  <meta name="description" content="How the linear regression agent was built: the data it learns from, what happens when you run it live, the agent stage by stage, and how it is shipped." />
   <link rel="stylesheet" href="/src/page/theme.css" />
   <link rel="stylesheet" href="/src/page/under-the-hood/under-the-hood.css" />
 </head>
 <body>
-  <main>
-    <header class="topbar">
-      <a class="about-link" data-testid="back-top" href="/">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Back to the app
-      </a>
-      <a class="about-link" data-testid="link-feedback" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Feedback
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
-      </a>
+  <!-- start at the remembered level before the first paint; src/detail-level/detail-level.ts holds the same rule -->
+  <script>try{document.body.dataset.view=new URLSearchParams(location.search).get("view")==="everything"||localStorage.getItem("linreg:view")==="everything"?"everything":"simple"}catch(e){document.body.dataset.view="simple"}</script>
+  <div class="page">
+    <header class="site-header" data-testid="site-header">
+      <nav class="breadcrumb" data-testid="breadcrumb" aria-label="Breadcrumb">
+        <a class="crumb-site" href="%VITE_SITE_URL%">Explain Machine Learning in Cricket Terms</a>
+        <span class="crumb-sep" aria-hidden="true">›</span>
+        <a href="/">Linear regression</a>
+        <span class="crumb-sep crumb-page" aria-hidden="true">›</span>
+        <span class="crumb-page" aria-current="page">How this app was built</span>
+      </nav>
+      <nav class="about-nav" data-testid="about-nav" aria-label="Page options">
+        <button type="button" class="about-link switch" data-testid="view-switch" aria-pressed="false" aria-label="Show me everything">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7l10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <span class="label">Show me everything</span>
+        </button>
+        <a class="about-link" data-testid="back-top" href="/" aria-label="Back to the app">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span class="label">Back to the app</span>
+        </a>
+        <a class="about-link" data-testid="link-feedback" href="https://github.com/jf8peas/explain-machine-learning-in-cricket-terms-agents/issues" target="_blank" rel="noopener" aria-label="Feedback (opens the GitHub issues page in a new tab)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="label">Feedback</span>
+          <svg class="external" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+      </nav>
     </header>
 
-    <div class="page-head">
-      <p class="eyebrow">Under the hood · linear regression</p>
-      <h1>How this app was built</h1>
-      <p class="lead">The question it answers, the data it learns from, what happens when you press Play, and how the answer reaches the page.</p>
-    </div>
-
-    <nav class="jump" data-testid="jump-links" aria-label="On this page">
-      <a class="pill-link" href="#question">The question</a>
-      <a class="pill-link" href="#data">1 · The data</a>
-      <a class="pill-link" href="#play">2 · Pressing Play</a>
-      <a class="pill-link" href="#agent">3 · Inside the agent</a>
-      <a class="pill-link" href="#what-you-see">4 · What you see</a>
-      <a class="pill-link" href="#shipping">5 · Shipping it</a>
-      <a class="pill-link" href="#people">Who built this</a>
-    </nav>
-
-    <section id="question" aria-labelledby="h-question">
-      <h2 id="h-question">The question</h2>
-      <p>Halfway through a T20 first innings, the broadcaster projects the final total as run rate × 20 overs. This app builds a linear regression that tries to do better, and lets you watch it being built.</p>
-      <div class="cards three">
-        <div class="card"><h3>The goal</h3><p data-figure-group="goal">Miss the real total by at least <span data-figure="goalMargin">not available right now</span> runs less than the TV, on average, on a season nothing was learned or chosen from.</p></div>
-        <div class="card"><h3>The method</h3><p>A language model proposes candidate models. A mechanical grid search competes with it. Code fits and scores every one.</p></div>
-        <div class="card"><h3>The show</h3><p>The work runs as a LangGraph agent. The page replays it step by step, then explains the result in cricket terms.</p></div>
+    <main>
+    <section id="hero" class="hero-band on-dark" data-testid="hero" aria-labelledby="hero-title">
+      <div class="hero-inner built-hero">
+        <p class="kicker">HOW THIS APP WAS BUILT</p>
+        <h1 id="hero-title">The language model chooses. Code does every number.</h1>
+        <p class="hero-lead">A LangGraph agent runs in a Python function on Vercel. A small web page replays it step by step. The data is real ball-by-ball cricket from Cricsheet.</p>
+        <ul class="facts" data-testid="hero-facts">
+          <li><span class="num" data-testid="fact-steps"><span data-figure="agentSteps">not available right now</span></span><span class="what">agent steps</span></li>
+          <li><span class="num" data-testid="fact-llm-steps"><span data-figure="llmSteps">not available right now</span></span><span class="what">use a language model</span></li>
+          <li><span class="num" data-testid="fact-clues"><span data-figure="clues">not available right now</span></span><span class="what">possible clues</span></li>
+          <li><span class="num" data-testid="fact-innings"><span data-figure="totalInnings">not available right now</span></span><span class="what">innings</span></li>
+        </ul>
+        <nav class="jump" data-testid="jump-links" aria-label="On this page">
+          <a class="pill-link" href="#big-picture">Big picture</a>
+          <a class="pill-link" href="#data">1 · Data</a>
+          <a class="pill-link" href="#play">2 · Running it live</a>
+          <a class="pill-link" href="#agent">3 · The agent</a>
+          <a class="pill-link" href="#what-you-see">4 · What you see</a>
+          <a class="pill-link" href="#shipping">5 · Shipping</a>
+          <a class="pill-link" href="#people">Who built this</a>
+        </nav>
       </div>
-      <p class="rule">One rule runs through the whole build: the language model chooses and words things, but every number comes from code.</p>
     </section>
 
-    <section id="big-picture" aria-labelledby="h-big">
-      <h2 id="h-big">The big picture</h2>
-      <div class="cards three">
-        <div class="card"><h3>Your browser</h3><p>A static page, bundled with Vite. It asks for data, replays the run and draws every chart.</p><p class="where">web/</p></div>
-        <div class="card"><h3>A Python function on Vercel</h3><p>FastAPI with six GET routes. It runs the LangGraph agent and streams each step back.</p><p class="where">api/ + backend/linreg/</p></div>
-        <div class="card"><h3>Two data files</h3><p>innings.csv and overs.csv ship inside the function. They are read, never written.</p><p class="where">data/</p></div>
+    <section id="big-picture" class="block" aria-labelledby="h-big">
+      <p class="kicker">Overview</p>
+      <h2 id="h-big">Three parts, two helpers.</h2>
+      <div class="arch" data-testid="arch">
+        <div class="arch-box"><strong>Your browser</strong></div>
+        <span class="arch-link" aria-hidden="true">⇄</span>
+        <div class="arch-box"><strong>A Python function on Vercel</strong>
+          <ul class="chips"><li>OpenRouter · language model</li><li>Upstash Redis · run limits</li></ul></div>
+        <span class="arch-link" aria-hidden="true">←</span>
+        <div class="arch-box"><strong>Two data files</strong></div>
       </div>
-      <p>Done beforehand, by hand: a script turns Cricsheet's ball-by-ball files into the data files. During a run, two outside services help: OpenRouter relays calls to the chosen language model, and Upstash Redis holds the run limits.</p>
+      <div class="commentary" id="commentary-big" data-testid="commentary-big">
+        <span class="commentary-label">Commentary</span>
+        <div class="cards three">
+          <div class="card"><h3>Your browser</h3><p>A static page that asks for data, replays the run and draws every chart.</p><p class="where">web/</p></div>
+          <div class="card"><h3>A Python function</h3><p>FastAPI runs the LangGraph agent and streams each step back.</p><p class="where">api/ + backend/linreg/</p></div>
+          <div class="card"><h3>Two data files</h3><p>innings.csv and overs.csv are read, never written.</p><p class="where">data/</p></div>
+        </div>
+        <p>A script prepared the data by hand beforehand. During a live run, OpenRouter relays calls to the language model and Upstash Redis holds the run limits.</p>
+      </div>
     </section>
 
-    <section id="data" aria-labelledby="h-data">
-      <p class="part">Part 1</p>
-      <h2 id="h-data">The data, prepared before anyone visits</h2>
-      <h3>From Cricsheet to two tables</h3>
-      <p><span class="mono">scripts/prepare_data.py</span> downloads three zips, reads every men's match and keeps the first innings when it can be predicted fairly. It drops <span data-figure="excludedTotal">not available right now</span> matches:</p>
-      <div class="split">
-        <div data-figure-list="exclusions" data-testid="exclusions"><p class="muted">not available right now</p></div>
-        <div>
-          <div class="table-scroll">
-            <table data-testid="counts-table">
-              <thead><tr><th scope="col">Competition</th><th scope="col" class="num">Innings kept</th></tr></thead>
-              <tbody data-figure-list="competitions"><tr><td colspan="2" class="muted">not available right now</td></tr></tbody>
-              <tfoot><tr><th scope="row">Total</th><td class="num"><span data-figure="totalInnings">not available right now</span></td></tr></tfoot>
-            </table>
+    <section id="data" class="block" aria-labelledby="h-data">
+      <p class="kicker">Part 1</p>
+      <h2 id="h-data">Every innings becomes one row of <span data-figure="clues">not available right now</span> possible clues.</h2>
+      <ul class="tiles" data-testid="data-tiles">
+        <li class="tile" data-testid="tile-innings"><span class="tile-value" data-figure="totalInnings">not available right now</span><span class="tile-label">innings, <span data-figure="dateRange">not available right now</span></span></li>
+        <li class="tile" data-testid="tile-clues"><span class="tile-value" data-figure="clues">not available right now</span><span class="tile-label">possible clues</span></li>
+        <li class="tile" data-testid="tile-judged"><span class="tile-value" data-figure="testPopulation">not available right now</span><span class="tile-label">innings judged on</span></li>
+      </ul>
+      <div class="commentary" id="commentary-data" data-testid="commentary-data">
+        <span class="commentary-label">Commentary</span>
+        <div class="cards two">
+          <div class="card">
+            <h4>Fourteen measured at the end of over 10</h4>
+            <ul class="chips">
+              <li>Runs at 10 overs</li><li>Wickets at 10 overs</li><li>Powerplay runs</li><li>Powerplay wickets</li>
+              <li>Runs in overs 7 to 10</li><li>Wickets in overs 7 to 10</li><li>Fours hit</li><li>Sixes hit</li>
+              <li>Dot balls faced</li><li>Extras conceded</li><li>Current partnership runs</li><li>Balls since the last wicket</li>
+              <li>Batting team a full member</li><li>Bowling team a full member</li>
+            </ul>
           </div>
-          <p class="note" data-figure-group="data-span">It writes innings.csv (one row per innings) and overs.csv (the score after every over). The data covers <span data-figure="dateRange">not available right now</span>, downloaded <span data-figure="downloaded">not available right now</span>.</p>
+          <div class="card">
+            <h4>Five worked out from those</h4>
+            <ul class="chips">
+              <li>Wickets in hand</li><li>Runs at 10 overs × wickets in hand</li><li>IPL (0/1) and BBL (0/1)</li><li>Both teams full members</li>
+            </ul>
+            <p class="note"><strong>Why 0/1?</strong> A regression only does arithmetic, so the competition becomes yes/no columns.</p>
+          </div>
         </div>
+        <p><span class="mono">scripts/prepare_data.py</span> keeps the first innings when it can be predicted fairly and drops <span data-figure="excludedTotal">not available right now</span> matches:</p>
+        <div class="split">
+          <div data-figure-list="exclusions" data-testid="exclusions"><p class="muted">not available right now</p></div>
+          <div>
+            <div class="table-scroll">
+              <table data-testid="counts-table">
+                <thead><tr><th scope="col">Competition</th><th scope="col" class="num">Innings kept</th></tr></thead>
+                <tbody data-figure-list="competitions"><tr><td colspan="2" class="muted">not available right now</td></tr></tbody>
+                <tfoot><tr><th scope="row">Total</th><td class="num"><span data-figure="totalInnings">not available right now</span></td></tr></tfoot>
+              </table>
+            </div>
+            <p class="note" data-figure-group="data-span">The data covers <span data-figure="dateRange">not available right now</span>, downloaded <span data-figure="downloaded">not available right now</span>.</p>
+          </div>
+        </div>
+        <p data-figure-group="population"><span data-figure="testPopulation">not available right now</span> of <span data-figure="totalInnings">not available right now</span> innings are predicted: every IPL and BBL innings, plus internationals between full members. Other internationals are only learned from.</p>
       </div>
-
-      <h3>Each innings becomes 19 candidate features</h3>
-      <div class="cards two">
-        <div class="card">
-          <h4>Fourteen measured at the end of over 10</h4>
-          <ul class="chips">
-            <li>Runs at 10 overs</li><li>Wickets at 10 overs</li><li>Powerplay runs</li><li>Powerplay wickets</li>
-            <li>Runs in overs 7 to 10</li><li>Wickets in overs 7 to 10</li><li>Fours hit</li><li>Sixes hit</li>
-            <li>Dot balls faced</li><li>Extras conceded</li><li>Current partnership runs</li><li>Balls since the last wicket</li>
-            <li>Batting team a full member</li><li>Bowling team a full member</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h4>Five worked out from those</h4>
-          <ul class="chips">
-            <li>Wickets in hand</li><li>Runs at 10 overs × wickets in hand</li><li>IPL (0/1) and BBL (0/1)</li><li>Both teams full members</li>
-          </ul>
-          <p class="note"><strong>Why 0/1?</strong> A regression only does arithmetic, so the competition becomes two yes/no columns. A T20 international is 0 in both.</p>
-        </div>
-      </div>
-
-      <h3>Who is predicted</h3>
-      <p data-figure-group="population"><span data-figure="testPopulation">not available right now</span> of <span data-figure="totalInnings">not available right now</span> innings are predicted: every IPL and BBL innings, plus T20 internationals where both teams are ICC full members. Only these are scored; other internationals can still be learned from.</p>
     </section>
 
-    <section id="play" aria-labelledby="h-play">
-      <p class="part">Part 2</p>
-      <h2 id="h-play">What happens when you press Play</h2>
-      <h3>The page makes a few calls; only Play runs the agent</h3>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th scope="col">When</th><th scope="col">Call</th><th scope="col">What happens</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">The page loads</th><td class="mono">/api/structure, /api/models, /api/catalogue, /api/reference</td><td>The graph's shape, the model list, the features and the figures for the chart at the top.</td></tr>
-            <tr><th scope="row">You press Play</th><td class="mono">/api/run?model=…</td><td>The run limits are checked, then the agent runs and streams one event per finished step.</td></tr>
-            <tr><th scope="row">You open the Data tab</th><td class="mono">/api/data</td><td>Every innings, the column definitions and a summary.</td></tr>
-            <tr><th scope="row">Step, Back, sort, filter, Predict</th><td>None</td><td>Done in your browser on data it already has.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>FastAPI is the doorway: a Python web framework that turns ordinary functions into web addresses, so a browser can ask Python to run the agent. It streams results as they happen, and Vercel can run it directly.</p>
-      <h3>On the server, after you press Play</h3>
-      <ol class="steps">
-        <li><span class="n">1</span><div><strong>Vercel receives the request</strong> and hands it to the Python function.</div></li>
-        <li><span class="n">2</span><div><strong>FastAPI finds the right function</strong> for <span class="mono">/run</span>.</div></li>
-        <li class="gate"><span class="n">3</span><div><strong>The gate says yes or no.</strong> Is the model on the list? One run at a time, by default 5 an hour per visitor and 300 a day for the site. A no comes back as a message, and nothing runs.</div></li>
-        <li><span class="n">4</span><div><strong>The agent's graph runs,</strong> node by node.</div></li>
-        <li><span class="n">5</span><div><strong>Each finished node is sent straight back</strong> to your browser while the next one runs.</div></li>
+    <section id="play" class="block" aria-labelledby="h-play">
+      <p class="kicker">Part 2</p>
+      <h2 id="h-play">Only a live run runs the agent. Each step streams back as it finishes.</h2>
+      <ol class="steps tiles-five" data-testid="play-tiles">
+        <li class="tile" data-testid="play-vercel"><span class="n">1</span><strong>Vercel</strong></li>
+        <li class="tile" data-testid="play-fastapi"><span class="n">2</span><strong>FastAPI</strong></li>
+        <li class="tile gate" data-testid="play-gate"><span class="n">3</span><strong>The gate</strong></li>
+        <li class="tile" data-testid="play-agent"><span class="n">4</span><strong>The agent</strong></li>
+        <li class="tile" data-testid="play-stream"><span class="n">5</span><strong>The stream</strong></li>
       </ol>
+      <div class="commentary" id="commentary-play" data-testid="commentary-play">
+        <span class="commentary-label">Commentary</span>
+        <ol class="plain" data-testid="play-notes">
+          <li>Vercel passes the request to Python.</li><li>FastAPI finds the run function.</li><li>The gate says yes or no.</li><li>The agent runs its graph.</li><li>The stream sends each step back.</li>
+        </ol>
+        <div class="table-scroll" data-testid="calls-scroll">
+          <table data-testid="calls-table">
+            <thead><tr><th scope="col">When</th><th scope="col">Call</th><th scope="col">What happens</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">The page loads</th><td class="mono">/api/structure, /api/models, /api/catalogue, /api/reference, /recorded-run.json</td><td>Graph, models, clues, figures and the recorded run.</td></tr>
+              <tr><th scope="row">You start a live run</th><td class="mono">/api/run?model=…</td><td>Limits are checked, then one event per step.</td></tr>
+              <tr><th scope="row">You open The data</th><td class="mono">/api/data</td><td>Every innings and a summary.</td></tr>
+              <tr><th scope="row">Watching, stepping, filtering, predicting</th><td>None</td><td>Done in your browser.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>FastAPI turns ordinary Python functions into web addresses and streams results as they happen.</p>
+        <p data-figure-group="gate-limits" data-testid="gate-limits"><strong>The gate's limits:</strong> one run at a time, <span data-figure="perHour">not available right now</span> an hour per visitor and <span data-figure="perDay">not available right now</span> a day for the site, and a run may take up to <span data-figure="deadline">not available right now</span> seconds.</p>
+      </div>
     </section>
 
-    <section id="agent" aria-labelledby="h-agent">
-      <p class="part">Part 3</p>
-      <h2 id="h-agent">Inside the agent</h2>
-      <h3>First, the eight stages any ML project goes through</h3>
-      <div class="table-scroll">
-        <table>
-          <thead><tr><th scope="col" class="num">#</th><th scope="col">Stage</th><th scope="col">The question an analyst asks</th></tr></thead>
-          <tbody>
-            <tr><td class="num">1</td><th scope="row">Prepare the data</th><td>Is the data clean and in a usable form?</td></tr>
-            <tr><td class="num">2</td><th scope="row">Split the data</th><td>What do we learn from, choose with, and mark on?</td></tr>
-            <tr><td class="num">3</td><th scope="row">Understand the data</th><td>What patterns are there?</td></tr>
-            <tr><td class="num">4</td><th scope="row">Frame the problem</th><td>What are we predicting, and what counts as good?</td></tr>
-            <tr><td class="num">5</td><th scope="row">Choose the candidate model</th><td>Which features, model type and hyperparameters?</td></tr>
-            <tr><td class="num">6</td><th scope="row">Fit the model</th><td>What are the best parameters for this candidate model?</td></tr>
-            <tr><td class="num">7</td><th scope="row">Final assessment</th><td>How good is it on data it has never seen?</td></tr>
-            <tr><td class="num">8</td><th scope="row">Interpret and communicate</th><td>What does it mean?</td></tr>
-          </tbody>
-        </table>
+    <section id="agent" class="block" aria-labelledby="h-agent">
+      <p class="kicker">Part 3</p>
+      <h2 id="h-agent"><span data-figure="stepsWord">The</span> steps, each tagged with one of the eight stages of any ML project.</h2>
+      <graph-replay view="structure" structure-url="/api/structure"></graph-replay>
+      <div class="commentary" id="commentary-agent" data-testid="commentary-agent">
+        <span class="commentary-label">Commentary</span>
+        <div class="cards" data-testid="stage-cards">
+          <div class="card" data-testid="stage-card-1"><h3>1 · Prepare the data</h3><p>load_data checks the data first. <span data-figure-group="stage1-ok">All well: <span data-figure="totalInnings">not available right now</span> innings, <span data-figure="dateRange">not available right now</span>.</span> If not, it says what and the run ends.</p></div>
+          <div class="card" data-testid="stage-card-2"><h3>2 · Split the data</h3><p>Three seasons to choose with, one to test. Each season is predicted only from earlier ones, never at random. The test season is read once.</p></div>
+          <div class="card" data-testid="stage-card-3"><h3>3 · Understand the data</h3><p>Summary statistics from before the test brief the language model. Nothing is fitted here.</p></div>
+          <div class="card" data-testid="stage-card-4"><h3>4 · Frame the problem</h3><p data-figure-group="reference-bar">The bar, on <span data-figure="refInnings">not available right now</span> past innings (<span data-figure="refFirstYear">not available right now</span> to <span data-figure="refLastYear">not available right now</span>): average-total guess <span data-figure="knowNothingMiss">not available right now</span> runs out, TV projection <span data-figure="tvMiss">not available right now</span>.</p><p data-figure-group="tv-bias">The TV guesses <span data-figure="tvBias">not available right now</span> runs <span data-figure="tvBiasWords">not available right now</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
+          <div class="card" data-testid="stage-card-5-6"><h3>5–6 · Choose and fit</h3><p>An idea is four choices: clues, seasons, recency weighting and innings. The agent proposes up to six; a grid search tries every combination. Code scores each on the three check seasons.</p></div>
+          <div class="card" data-testid="stage-card-7"><h3>7 · Final assessment</h3><p>The chosen model is scored once on the test season. The goal is met when it beats the TV by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
+          <div class="card" data-testid="stage-card-8"><h3>8 · Interpret and communicate</h3><p>Code builds the facts. The language model may only reword them, naming facts instead of writing numbers.</p></div>
+        </div>
       </div>
-
-      <h3>The agent's graph: twelve steps, each tagged with its stage</h3>
-      <div class="graph" data-testid="graph-chips">
-        <div class="row"><span class="chip">1 · load_data</span><span class="arrow" aria-hidden="true">→</span><span class="chip">2 · split</span><span class="arrow" aria-hidden="true">→</span><span class="chip">3 · explore</span><span class="arrow" aria-hidden="true">→</span><span class="chip">4 · baseline</span></div>
-        <div class="row"><span class="chip llm">5 · propose_features</span><span class="arrow" aria-hidden="true">→</span><span class="chip">5 · check_proposal</span><span class="arrow" aria-hidden="true">→</span><span class="chip">6 · fit_model</span><span class="arrow" aria-hidden="true">→</span><span class="chip">5 · evaluate</span><span class="loop">↺ loops back, up to six rounds</span></div>
-        <div class="row"><span class="chip">5 · grid_search</span><span class="arrow" aria-hidden="true">→</span><span class="chip">7 · final_test</span><span class="arrow" aria-hidden="true">→</span><span class="chip">8 · explain_in_cricket_terms</span><span class="arrow" aria-hidden="true">→</span><span class="chip llm">8 · write_in_cricket_terms</span></div>
-      </div>
-      <p class="note">The number is the stage. Filled steps call a language model; the other ten are ordinary code.</p>
-
-      <h3>Stage by stage</h3>
-      <div class="toolbar"><button type="button" class="outline-btn" data-testid="toggle-all">Expand all</button></div>
-      <ol class="stages">
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-1" data-testid="stage-header-1" aria-expanded="false" aria-controls="stage-panel-1">
-            <span class="stage-num" aria-hidden="true">1</span>
-            <span class="stage-text"><strong>Prepare the data</strong><span class="stage-sum">load_data checks the data before anything else runs</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-1" data-testid="stage-panel-1" role="region" aria-labelledby="stage-header-1" hidden>
-            <p>On every run it checks that:</p>
-            <ul>
-              <li>innings.csv can be read and has every column</li>
-              <li>no feature value is blank or not a number</li>
-              <li>every worked-out column matches its recipe</li>
-              <li>every 0/1 competition column matches its competition</li>
-              <li>each check season and the test season have at least 100 innings to score</li>
-            </ul>
-            <p><strong>All well:</strong> <span data-figure-group="stage1-ok">it reports <span data-figure="totalInnings">not available right now</span> innings, <span data-figure="dateRange">not available right now</span>, and the run moves on.</span></p>
-            <p><strong>Anything wrong:</strong> it says what, in plain English, and the run ends. No model is fitted or called.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-2" data-testid="stage-header-2" aria-expanded="false" aria-controls="stage-panel-2">
-            <span class="stage-num" aria-hidden="true">2</span>
-            <span class="stage-text"><strong>Split the data</strong><span class="stage-sum">Three seasons to choose with, one to test</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-2" data-testid="stage-panel-2" role="region" aria-labelledby="stage-header-2" hidden>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th scope="col">Role</th><th scope="col">Season</th><th scope="col">Learns from</th></tr></thead>
-                <tbody>
-                  <tr><th scope="row">Check 1</th><td>The first of the three seasons before the latest</td><td>Every earlier season</td></tr>
-                  <tr><th scope="row">Check 2</th><td>The second of those three</td><td>Every earlier season, including check 1</td></tr>
-                  <tr><th scope="row">Check 3</th><td>The third of those three</td><td>Every earlier season, including checks 1 and 2</td></tr>
-                  <tr><th scope="row">Hold-out test</th><td>The latest season, kept for one final test</td><td>Every earlier season, including all three checks</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p><strong>Validation chooses.</strong> Every candidate model is fitted once per check and scored on the mean miss over the three.</p>
-            <p><strong>The test judges.</strong> The latest season is read once, after the choice is made, so it is the honest number.</p>
-            <p><strong>Never at random:</strong> each season is predicted only from the seasons before it.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-3" data-testid="stage-header-3" aria-expanded="false" aria-controls="stage-panel-3">
-            <span class="stage-num" aria-hidden="true">3</span>
-            <span class="stage-text"><strong>Understand the data</strong><span class="stage-sum">Summary statistics brief the language model</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-3" data-testid="stage-panel-3" role="region" aria-labelledby="stage-header-3" hidden>
-            <p>The explore step works out, from seasons before the test:</p>
-            <ul>
-              <li>each feature's correlation with the final total</li>
-              <li>runs added after 10 overs, by wickets down</li>
-              <li>the average total by competition and by season</li>
-              <li>innings per competition per season</li>
-            </ul>
-            <p>These figures go into every message to the language model, so it can reason with real numbers without seeing a single row. Nothing is fitted here.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-4" data-testid="stage-header-4" aria-expanded="false" aria-controls="stage-panel-4">
-            <span class="stage-num" aria-hidden="true">4</span>
-            <span class="stage-text"><strong>Frame the problem</strong><span class="stage-sum">What counts as good: four methods, four measures</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-4" data-testid="stage-panel-4" role="region" aria-labelledby="stage-header-4" hidden>
-            <div class="cards two">
-              <div class="card"><h4>Four methods</h4><ul><li>The know-nothing guess: the average past total</li><li>The TV projection: run rate × 20 overs</li><li>The AI's candidate model</li><li>The rival's candidate model</li></ul></div>
-              <div class="card"><h4>Four measures</h4><ul><li>Average miss in runs</li><li>Share within 10 and within 20 runs</li><li>Miss as a share of a typical total</li><li>Bias: guessing too high or too low</li></ul></div>
-            </div>
-            <p data-figure-group="reference-bar"><strong>The bar,</strong> on <span data-figure="refInnings">not available right now</span> past innings (<span data-figure="refFirstYear">not available right now</span> to <span data-figure="refLastYear">not available right now</span>):</p>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th scope="col">Method</th><th scope="col" class="num">Average miss</th></tr></thead>
-                <tbody>
-                  <tr><th scope="row">Know-nothing guess</th><td class="num"><span data-figure="knowNothingMiss">not available right now</span></td></tr>
-                  <tr><th scope="row">TV projection</th><td class="num"><span data-figure="tvMiss">not available right now</span></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p data-figure-group="tv-bias">Knowing the score at 10 overs barely helps the TV, which guesses <span data-figure="tvBias">not available right now</span> runs <span data-figure="tvBiasWords">not available right now</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">not available right now</span> runs.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-5-6" data-testid="stage-header-5-6" aria-expanded="false" aria-controls="stage-panel-5-6">
-            <span class="stage-num" aria-hidden="true">5–6</span>
-            <span class="stage-text"><strong>Choose and fit</strong><span class="stage-sum">Two searchers propose candidate models; code scores them</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-5-6" data-testid="stage-panel-5-6" role="region" aria-labelledby="stage-header-5-6" hidden>
-            <h4>A candidate model is four choices</h4>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th scope="col">Choice</th><th scope="col">Options</th></tr></thead>
-                <tbody>
-                  <tr><th scope="row">Features</th><td>1 to 8 of the 19</td></tr>
-                  <tr><th scope="row">Training window</th><td>All seasons, or the last 10, 5 or 3</td></tr>
-                  <tr><th scope="row">Recency weighting</th><td>None, gentle or strong</td></tr>
-                  <tr><th scope="row">Training innings</th><td>Test population only, or all</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p class="note">The window and the weighting are hyperparameters: settings chosen before fitting.</p>
-            <p><strong>The AI, up to six rounds.</strong> It proposes; code checks the rules, fits on the training years, scores on the three checks and reports back.</p>
-            <p><strong>The rival, every combination.</strong> A grid search tries all 24 settings, with forward selection inside each.</p>
-            <p><strong>The pick.</strong> The lower validation score goes forward; a tie goes to the AI. If the AI can't take part, the rival's pick goes forward alone.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-7" data-testid="stage-header-7" aria-expanded="false" aria-controls="stage-panel-7">
-            <span class="stage-num" aria-hidden="true">7</span>
-            <span class="stage-text"><strong>Final assessment</strong><span class="stage-sum">One test, once, on a season nothing was chosen from</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-7" data-testid="stage-panel-7" role="region" aria-labelledby="stage-header-7" hidden>
-            <p>Once the choice is made, the winning candidate model is scored a single time on the latest season, the one kept back for the test. It is marked against the same two references, the know-nothing guess and the TV projection, on the same measures: average miss, the share within 10 runs, and bias.</p>
-            <p>The goal is met when the pick beats the TV projection by at least <span data-figure="goalMargin">not available right now</span> runs of average miss.</p>
-            <p class="note">Your run will differ: the AI's choices change from run to run.</p>
-          </div>
-        </li>
-        <li class="stage">
-          <button type="button" class="stage-head" id="stage-header-8" data-testid="stage-header-8" aria-expanded="false" aria-controls="stage-panel-8">
-            <span class="stage-num" aria-hidden="true">8</span>
-            <span class="stage-text"><strong>Interpret and communicate</strong><span class="stage-sum">Code works out the facts; the language model may only word them</span></span>
-            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="stage-body" id="stage-panel-8" data-testid="stage-panel-8" role="region" aria-labelledby="stage-header-8" hidden>
-            <p><strong>Code builds five blocks</strong> from named facts about the run:</p>
-            <ul>
-              <li>the verdict</li>
-              <li>a takeaway on run rate</li>
-              <li>a takeaway on what drives the total</li>
-              <li>a takeaway on the TV projection</li>
-              <li>a rule of thumb</li>
-            </ul>
-            <p><strong>The language model may reword the three takeaways,</strong> naming facts by name instead of writing numbers. A reply with a digit, a word like "too low" or an unknown fact is rejected, and the plain wording stays.</p>
-          </div>
-        </li>
-      </ol>
     </section>
 
-    <section id="what-you-see" aria-labelledby="h-see">
-      <p class="part">Part 4</p>
-      <h2 id="h-see">What you see on the page</h2>
-      <p>Each step arrives as a small event while the agent is still working. Your browser keeps them and replays them at a readable pace, so you can pause, step back and jump without running the agent again.</p>
-      <div class="cards two">
-        <div class="card"><span class="exam-pill exam-pill-validation">VALIDATION</span><h3>Model Selection</h3><p>How the choice was made, on the three check seasons: the contest, how each candidate is scored, the race, the AI's rounds with its reasons, the rival's grid search, and every candidate ranked.</p></div>
-        <div class="card"><span class="exam-pill exam-pill-test">TEST</span><h3>Hold-Out Test</h3><p>How the choice did, once, on the test season: our pick against the goal, why the scores differ from Model Selection, how close each method got, and the takeaways in cricket terms.</p></div>
+    <section id="what-you-see" class="block" aria-labelledby="h-see">
+      <p class="kicker">Part 4</p>
+      <h2 id="h-see">Your browser keeps every step, so you can pause and rewind without running the agent again.</h2>
+      <div class="cards three" data-testid="levels">
+        <div class="card"><h3>Scoreboard</h3><p>A headline, a picture and a short lead. Always shown.</p></div>
+        <div class="card dashed"><h3>Commentary</h3><p>The detail behind each part. Open with Show me everything.</p></div>
+        <div class="card"><h3>Scorebook</h3><p>Every model tried, the agent step by step, the data.</p></div>
       </div>
-      <p>Two scores less than 0.5 runs apart are called too close to call. The graph, the tabs and the data grid are general-purpose components, written so the next seven apps can reuse them.</p>
+      <div class="commentary" id="commentary-see" data-testid="commentary-see">
+        <span class="commentary-label">Commentary</span>
+        <p>Each step arrives as a small event while the agent works. Your browser keeps them, so you can pause, step back and jump.</p>
+        <p>Two scores less than 0.5 runs apart are too close to call. The graph and data grid are reusable components.</p>
+      </div>
     </section>
 
-    <section id="shipping" aria-labelledby="h-ship">
-      <p class="part">Part 5</p>
-      <h2 id="h-ship">How it is built and shipped</h2>
+    <section id="shipping" class="block" aria-labelledby="h-ship">
+      <p class="kicker">Part 5</p>
+      <h2 id="h-ship">One folder, one Vercel project, app 1 of 8.</h2>
       <div class="cards three">
-        <div class="card"><h3>The code</h3><p>Everything for this app sits in one folder: the API, the agent, the data, the preparation script, the page and the tests. Each feature was planned with Spec Kit before it was built.</p></div>
-        <div class="card"><h3>Deployment</h3><p>One Vercel project serves the static page and the Python function, with a 90-second limit per run. The model key and settings live on the server only.</p></div>
-        <div class="card"><h3>Part of a bigger site</h3><p>This is app 1 of 8 for Explain Machine Learning in Cricket Terms, one per algorithm.</p></div>
+        <div class="card"><h3>The code</h3><p>One folder holds the API, the agent, the data, the page and the tests, planned with Spec Kit.</p></div>
+        <div class="card"><h3>Deployment</h3><p>One Vercel project with a 90-second limit per run. The model key stays on the server.</p></div>
+        <div class="card"><h3>The bigger site</h3><p>App 1 of 8 for Explain Machine Learning in Cricket Terms.</p></div>
       </div>
     </section>
 
-    <section id="people" aria-labelledby="h-people">
+    <section id="people" class="block" aria-labelledby="h-people">
       <p class="part">Who built this</p>
       <h2 id="h-people">John Fong</h2>
       <p>John Fong is an on-the-tools business analyst who builds full-stack data products end to end. This app is a personal project exploring how a LangGraph agent can work through a machine-learning problem the way a person would, and explain what it did in cricket terms.</p>
@@ -336,6 +218,7 @@
         </div>
       </div>
     </section>
+    </main>
 
     <footer id="footer" class="page-foot">
       <p>Built by John Fong · Tested by Alesja Tanabe</p>
@@ -352,7 +235,7 @@
         </a>
       </div>
     </footer>
-  </main>
+  </div>
   <script type="module" src="/src/page/under-the-hood/main.ts"></script>
 </body>
 </html>

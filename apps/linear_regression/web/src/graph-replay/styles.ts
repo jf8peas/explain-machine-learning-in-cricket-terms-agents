@@ -45,28 +45,28 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 .status { min-height: 1.4em; color: var(--gr-muted); margin-bottom: 6px; }
 .status.error { color: var(--gr-error); font-weight: 600; }
 .main {
-  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px;
-  grid-template-areas: "graph legend" "graph side";
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px;
+  grid-template-areas: "rows legend" "rows side";
 }
-.main > .graph { grid-area: graph; } .main > .legend { grid-area: legend; } .main > .side { grid-area: side; }
-@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "legend" "graph" "side"; } }
-/* The graph is shown at its natural size at most (the SVG's max-width is set from the layout), so its text stays
-   readable, and the card is never shorter than the right-hand column was when the page loaded (--graph-min). */
-.graph { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 6px; overflow: auto; min-height: var(--graph-min, 0); }
-svg { display: block; width: 100%; height: auto; margin: 0 auto; }
-/* the rows need their width: on a phone the drawing stays at its natural size and the panel scrolls sideways */
-@media (max-width: 760px) { svg { width: var(--graph-w) !important; max-width: none !important; } }
+.main > .graph { grid-area: rows; } .main > .legend { grid-area: legend; } .main > .side { grid-area: side; }
+@media (max-width: 760px) { .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "rows" "side" "legend"; } }
+/* the rows: HTML, so they wrap on a phone and need no measuring */
+.graph { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rows { display: flex; flex-direction: column; gap: 10px; }
 .side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .panel { border: 1px solid var(--gr-border); border-radius: 8px; padding: 8px 10px; background: var(--gr-surface); }
 .panel h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gr-muted); }
 .panel .node-name { font-weight: 700; }
 .state { max-height: 300px; overflow: auto; }
+.raw > summary { cursor: pointer; min-height: 32px; padding: 4px 0; color: var(--gr-text); font-weight: 600; text-decoration: underline; }
 .row { padding: 4px 6px; border-radius: 6px; border: 1px solid transparent; margin-bottom: 3px; }
 .row.changed { background: var(--gr-changed); border-color: var(--gr-changed-border); }
 .row .key { font-weight: 600; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
 .row .badge { font-size: 11px; margin-left: 6px; color: var(--gr-changed-border); font-weight: 700; }
 .row pre { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.35 ui-monospace, Consolas, monospace; color: var(--gr-muted); }
 .row.changed pre { color: var(--gr-text); }
+.path { margin: 10px 0 0; }
+.path > summary { cursor: pointer; min-height: 32px; padding: 4px 0; color: var(--gr-text); font-weight: 600; text-decoration: underline; }
 .timeline { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 10px 0 0; }
 .timeline button { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
 .timeline button[aria-current="step"] { background: var(--gr-accent); color: #fff; border-color: var(--gr-accent); font-weight: 700; }
@@ -80,44 +80,35 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
   background: var(--stage-colour); color: var(--gr-stage-text); font-size: 11px; font-weight: 700; vertical-align: middle; }
 .stage-line .stage-question { color: var(--gr-muted); }
 .stage-line .stage-line-note { display: block; margin-top: 2px; font-size: 12.5px; }
+.stage-line-note-box > summary { cursor: pointer; display: inline; color: var(--gr-text); font-size: 12.5px; text-decoration: underline; }
 .stage-line.unassigned { color: var(--gr-muted); font-style: italic; }
 
-/* graph */
-.edge path { fill: none; stroke: var(--gr-muted); stroke-width: 1.6; }
-.edge.conditional path { stroke-dasharray: 6 4; }
-.edge.taken path { stroke: var(--gr-accent); stroke-width: 2.6; }
-.edge text { fill: var(--gr-muted); font-size: 11px; text-anchor: middle; paint-order: stroke; stroke: var(--gr-surface); stroke-width: 4px; }
-.edge.taken text { fill: var(--gr-accent); font-weight: 700; }
-/* the fit and choose loop, from the second round: heavier edges and a round pill (static, no animation) */
-.edge.loop path { stroke-width: 4.4; }
-.loop-pill rect { fill: var(--gr-accent-soft); stroke: var(--gr-accent); stroke-width: 1.5; }
-.loop-pill text { fill: var(--gr-text); font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
-.node rect, .node circle { fill: var(--gr-bg); stroke: var(--gr-border); stroke-width: 1.6; }
-.node text { fill: var(--gr-text); font-size: 12.5px; text-anchor: middle; dominant-baseline: central; }
-.node.visited rect, .node.visited circle { fill: var(--gr-visited); stroke: var(--gr-visited-border); }
-.node.active rect, .node.active circle { fill: var(--gr-accent-soft); stroke: var(--gr-accent); stroke-width: 3.2; }
-.node.actor-llm rect { fill: var(--gr-llm-bg); stroke: var(--gr-llm); stroke-width: 2.2; stroke-dasharray: 5 3; }
-.node.actor-llm.visited rect { fill: var(--gr-llm-bg); stroke: var(--gr-llm); }
-.node.actor-llm.active rect { stroke-dasharray: none; stroke-width: 3.4; }
-.node .actor-tag-bg { fill: var(--gr-llm); stroke: none; }
-.node .actor-tag { fill: #fff; font-size: 9.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; letter-spacing: .04em; }
-.actor-pill { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--gr-llm); color: #fff; }
+/* rows and steps; a step's stage colour comes from --stage-colour, set per element */
+.row-card { background: var(--gr-surface); border: 1px solid var(--gr-border); border-radius: 8px; padding: 10px 12px; }
+.row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
+.row-title { margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gr-text); }
+.row-note { margin: 0; font-size: 12.5px; color: var(--gr-muted); }
+.row-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
+.step { display: inline-flex; align-items: center; gap: 6px; }
+.arrow { color: var(--gr-muted); font-size: 14px; }
+.row-loop { margin: 8px 0 0; font-size: 12.5px; color: var(--gr-muted); }
+.loop-pill { padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--gr-accent-soft); border: 1px solid var(--gr-accent); color: var(--gr-text); }
+.loop-pill[hidden] { display: none; }
+.node { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 3px 10px 3px 4px; border-radius: 999px;
+  background: var(--gr-bg); border: 1.6px solid var(--gr-border); color: var(--gr-text); }
+.node-name { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.node.visited { background: var(--gr-visited); border-color: var(--gr-visited-border); }
+.node.active { background: var(--gr-accent-soft); border-color: var(--gr-accent); box-shadow: 0 0 0 3px var(--gr-accent); }
+.node.actor-llm { background: var(--gr-llm-bg); border: 2.2px dashed var(--gr-llm); }
+.node.actor-llm.active { border-style: solid; }
+.actor-tag { padding: 0 6px; border-radius: 999px; font-size: 9.5px; font-weight: 700; letter-spacing: .04em; background: var(--gr-llm); color: var(--gr-stage-text); }
+.actor-pill { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--gr-llm); color: var(--gr-stage-text); }
 .actor-pill.code { background: var(--gr-surface); color: var(--gr-muted); border: 1px solid var(--gr-border); }
-.node .tick { font-size: 10px; font-weight: 700; fill: var(--gr-visited-border); text-anchor: end; }
-/* stage badge (on each node) and row (behind the graph); the colour comes from --stage-colour set per element */
-/* more specific than the node's run-state rules (visited, active), so a badge keeps its stage colour whatever the run state */
-.node .stage-badge circle, .item-node .stage-badge circle,
-.node.visited .stage-badge circle, .node.active .stage-badge circle { fill: var(--stage-colour); stroke: var(--gr-bg); stroke-width: 1.5; stroke-dasharray: none; }
-.node .stage-badge text, .item-node .stage-badge text { fill: var(--gr-stage-text); font-size: 10.5px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-.node .stage-badge.unassigned circle, .node.visited .stage-badge.unassigned circle, .node.active .stage-badge.unassigned circle { stroke: var(--gr-muted); stroke-dasharray: 2 2; }
-/* a row: tint only, no border; Start and Finish use the neutral token at a lighter tint */
-.stage-row rect { fill: var(--stage-colour); fill-opacity: .1; stroke: none; }
-.stage-row.edge-row rect { fill-opacity: .06; }
-.stage-row.edge-row .band-name { fill: var(--gr-muted); }
-.band-badge { fill: var(--stage-colour); }
-.band-number { fill: var(--gr-stage-text); font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
-.band-name { fill: var(--gr-text); font-size: 11.5px; font-weight: 600; dominant-baseline: central;
-  paint-order: stroke; stroke: var(--gr-surface); stroke-width: 4px; stroke-linejoin: round; }
+.tick { font-size: 10px; font-weight: 700; color: var(--gr-visited-border); }
+.tick[hidden] { display: none; }
+.stage-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--stage-colour); color: var(--gr-stage-text); font-size: 11px; font-weight: 700; flex: none; }
+.stage-badge.unassigned { border: 1.5px dashed var(--gr-muted); background: var(--gr-bg); color: var(--gr-muted); }
 /* legend */
 .legend[hidden] { display: none; }
 .legend h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gr-muted); }
@@ -151,25 +142,30 @@ svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 }
 /* dimming and highlight, chosen in the legend: classes only, no animation */
 .node.dim, .item-node.dim { opacity: .35; }
-.stage-row.dim { opacity: .3; }
-.node .stage-halo, .item-node .stage-halo { fill: none; stroke: var(--stage-colour); stroke-width: 3.5; visibility: hidden; }
-.node.stage-selected .stage-halo, .item-node.stage-selected .stage-halo { visibility: visible; }
+.node.stage-selected, .item-node.stage-selected { outline: 3px solid var(--stage-colour); outline-offset: 2px; }
 /* the done-beforehand item: dashed and muted, never a step */
-.item-node { cursor: pointer; }
+.item-node { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 3px 10px 3px 4px; border-radius: 999px; cursor: pointer;
+  font: inherit; background: var(--gr-surface); border: 1.6px dashed var(--gr-muted); color: var(--gr-muted); }
+.item-node .node-name { font-family: inherit; font-style: italic; }
 .item-node:focus-visible { outline: 3px solid var(--gr-accent); outline-offset: 3px; }
-.item-node .body { fill: var(--gr-surface); stroke: var(--gr-muted); stroke-width: 1.6; stroke-dasharray: 3 4; }
-.item-node text { fill: var(--gr-muted); font-size: 12px; font-style: italic; text-anchor: middle; dominant-baseline: central; }
-.item-node .item-tag-bg { fill: var(--gr-muted); stroke: none; }
-.item-node .item-tag { fill: var(--gr-bg); font-size: 9px; font-style: normal; font-weight: 700; letter-spacing: .03em; }
-.edge.item-edge path { stroke-dasharray: 2 5; stroke: var(--gr-muted); }
+.item-tag { padding: 0 6px; border-radius: 999px; font-size: 9px; font-weight: 700; letter-spacing: .03em; background: var(--gr-muted); color: var(--gr-bg); }
 .item-panel[hidden] { display: none; }
 .item-panel h3 { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--gr-text); }
 .item-tag-inline { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; background: var(--gr-muted); color: var(--gr-bg); }
 .item-rows { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 6px 0; }
 .item-rows dt { color: var(--gr-muted); } .item-rows dd { margin: 0; font-weight: 600; text-align: right; }
 .item-panel a { color: var(--gr-accent); margin-right: 12px; }
-.stage-row.stage-selected rect { fill-opacity: .2; }
-.marker { fill: var(--gr-accent); stroke: var(--gr-bg); stroke-width: 2; }
-svg [hidden] { display: none; }
+/* a page can show just the rows and the legend (no run controls) */
+:host([view="structure"]) .toolbar, :host([view="structure"]) .status, :host([view="structure"]) .path,
+:host([view="structure"]) .side { display: none; }
+:host([view="structure"]) .wrap { border: 0; padding: 0; background: none; }
+:host([view="structure"]) .legend-note { display: none; }
+/* on a phone every control is at least 44 px tall (last, so it wins against the sizes above) */
+@media (max-width: 760px) {
+  button, select, .timeline button, .legend-stage, .item-node, .raw > summary, .path > summary, .stage-line-note-box > summary { min-height: 44px; }
+  .legend-stage { align-items: center; }
+  summary { display: flex; align-items: center; }
+  .stage-line-note-box > summary { display: inline-flex; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 `;

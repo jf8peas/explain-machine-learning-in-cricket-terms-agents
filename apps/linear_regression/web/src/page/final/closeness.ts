@@ -55,12 +55,12 @@ function closeRow(r: Row, expl: CricketExplanation | undefined): HTMLElement {
 }
 
 /** Section 2's content: the lead, the key, a bar per method and, once the explanation exists, the closing line. */
-export function renderCloseness(rows: Row[], expl: CricketExplanation | undefined, testYear: number | undefined): HTMLElement[] {
+export function renderCloseness(rows: Row[], expl: CricketExplanation | undefined, testYear: number | undefined, withNote = true, withLead = true): HTMLElement[] {
   const lead = h("p", { class: "final-lead" },
     `Every ${testYear === undefined ? "" : `${testYear} `}innings sorted by how far off the prediction was. More of the bar in the darkest shade means more innings called closely.`);
-  const closing = expl && factText(expl, "share_within_10_words")
+  const closing = withNote && expl && factText(expl, "share_within_10_words")
     ? [h("p", { class: "close-note", "data-testid": "close-note" },
         closingText(factText(expl, "share_within_10_words"), factText(expl, "within_runs_threshold")))]
     : [];
-  return [lead, key(), h("div", { class: "close", "data-testid": "close" }, ...rows.map((r) => closeRow(r, expl))), ...closing];
+  return [...(withLead ? [lead] : []), key(), h("div", { class: "close", "data-testid": "close" }, ...rows.map((r) => closeRow(r, expl))), ...closing];
 }
