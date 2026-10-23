@@ -115,14 +115,32 @@ export async function contrastOf(page: Page, selector: string, nth = 0): Promise
     const layers: [number, number, number, number][] = [];
     const up = (n: Element): Element | null => n.parentElement ?? ((n.getRootNode() as ShadowRoot).host ?? null);   // out of a shadow root into its host
     for (let n: Element | null = el; n; n = up(n)) {
+      // feature 024: the hero band's bowler is painted above the band's background and below its content, at the strongest point of the shape
+      const bowler = n.querySelector(":scope > .silhouette-bowler");
+      if (bowler) { const cs = getComputedStyle(bowler); layers.push([...rgba(cs.backgroundColor).slice(0, 3), Number(cs.opacity)] as [number, number, number, number]); }
       const bg = rgba(getComputedStyle(n).backgroundColor);
       if (bg[3] > 0) layers.push(bg);
       if (bg[3] >= 1) break;
     }
     let base: [number, number, number] = rgba(getComputedStyle(document.body).backgroundColor).slice(0, 3) as [number, number, number];
     for (const layer of layers.reverse()) base = over(layer, base);
-    const text = rgba(getComputedStyle(el).color);
-    const fg = over(text, base);
+    // SVG text is coloured by `fill`, HTML text by `color`
+    const isSvgText = el instanceof SVGElement;
+    const text = rgba(isSvgText ? getComputedStyle(el).fill : getComputedStyle(el).color);
+    let fg = over(text, base);
+    // feature 024: the batter is blended over the whole chart area (text included), at the strongest point of the shape
+    const stage = el.closest(".worm-stage");
+    const batter = stage?.querySelector(":scope > .silhouette-batter");
+    if (batter) {
+      const cs = getComputedStyle(batter);
+      const ink = rgba(cs.backgroundColor), a = Number(cs.opacity) * ink[3];
+      const blend = (x: number, c: number) => (cs.mixBlendMode === "screen"
+        ? x * (1 - a) + a * (255 - ((255 - x) * (255 - c)) / 255)
+        : x * (1 - a) + a * ((x * c) / 255));
+      const through = (rgb: [number, number, number]) => [0, 1, 2].map((i) => blend(rgb[i], ink[i])) as [number, number, number];
+      base = through(base);
+      fg = through(fg);
+    }
     const lum = (c: [number, number, number]) => {
       const [r, g, b] = c.map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
       return 0.2126 * r + 0.7152 * g + 0.0722 * b;

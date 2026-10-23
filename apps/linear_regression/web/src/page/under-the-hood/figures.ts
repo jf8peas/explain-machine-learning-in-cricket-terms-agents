@@ -3,7 +3,7 @@
 // A missing or unreadable piece leaves its key out, and the page then shows a placeholder instead of a figure.
 import type { TermsPayload } from "../terms";
 
-export const PLACEHOLDER = "not available right now";
+export const PLACEHOLDER = "na";          // short, so it fits the small fields on a phone
 export const GROUP_PLACEHOLDER = "These figures are not available right now.";
 
 export interface Row { label?: string; value?: string }

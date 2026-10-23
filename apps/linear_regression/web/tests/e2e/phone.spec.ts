@@ -46,7 +46,7 @@ for (const view of ["simple", "everything"] as const) {
 
   test(`How this app was built in the ${view} view has no sideways scroll and every control is at least 44 px tall`, async ({ page }) => {
     await page.goto(`/under-the-hood.html${view === "everything" ? "?view=everything" : ""}`);
-    await expect(page.getByTestId("fact-steps")).not.toHaveText("not available right now");
+    await expect(page.getByTestId("fact-steps")).not.toHaveText("na");
     await expect(page.locator("graph-replay [data-node]").first()).toBeVisible();
     expect(await noSideways(page)).toBe(true);
     const small = (await controls(page)).filter((c) => c.height < 43.5);
@@ -71,7 +71,7 @@ test("the header is one row of the app name and three 44 px icon buttons, each w
 test("a wide table scrolls inside its own box, not the page", async ({ page }) => {
   await page.goto("/under-the-hood.html?view=everything");
   await expect(page.getByTestId("calls-table")).toBeVisible();
-  await expect(page.getByTestId("fact-steps")).not.toHaveText("not available right now");
+  await expect(page.getByTestId("fact-steps")).not.toHaveText("na");
   const box = page.getByTestId("calls-scroll");
   expect(await box.evaluate((el) => getComputedStyle(el).overflowX)).toBe("auto");
   expect(await noSideways(page)).toBe(true);

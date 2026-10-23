@@ -1,5 +1,5 @@
 # Project guidance
 
 <!-- SPECKIT START -->
-Current feature plan: [specs/023-broadcaster-projection/plan.md](specs/023-broadcaster-projection/plan.md)
+Current feature plan: [specs/024-cricket-silhouettes/plan.md](specs/024-cricket-silhouettes/plan.md)
 <!-- SPECKIT END -->

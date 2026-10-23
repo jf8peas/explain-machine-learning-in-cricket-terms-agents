@@ -1,0 +1,53 @@
+/* The decorative cricket silhouettes (feature 024): a bowler behind the hero band and a batter over the run-by-over chart. Both are alpha-mask
+   shapes (silhouettes/*.svg) painted with colour tokens from theme.css; they are empty, hidden from assistive technology, take no layout
+   space, ignore the pointer and are not printed. Imported after simple.css. The Under the hood page does not load this file. */
+
+.silhouette { position: absolute; display: block; pointer-events: none; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; }
+@media print { .silhouette { display: none; } }
+
+/* ---- the hero: the bowler ---- */
+.hero-band { position: relative; overflow: hidden; isolation: isolate; container-type: inline-size; }
+.hero-band > .hero-inner { position: relative; z-index: 1; }
+
+/* His height is a function of the band's WIDTH, never of its current height, so he is the same size and place at the simple level (no
+   Commentary panel) and at "Show me everything" (the band is taller). The lines were fitted to 94% of the band's height at "Show me
+   everything", before a run, measured at viewport widths 360 to 1280 (band width W is the padding box, so 100cqw + 48px, the band's side padding):
+     stacked (below 860 px):  height = 1606.2 - 1.2823 * W   (W 328 to 688: within 4% of 94%)
+     two columns 860-919 px:  735 px   (band 782 px tall)
+     two columns 920 px up:   693 px   (band 737 px tall; the page is capped at 1100 px)
+   Note: between 760 and 859 px the existing hero is a very tall single column (a layout issue of feature 022, not of this file); there he is
+   simply the stacked size. His width follows the shape's ratio (630 x 1013). */
+.silhouette-bowler {
+  --bowler-h: calc(1544.6px - 128.23cqw);
+  --bowler-w: calc(var(--bowler-h) * 630 / 1013);
+  top: 30px; height: var(--bowler-h); width: var(--bowler-w);
+  /* the band is at least as wide as he is: centred */
+  left: calc((100% - var(--bowler-w)) / 2);
+  background: var(--silhouette-on-dark); opacity: var(--silhouette-on-dark-alpha);
+  -webkit-mask-image: url("./silhouettes/bowler-silhouette.svg"); mask-image: url("./silhouettes/bowler-silhouette.svg");
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+}
+@media (min-width: 860px) { .silhouette-bowler { --bowler-h: 735px; } }
+@media (min-width: 920px) { .silhouette-bowler { --bowler-h: 693px; } }
+/* the band is narrower than he is (he is as wide as the band at a band content width of about 508 px): his head and shoulders, 30% of his width
+   in from his left edge, sit at the band's centre, clamped so he always covers the band edge to edge */
+@container (max-width: 507px) {
+  .silhouette-bowler { left: clamp(calc(100% - var(--bowler-w)), calc(50% - 0.3 * var(--bowler-w)), 0px); }
+}
+
+/* a light frosting so he reads softly through the translucent goal card and hero Commentary panel */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .hero-band .goal-card, .hero-band .commentary { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+}
+
+/* ---- the run-by-over chart: the batter ---- */
+/* The chart paints opaque backgrounds, so he is blended over the chart (multiply on light, screen on dark) rather than placed behind it. He is sized
+   from the chart area (not the whole card, so opening "About this chart" does not move him): 95% of its height, and when the area is narrower than
+   that he shrinks to its width (contain), centred. */
+.worm-stage { position: relative; }
+.silhouette-batter {
+  inset: 2.5% 0;
+  background: var(--silhouette); opacity: var(--silhouette-alpha); mix-blend-mode: var(--silhouette-blend);
+  -webkit-mask-image: url("./silhouettes/batter-silhouette.svg"); mask-image: url("./silhouettes/batter-silhouette.svg");
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-position: center; mask-position: center;
+}

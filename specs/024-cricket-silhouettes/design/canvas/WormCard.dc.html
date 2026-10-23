@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chart commentary — batter silhouette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#ffffff}
+a{color:#1d6fe0}a:hover{color:#1557b0}
+</style>
+</helmet>
+<div style="position: relative; overflow: hidden; width: 1440px; height: 881px; background: #ffffff">
+<img src="/_blob/b5228bbc17fcac99ba02fb68ed8f454a" alt="" aria-hidden="true" style="position: absolute; left: {{silLeft}}px; top: 78px; width: 732px; height: 760px; opacity: {{silOpacity}}; transform: scaleX({{flipX}}); pointer-events: none; z-index: 0">
+<img src="/_blob/768e51aca083e82d71f4c679f07c223e" alt="Worm chart: Australia v India, SCG 2020 — context, the prediction and the zoom on the finish" style="position: absolute; left: 0px; top: 0px; width: 1440px; height: 881px; mix-blend-mode: multiply; z-index: 1">
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"silOpacity":{"editor":"range","min":0.02,"max":0.25,"step":0.01,"default":0.07,"section":"Silhouette"},"facing":{"editor":"enum","options":["right","left"],"default":"right","section":"Silhouette"},"silLeft":{"editor":"range","min":100,"max":700,"step":10,"default":358,"unit":"px","section":"Silhouette"},"$preview":{"width":1440,"height":881}}'>
+class Component extends DCLogic {
+renderVals() {
+const facing = this.props.facing ?? 'right';
+return {
+silOpacity: this.props.silOpacity ?? 0.07,
+silLeft: this.props.silLeft ?? 358,
+flipX: facing === 'left' ? -1 : 1
+};
+}
+}
+</script>
+</body>
+</html>

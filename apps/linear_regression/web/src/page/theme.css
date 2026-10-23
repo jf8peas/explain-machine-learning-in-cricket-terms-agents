@@ -8,6 +8,9 @@
   --context-band: #eef0f3; --context-line: #7a8394; --on-accent: #ffffff;
   /* the chart's four method colours, taken from the colours above so they follow the theme */
   --m-know-nothing: var(--muted); --m-broadcaster: var(--text); --m-llm: var(--accent); --m-forward: var(--win);
+  /* the decorative cricket silhouettes (feature 024): the batter follows the text colour and is blended over the chart (multiply on light, screen on dark); the bowler is a fixed light tint because the hero band is dark in both themes */
+  --silhouette: var(--text); --silhouette-alpha: .07; --silhouette-blend: multiply;
+  --silhouette-on-dark: #cbd5e1; --silhouette-on-dark-alpha: .09;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -15,6 +18,7 @@
     --accent: #6ea8ff; --tv: #e8913a; --win: #5fbf86; --lose: #ff8a80; --win-bg: #1b3326; --lose-bg: #3a1f1d;
     --val: #e8a33d; --on-val: #1b1405; --val-bg: #2e2410; --val-text: #f0b45a;
     --context-band: #262d39; --context-line: #9aa5b8; --on-accent: #0b1220;
+    --silhouette-blend: screen;
   }
 }
 * { box-sizing: border-box; }

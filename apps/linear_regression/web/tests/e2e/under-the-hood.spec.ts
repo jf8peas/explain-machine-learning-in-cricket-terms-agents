@@ -10,7 +10,7 @@ const TESTER_URL = "https://www.linkedin.com/in/alesja-tanabe-3207931b1";
 const AUTHOR_LINK = "View LinkedIn profile for John Fong (opens in a new tab)";
 const TESTER_LINK = "View LinkedIn profile for Alesja Tanabe (opens in a new tab)";
 const SECTIONS = ["hero", "big-picture", "data", "play", "agent", "what-you-see", "shipping", "people"] as const;
-const PLACEHOLDER = "not available right now";
+const PLACEHOLDER = "na";
 const GROUP_PLACEHOLDER = "These figures are not available right now.";
 
 const figure = (page: Page, key: string) => page.locator(`[data-figure="${key}"]`).first();

@@ -4,6 +4,7 @@
 import { h, fmt } from "./dom";
 import { bareShortTerm, cap, term } from "./terms";
 import type { Reference } from "./reference-types";
+import { silhouette } from "./silhouette";
 import { mountWorm } from "./worm";
 
 export const KICKER = "THE PROBLEM";
@@ -37,7 +38,7 @@ export function renderProblem(root: HTMLElement, ref: Reference | null): void {
   const commentary = h("div", { "data-region": "commentary", class: "commentary", id: "problem-commentary", "data-testid": "problem-commentary" },
     h("span", { class: "commentary-label" }, "Commentary"));
   const figure = h("figure", { class: "worm-card", "data-testid": "worm-card" },
-    h("div", { "data-testid": "worm-chart" }),
+    h("div", { class: "worm-stage" }, h("div", { "data-testid": "worm-chart" }), silhouette("batter")),
     h("details", { class: "worm-about" }, h("summary", {}, "About this chart"), h("p", { "data-testid": "worm-caption" }, hero?.caption ?? "")));
   if (example && hero?.caption && hero.chart_text && ref.average_total !== null) {
     commentary.append(figure);

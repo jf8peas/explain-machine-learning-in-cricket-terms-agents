@@ -42,7 +42,7 @@ test("after a finished run the main page says broadcaster everywhere and never T
 
 test("the Scorebook's data and the how-it-was-built page never say TV", async ({ page }) => {
   await page.goto("/under-the-hood.html?view=everything");
-  await expect(page.getByTestId("fact-steps")).not.toHaveText("not available right now");
+  await expect(page.getByTestId("fact-steps")).not.toHaveText("na");
   const heard = await everythingHeard(page);
   expect(heard.match(TV), `"TV" in: ${heard.match(/.{0,60}\bTV\b.{0,60}/)?.[0]}`).toBeNull();
   expect(heard).toContain("broadcaster");

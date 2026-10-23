@@ -20,7 +20,7 @@ async function mainText(page: Page, everything: boolean, afterRun: boolean) {
 }
 async function builtText(page: Page, everything: boolean) {
   await page.goto(`/under-the-hood.html${everything ? "?view=everything" : ""}`);
-  await expect(page.getByTestId("fact-steps")).not.toHaveText("not available right now");
+  await expect(page.getByTestId("fact-steps")).not.toHaveText("na");
   await expect(page.locator("graph-replay [data-node]").first()).toBeVisible();
   return visibleMainText(page);
 }

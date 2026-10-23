@@ -4,6 +4,7 @@
 import "./legacy.css";
 import "./commentary.css";
 import "./simple.css";
+import "./silhouette.css";
 import "../graph-replay/graph-replay";
 import { setupHeader } from "../detail-level/site-header";
 import { resolveAnchor } from "./anchors";

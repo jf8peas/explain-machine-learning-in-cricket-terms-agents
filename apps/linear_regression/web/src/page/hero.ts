@@ -7,6 +7,7 @@ import { renderGoalCard, showResultStrip, type GoalCard } from "./goal-card";
 import type { ResultStrip } from "./headlines";
 import { UNAVAILABLE } from "./reference";
 import type { Reference } from "./reference-types";
+import { silhouette } from "./silhouette";
 import { definition, hasTerms, NOT_AVAILABLE, term } from "./terms";
 
 // Without the server's words (its reference could not be loaded) the page still asks its question, with a plain "agent" and "the projected score".
@@ -70,7 +71,7 @@ export function renderHero(root: HTMLElement, ref: Reference | null, onStart: ()
     if (location.hash !== "#watch") history.pushState(null, "", "#watch");
     onStart();
   });
-  root.replaceChildren(h("div", { class: "hero-inner" },
+  root.replaceChildren(silhouette("bowler"), h("div", { class: "hero-inner" },
     h("p", { class: "kicker", "data-testid": "hero-kicker" }, kicker()),
     h("h1", { id: "hero-title", "data-testid": "hero-title" }, question()),
     card,

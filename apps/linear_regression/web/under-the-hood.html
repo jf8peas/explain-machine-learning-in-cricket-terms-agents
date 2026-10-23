@@ -45,10 +45,10 @@
         <h1 id="hero-title">The AI agent chooses. Code does every number.</h1>
         <p class="hero-lead">A LangGraph agent runs in a Python function on Vercel. The data is real ball-by-ball cricket from Cricsheet.</p>
         <ul class="facts" data-testid="hero-facts">
-          <li><span class="num" data-testid="fact-steps"><span data-figure="agentSteps">not available right now</span></span><span class="what">agent steps</span></li>
-          <li><span class="num" data-testid="fact-llm-steps"><span data-figure="llmSteps">not available right now</span></span><span class="what">use a language model</span></li>
-          <li><span class="num" data-testid="fact-clues"><span data-figure="clues">not available right now</span></span><span class="what">possible clues</span></li>
-          <li><span class="num" data-testid="fact-innings"><span data-figure="totalInnings">not available right now</span></span><span class="what">innings</span></li>
+          <li><span class="num" data-testid="fact-steps"><span data-figure="agentSteps">na</span></span><span class="what">agent steps</span></li>
+          <li><span class="num" data-testid="fact-llm-steps"><span data-figure="llmSteps">na</span></span><span class="what">use a language model</span></li>
+          <li><span class="num" data-testid="fact-clues"><span data-figure="clues">na</span></span><span class="what">possible clues</span></li>
+          <li><span class="num" data-testid="fact-innings"><span data-figure="totalInnings">na</span></span><span class="what">innings</span></li>
         </ul>
         <nav class="jump" data-testid="jump-links" aria-label="On this page">
           <a class="pill-link" href="#big-picture">Big picture</a>
@@ -87,11 +87,11 @@
 
     <section id="data" class="block" aria-labelledby="h-data">
       <p class="kicker">Part 1</p>
-      <h2 id="h-data">Every innings becomes one row of <span data-figure="clues">not available right now</span> possible clues.</h2>
+      <h2 id="h-data">Every innings becomes one row of <span data-figure="clues">na</span> possible clues.</h2>
       <ul class="tiles" data-testid="data-tiles">
-        <li class="tile" data-testid="tile-innings"><span class="tile-value" data-figure="totalInnings">not available right now</span><span class="tile-label">innings, <span data-figure="dateRange">not available right now</span></span></li>
-        <li class="tile" data-testid="tile-clues"><span class="tile-value" data-figure="clues">not available right now</span><span class="tile-label">possible clues</span></li>
-        <li class="tile" data-testid="tile-judged"><span class="tile-value" data-figure="testPopulation">not available right now</span><span class="tile-label">innings judged on</span></li>
+        <li class="tile" data-testid="tile-innings"><span class="tile-value" data-figure="totalInnings">na</span><span class="tile-label">innings, <span data-figure="dateRange">na</span></span></li>
+        <li class="tile" data-testid="tile-clues"><span class="tile-value" data-figure="clues">na</span><span class="tile-label">possible clues</span></li>
+        <li class="tile" data-testid="tile-judged"><span class="tile-value" data-figure="testPopulation">na</span><span class="tile-label">innings judged on</span></li>
       </ul>
       <div class="commentary" data-region="commentary" id="commentary-data" data-testid="commentary-data">
         <span class="commentary-label">Commentary</span>
@@ -113,21 +113,21 @@
             <p class="note"><strong>Why 0/1?</strong> A regression only does arithmetic, so the competition becomes yes/no columns.</p>
           </div>
         </div>
-        <p><span class="mono">scripts/prepare_data.py</span> keeps the first innings when it can be predicted fairly and drops <span data-figure="excludedTotal">not available right now</span> matches:</p>
+        <p><span class="mono">scripts/prepare_data.py</span> keeps the first innings when it can be predicted fairly and drops <span data-figure="excludedTotal">na</span> matches:</p>
         <div class="split">
-          <div data-figure-list="exclusions" data-testid="exclusions"><p class="muted">not available right now</p></div>
+          <div data-figure-list="exclusions" data-testid="exclusions"><p class="muted">na</p></div>
           <div>
             <div class="table-scroll">
               <table data-testid="counts-table">
                 <thead><tr><th scope="col">Competition</th><th scope="col" class="num">Innings kept</th></tr></thead>
-                <tbody data-figure-list="competitions"><tr><td colspan="2" class="muted">not available right now</td></tr></tbody>
-                <tfoot><tr><th scope="row">Total</th><td class="num"><span data-figure="totalInnings">not available right now</span></td></tr></tfoot>
+                <tbody data-figure-list="competitions"><tr><td colspan="2" class="muted">na</td></tr></tbody>
+                <tfoot><tr><th scope="row">Total</th><td class="num"><span data-figure="totalInnings">na</span></td></tr></tfoot>
               </table>
             </div>
-            <p class="note" data-figure-group="data-span">The data covers <span data-figure="dateRange">not available right now</span>, downloaded <span data-figure="downloaded">not available right now</span>.</p>
+            <p class="note" data-figure-group="data-span">The data covers <span data-figure="dateRange">na</span>, downloaded <span data-figure="downloaded">na</span>.</p>
           </div>
         </div>
-        <p data-figure-group="population"><span data-figure="testPopulation">not available right now</span> of <span data-figure="totalInnings">not available right now</span> innings are predicted: every IPL and BBL innings, plus internationals between full members. Other internationals are only learned from.</p>
+        <p data-figure-group="population"><span data-figure="testPopulation">na</span> of <span data-figure="totalInnings">na</span> innings are predicted: every IPL and BBL innings, plus internationals between full members. Other internationals are only learned from.</p>
       </div>
     </section>
 
@@ -158,7 +158,7 @@
           </table>
         </div>
         <p>FastAPI turns ordinary Python functions into web addresses and streams results as they happen.</p>
-        <p data-figure-group="gate-limits" data-testid="gate-limits"><strong>The gate's limits:</strong> one run at a time, <span data-figure="perHour">not available right now</span> an hour per visitor and <span data-figure="perDay">not available right now</span> a day for the site, and a run may take up to <span data-figure="deadline">not available right now</span> seconds.</p>
+        <p data-figure-group="gate-limits" data-testid="gate-limits"><strong>The gate's limits:</strong> one run at a time, <span data-figure="perHour">na</span> an hour per visitor and <span data-figure="perDay">na</span> a day for the site, and a run may take up to <span data-figure="deadline">na</span> seconds.</p>
       </div>
     </section>
 
@@ -171,12 +171,12 @@
         <span class="commentary-label">Commentary</span>
         <div data-region="definition" data-testid="brute-force-commentary"><p data-definition="brute_force_technical">not available right now</p><p data-definition="brute_force_honest">not available right now</p></div>
         <div class="cards" data-testid="stage-cards">
-          <div class="card" data-testid="stage-card-1"><h3>1 · Prepare the data</h3><p>load_data checks the data first. <span data-figure-group="stage1-ok">All well: <span data-figure="totalInnings">not available right now</span> innings, <span data-figure="dateRange">not available right now</span>.</span> If not, it says what and the run ends.</p></div>
+          <div class="card" data-testid="stage-card-1"><h3>1 · Prepare the data</h3><p>load_data checks the data first. <span data-figure-group="stage1-ok">All well: <span data-figure="totalInnings">na</span> innings, <span data-figure="dateRange">na</span>.</span> If not, it says what and the run ends.</p></div>
           <div class="card" data-testid="stage-card-2"><h3>2 · Split the data</h3><p>Three seasons to choose with, one to test. Each season is predicted only from earlier ones, never at random. The test season is read once.</p></div>
           <div class="card" data-testid="stage-card-3"><h3>3 · Understand the data</h3><p>Summary statistics from before the test brief the AI agent. Nothing is fitted here.</p></div>
-          <div class="card" data-testid="stage-card-4"><h3>4 · Frame the problem</h3><p data-figure-group="reference-bar">The bar, on <span data-figure="refInnings">not available right now</span> past innings (<span data-figure="refFirstYear">not available right now</span> to <span data-figure="refLastYear">not available right now</span>): average-total guess <span data-figure="knowNothingMiss">not available right now</span> runs out, broadcaster's projection <span data-figure="tvMiss">not available right now</span>.</p><p data-figure-group="tv-bias">The broadcaster guesses <span data-figure="tvBias">not available right now</span> runs <span data-figure="tvBiasWords">not available right now</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
+          <div class="card" data-testid="stage-card-4"><h3>4 · Frame the problem</h3><p data-figure-group="reference-bar">The bar, on <span data-figure="refInnings">na</span> past innings (<span data-figure="refFirstYear">na</span> to <span data-figure="refLastYear">na</span>): average-total guess <span data-figure="knowNothingMiss">na</span> runs out, broadcaster's projection <span data-figure="tvMiss">na</span>.</p><p data-figure-group="tv-bias">The broadcaster guesses <span data-figure="tvBias">na</span> runs <span data-figure="tvBiasWords">na</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">na</span> runs.</p></div>
           <div class="card" data-testid="stage-card-5-6"><h3>5–6 · Choose and fit</h3><p>An idea is four choices: clues, seasons, recency weighting and innings. The agent proposes up to six; the brute-force search tries every combination of settings. Code scores each on the three check seasons.</p></div>
-          <div class="card" data-testid="stage-card-7"><h3>7 · Final assessment</h3><p>The chosen model is scored once on the test season. The goal is met when it beats the broadcaster's projection by at least <span data-figure="goalMargin">not available right now</span> runs.</p></div>
+          <div class="card" data-testid="stage-card-7"><h3>7 · Final assessment</h3><p>The chosen model is scored once on the test season. The goal is met when it beats the broadcaster's projection by at least <span data-figure="goalMargin">na</span> runs.</p></div>
           <div class="card" data-testid="stage-card-8"><h3>8 · Interpret and communicate</h3><p>Code builds the facts. The AI agent may only reword them, naming facts instead of writing numbers.</p></div>
         </div>
       </div>
