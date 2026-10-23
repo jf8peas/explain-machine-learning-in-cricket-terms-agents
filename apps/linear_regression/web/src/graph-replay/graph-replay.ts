@@ -48,6 +48,7 @@ export class GraphReplay extends HTMLElement {
   private itemPanel: ItemPanel | null = null;
   /** The stage picked in the legend: a viewing preference, kept apart from the playback buffer. */
   private selectedStage: string | null = null;
+  private restoringStage = false;
   private abort: AbortController | null = null;
   private runNumber = 0;
   private runFailed = false;
@@ -203,9 +204,24 @@ export class GraphReplay extends HTMLElement {
     const unassigned = steps.filter((n) => !n.stage || !stages.some((s) => s.id === n.stage)).map((n) => n.id);
     this.legend = new Legend(panel, {
       stages, notes: this.structure.notes, withNodes, unassigned,
-      onSelect: (id) => { this.selectedStage = id; this.applyFilter(); },
+      onSelect: (id) => { this.selectedStage = id; this.applyFilter(); if (!this.restoringStage) this.showStage(id); },
     });
-    if (this.selectedStage) this.legend.select(this.selectedStage);
+    if (this.selectedStage) {
+      this.restoringStage = true;   // putting a kept selection back after a redraw must not move the replay
+      this.legend.select(this.selectedStage);
+      this.restoringStage = false;
+    }
+  }
+
+  /** Picking a stage also moves the replay to it: the first step the run has reached in that stage, so the Event and Graph state panels show it.
+   *  If the step on display is already in the stage, or no step in it has been reached yet, the replay stays where it is. */
+  private showStage(id: string | null) {
+    if (!id || !this.drawn) return;
+    const stageOf = (node: string) => { const r = this.drawn?.stageOf.get(node); return r?.state === "assigned" ? r.stage.id : null; };
+    const b = this.buf;
+    if (b.cursor >= 0 && stageOf(b.events[b.cursor].node) === id) return;
+    const index = b.reached.findIndex((e) => stageOf(e.node) === id);
+    if (index >= 0) b.jump(index);
   }
 
   /** Dim every step outside the selected stage, except the active one. A class only: no animation. */

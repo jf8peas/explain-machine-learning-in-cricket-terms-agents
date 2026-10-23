@@ -179,6 +179,34 @@ test("selecting a stage does not open its note, and the note buttons are reachab
   await expect(legendStage(page, "choose")).toHaveAttribute("aria-pressed", "true");     // still selected
 });
 
+test("selecting a stage moves the replay to its first reached step, so the Event panel and the path follow", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page);                                                                      // a finished run, shown at its last step
+  const structure = await (await page.request.get("/api/structure")).json() as { loop: { fit: string } };
+  const current = page.locator('[data-testid="timeline-item"][aria-current="step"]');
+  await expect(page.getByTestId("event-node")).toHaveText("write_in_cricket_terms");
+  await legendStage(page, "split").click();
+  await expect(page.getByTestId("event-node")).toHaveText("split");
+  await expect(page.getByTestId("event-stage")).toHaveAttribute("data-stage", "split");
+  await expect(current).toContainText("split");
+  await legendStage(page, structure.loop.fit).click();
+  await expect(page.getByTestId("event-node")).toHaveText("fit_model");
+  await expect(current).toContainText("fit_model");
+  await legendStage(page, structure.loop.fit).click();                                   // clearing the highlight moves nothing
+  await expect(page.getByTestId("event-node")).toHaveText("fit_model");
+  expect(await dimmed(page).count()).toBe(0);
+  await legendStage(page, "choose").click();                                             // stage 5 has four steps: the first the run reached
+  await expect(page.getByTestId("event-node")).toHaveText("propose_features");
+});
+
+test("selecting a stage with no step reached yet leaves the replay where it is", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openIdle(page);
+  await legendStage(page, "split").click();
+  await expect(page.getByTestId("event-node")).toHaveCount(0);
+  await expect(legendStage(page, "split")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("the technical notes say where selection happens and what is held out", async ({ page }) => {
   await open(page);
   await expect(legendStage(page, "split").locator(".stage-note")).toContainText("test season, read once");
