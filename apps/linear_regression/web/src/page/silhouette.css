@@ -16,10 +16,10 @@
      two columns 860-919 px:  735 px   (band 782 px tall)
      two columns 920 px up:   693 px   (band 737 px tall; the page is capped at 1100 px)
    Note: between 760 and 859 px the existing hero is a very tall single column (a layout issue of feature 022, not of this file); there he is
-   simply the stacked size. His width follows the shape's ratio (630 x 1013). */
+   simply the stacked size. His width follows the shape's ratio (621 x 1008). */
 .silhouette-bowler {
   --bowler-h: calc(1544.6px - 128.23cqw);
-  --bowler-w: calc(var(--bowler-h) * 630 / 1013);
+  --bowler-w: calc(var(--bowler-h) * 621 / 1008);
   top: 30px; height: var(--bowler-h); width: var(--bowler-w);
   /* the band is at least as wide as he is: centred */
   left: calc((100% - var(--bowler-w)) / 2);
@@ -29,9 +29,9 @@
 }
 @media (min-width: 860px) { .silhouette-bowler { --bowler-h: 735px; } }
 @media (min-width: 920px) { .silhouette-bowler { --bowler-h: 693px; } }
-/* the band is narrower than he is (he is as wide as the band at a band content width of about 508 px): his head and shoulders, 30% of his width
+/* the band is narrower than he is (he is as wide as the band at a band content width of about 505 px): his head and shoulders, 30% of his width
    in from his left edge, sit at the band's centre, clamped so he always covers the band edge to edge */
-@container (max-width: 507px) {
+@container (max-width: 504px) {
   .silhouette-bowler { left: clamp(calc(100% - var(--bowler-w)), calc(50% - 0.3 * var(--bowler-w)), 0px); }
 }
 

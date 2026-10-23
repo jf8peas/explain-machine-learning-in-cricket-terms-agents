@@ -1,11 +1,14 @@
 # Cricket silhouettes: a bowler behind the hero, a batter behind the run-by-over chart
 
+Revised 2026-10-23 (afternoon): both silhouettes re-traced with more detail and shaded faces; the batter now comes from
+a sharper photo (a pull shot, one stump). Strengths stay 9 % (bowler, dark band) and 7 % (batter, chart card).
+
 Design drafted 2026-10-23 in Claude Design, on top of feature 023 as committed (`4d0eb83`).
 
 Files:
 
-- `assets/bowler-silhouette.svg`: a fast bowler in the load-up (gathered in the air, about to bowl). 630 × 1013, 15.7 KB.
-- `assets/batter-silhouette.svg`: a batter in the follow-through with the stumps and a ground line. 838 × 870, 4.8 KB.
+- `assets/bowler-silhouette.svg`: a fast bowler in the load-up (gathered in the air, about to bowl). 621 × 1008, 79 KB (about 25 KB compressed).
+- `assets/batter-silhouette.svg`: a batter playing a pull shot, with the leg stump and a ground line. 484 × 693, 23 KB.
 - `canvas/HeroSimple.dc.html`, `canvas/HeroEverything.dc.html`: the hero at the two detail levels (visual reference only).
 - `canvas/PhoneHero.dc.html`, `canvas/PhoneWorm.dc.html`: the hero and the chart card at 390 px (visual reference only;
   their `fit` setting is `focus` for the hero and `width` for the card, the chosen rows C and B).
@@ -20,8 +23,10 @@ behaviour, data or test id changes, and no new dependency.
 
 Both SVGs are **masks**, not pictures: a black shape whose alpha carries the detail (the body at full alpha, the folds of the
 kit and the overlapping limbs at half alpha). The page paints them with a colour token through CSS `mask-image`, so one file
-serves both themes and the colour lives in `theme.css`, never in the SVG. Each was traced from a photo, then simplified: the
-bowler's head is plain silhouette (no face), and the batter's bat and stumps were redrawn as clean shapes.
+serves both themes and the colour lives in `theme.css`, never in the SVG. Each was traced from a photo with three levels of shading
+(the folds of the kit, the limbs, the face) plus fine interior lines (seams, stripes, laces, the hands on the ball or bat).
+The faces are shaded like the rest of the figure, so neither reads as a blank cut-out. The batter's stump was redrawn as a
+clean shape (only the leg stump is visible in the source photo).
 
 They are decoration: `aria-hidden`, no alt text, no text node, not focusable, `pointer-events: none`, never selected by a
 test id that counts words. They are not printed.
@@ -59,7 +64,7 @@ so the bowler reads through them softly rather than sharply.
 | Strength | 7 % opacity (a light background shows a shape more than a dark one, so it is fainter than the bowler) |
 | Horizontal | Centred in the card |
 | Size | Height close to the card's height (about 95 %); width follows the aspect ratio |
-| Facing | As drawn (stumps on the right) |
+| Facing | As drawn (stump on the right) |
 
 The chart's own backgrounds (the grey context band, the zoom panel) may cover parts of him; that is fine. Chart marks, labels
 and the zoom panel are drawn on top, unchanged.
@@ -67,7 +72,7 @@ and the zoom panel are drawn on top, unchanged.
 ## 4. Phones and small screens
 
 Mocked at 390 px on 2026-10-23 (canvas rows "Phone A/B/C"; C chosen for the hero, B for the chart card). Keeping the
-height and centring, as first drafted (row A), crops the bowler's head off on a phone and cuts the batter's bat and stumps.
+height and centring, as first drafted (row A), crops the bowler's head off on a phone and cuts the batter's bat and stump.
 
 **The bowler (hero): keep his height, crop around his head and torso (row C).** His size is the same rule as on desktop
 (height about 94 % of the band at the "Show me everything" level), so the simple view still shows only his top half and
@@ -81,7 +86,7 @@ height and centring, as first drafted (row A), crops the bowler's head off on a 
 
 **The batter (chart card): fit to the card's width (row B).** When the card is at least as wide as his natural width at
 95 % of the card's height (desktop), section 3 applies unchanged. When it is narrower, he shrinks to the card's width
-(the whole figure, bat and stumps included, aspect ratio kept) and is centred vertically in the card.
+(the whole figure, bat and stump included, aspect ratio kept) and is centred vertically in the card.
 
 Neither silhouette ever causes horizontal scrolling.
 
