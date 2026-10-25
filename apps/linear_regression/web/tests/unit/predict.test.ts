@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { featureValues, fieldsFor, predict, projection, validate, type Catalogue, type Model } from "../../src/page/predict";
+import { featureValues, fieldsFor, predict, problems, projection, validate, type Catalogue, type Model } from "../../src/page/predict";
 
 const catalogue: Catalogue = {
   limit: 8,
@@ -41,6 +41,11 @@ describe("validate", () => {
 
   it("accepts good input", () => {
     expect(validate(ok, fields)).toEqual([]);
+  });
+  it("names the field each problem belongs to, so the page can mark it", () => {
+    expect(problems(ok, fields)).toEqual([]);
+    expect(problems({ ...ok, wickets_at_10: 10 }, fields)).toEqual([{ field: "wickets_at_10", message: expect.stringContaining("between 0 and 9") }]);
+    expect(problems({ ...ok, runs_at_10: 40, powerplay_runs: 50 }, fields).map((p) => p.field)).toEqual(["powerplay_runs"]);
   });
   it("says what is wrong, in words", () => {
     expect(validate({ ...ok, runs_at_10: -5 }, fields).join(" ")).toContain("cannot be negative");

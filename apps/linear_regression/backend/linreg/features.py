@@ -25,39 +25,42 @@ def _recipe(recipe: dict) -> dict:
 
 _NAMES = {"ipl": "the IPL", "bbl": "the BBL"}
 
+# Every numeric feature has a "min" and a "max" (issue 1): what is possible after 10 overs of a T20 innings, with room above anything in
+# the data (the largest innings value seen: runs 171, powerplay runs 125, runs in overs 7 to 10 87, fours 21, sixes 15, dot balls 55, extras 27).
+# Ten overs are 60 legal balls, so balls-based features stop at 60. The Your turn form takes these as its min and max.
 CATALOGUE: list[dict] = [
-    {"id": "runs_at_10", "label": "runs scored at the halfway mark", "unit": "runs", "bounds": {"min": 0},
+    {"id": "runs_at_10", "label": "runs scored at the halfway mark", "unit": "runs", "bounds": {"min": 0, "max": 250},
      "description": "Runs the batting side had scored after 10 overs.", "source": _measured()},
     {"id": "wickets_at_10", "label": "wickets lost at the halfway mark", "unit": "wickets", "bounds": {"min": 0, "max": 9},
      "description": "Wickets the batting side had lost after 10 overs.", "source": _measured()},
-    {"id": "powerplay_runs", "label": "runs scored in the powerplay", "unit": "runs", "bounds": {"min": 0},
+    {"id": "powerplay_runs", "label": "runs scored in the powerplay", "unit": "runs", "bounds": {"min": 0, "max": 150},
      "description": "Runs scored in the powerplay, overs 1 to 6.", "source": _measured()},
     {"id": "powerplay_wickets", "label": "wickets lost in the powerplay", "unit": "wickets", "bounds": {"min": 0, "max": 9},
      "description": "Wickets lost in the powerplay, overs 1 to 6.", "source": _measured()},
-    {"id": "runs_overs_7_10", "label": "runs scored in overs 7 to 10", "unit": "runs", "bounds": {"min": 0},
+    {"id": "runs_overs_7_10", "label": "runs scored in overs 7 to 10", "unit": "runs", "bounds": {"min": 0, "max": 120},
      "description": "Runs scored in overs 7 to 10, the stretch just after the powerplay.", "source": _measured()},
     {"id": "wickets_overs_7_10", "label": "wickets lost in overs 7 to 10", "unit": "wickets", "bounds": {"min": 0, "max": 9},
      "description": "Wickets lost in overs 7 to 10, the stretch just after the powerplay.", "source": _measured()},
-    {"id": "fours_at_10", "label": "fours hit", "unit": "fours", "bounds": {"min": 0, "max": 60},
+    {"id": "fours_at_10", "label": "fours hit", "unit": "fours", "bounds": {"min": 0, "max": 40},
      "description": "Fours hit in the first 10 overs.", "source": _measured()},
-    {"id": "sixes_at_10", "label": "sixes hit", "unit": "sixes", "bounds": {"min": 0, "max": 60},
+    {"id": "sixes_at_10", "label": "sixes hit", "unit": "sixes", "bounds": {"min": 0, "max": 40},
      "description": "Sixes hit in the first 10 overs.", "source": _measured()},
-    {"id": "dot_balls_at_10", "label": "dot balls faced", "unit": "balls", "bounds": {"min": 0, "max": 80},
+    {"id": "dot_balls_at_10", "label": "dot balls faced", "unit": "balls", "bounds": {"min": 0, "max": 60},
      "description": "Balls in the first 10 overs that went for no runs at all.", "source": _measured()},
-    {"id": "extras_at_10", "label": "extras conceded", "unit": "runs", "bounds": {"min": 0, "max": 60},
+    {"id": "extras_at_10", "label": "extras conceded", "unit": "runs", "bounds": {"min": 0, "max": 40},
      "description": "Extras the bowling side gave away in the first 10 overs: wides, no-balls, byes and leg-byes.",
      "source": _measured()},
-    {"id": "partnership_runs", "label": "runs in the current partnership", "unit": "runs", "bounds": {"min": 0},
+    {"id": "partnership_runs", "label": "runs in the current partnership", "unit": "runs", "bounds": {"min": 0, "max": 250},
      "description": "Runs scored by the pair at the crease since the last wicket fell, as the 10th over ended.",
      "source": _measured()},
-    {"id": "balls_since_last_wicket", "label": "balls since the last wicket", "unit": "balls", "bounds": {"min": 0, "max": 80},
+    {"id": "balls_since_last_wicket", "label": "balls since the last wicket", "unit": "balls", "bounds": {"min": 0, "max": 60},
      "description": "Legal balls bowled since the last wicket fell, as the 10th over ended. Equals all the balls bowled "
                     "if no wicket had fallen.", "source": _measured()},
     {"id": "wickets_in_hand", "label": "wickets in hand", "unit": "wickets", "bounds": {"min": 1, "max": 10},
      "description": "Wickets still in hand after 10 overs: 10 minus the wickets lost.",
      "source": _recipe({"difference": {"from": 10, "of": "wickets_at_10"}})},
     {"id": "runs_x_wickets_in_hand", "label": "runs at the halfway mark times wickets in hand", "unit": "runs x wickets",
-     "bounds": {"min": 0},
+     "bounds": {"min": 0, "max": 2500},
      "description": "Runs at 10 overs multiplied by wickets in hand. It is high only when a side is scoring fast and "
                     "still has plenty of wickets to attack with.",
      "source": _recipe({"product": ["runs_at_10", "wickets_in_hand"]})},

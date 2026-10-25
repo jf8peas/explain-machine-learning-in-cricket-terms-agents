@@ -101,6 +101,17 @@ test("the prediction uses the agent's model, not the pick's, when they differ", 
   await expect(page.getByTestId("tryit-model")).toHaveText("167");
 });
 
+/** Put a value in a field the way a bypass would (no key presses or input events), then press Predict. */
+const forceAndPredict = async (page: Page, overrides: Record<string, string>) => {
+  for (const name of await askedFor(page)) {
+    const value = overrides[name] ?? PLAUSIBLE[name] ?? "5";
+    await page.locator(`input[name="${name}"]`).evaluate((el, v) => { (el as HTMLInputElement).value = v; }, value);
+  }
+  const select = page.locator("[data-testid=tryit-fields] select");
+  if (await select.count()) await select.selectOption("ipl");
+  await predict(page).click();
+};
+
 test("invalid input shows a message and no prediction", async ({ page }) => {
   await open(page);
   await expect(predict(page)).toBeEnabled();
@@ -109,11 +120,71 @@ test("invalid input shows a message and no prediction", async ({ page }) => {
     ["wickets_at_10", "10", "between 0 and 9"],
     ["runs_at_10", "", "enter a number"],
     ["runs_at_10", "7.5", "whole number"],
+    ["runs_at_10", "1000000136", "between 0 and 250"],
   ]) {
     if (!(await page.locator(`input[name="${name}"]`).count())) continue; // not asked for by this model
-    await fillAll(page, { [name]: value });
+    await forceAndPredict(page, { [name]: value });
     await expect(page.getByTestId("tryit-error")).toContainText(msg);
     await expect(page.getByTestId("tryit-result")).toBeHidden();
+  }
+});
+
+test("a number past a field's maximum cannot be typed or pasted in (issues 2 and 9)", async ({ page }) => {
+  await open(page);
+  const wickets = page.locator('input[name="wickets_at_10"]');
+  const runs = page.locator('input[name="runs_at_10"]');
+  if (await wickets.count()) {
+    await wickets.click();
+    await wickets.pressSequentially("3333333");
+    await expect(wickets).toHaveValue("3");                       // the first digit fits (max 9); the rest are refused
+    await wickets.fill("10");
+    await expect(wickets).toHaveValue("3");                       // a paste or fill past the maximum is taken back
+  }
+  await runs.fill("120");
+  await runs.fill("999999999999");
+  await expect(runs).toHaveValue("120");                          // back to the last value that was in range
+  await runs.fill("250");
+  await expect(runs).toHaveValue("250");                          // the maximum itself is allowed
+});
+
+test("wrong fields get a red border and one short line each, and the message follows the fixing (issues 3 and 9)", async ({ page }) => {
+  await open(page);
+  const names = await askedFor(page);
+  await forceAndPredict(page, { runs_at_10: "", wickets_at_10: "10" });
+  const lines = page.locator("[data-testid=tryit-error] .error-line");
+  await expect(lines.first()).toBeVisible();
+  const bad = await page.locator('[data-testid=tryit-fields] input[aria-invalid="true"]').evaluateAll((els) => els.map((e) => (e as HTMLInputElement).name));
+  expect(bad).toContain("runs_at_10");
+  if (names.includes("wickets_at_10")) expect(bad).toContain("wickets_at_10");
+  expect(await lines.count()).toBe(bad.length);
+  // fix them one by one: each fixed field drops its border and its line; the banner is gone when none is left
+  await page.locator('input[name="runs_at_10"]').fill("80");
+  await expect(page.locator('input[name="runs_at_10"]')).not.toHaveAttribute("aria-invalid", "true");
+  if (names.includes("wickets_at_10")) {
+    await expect(lines).toHaveCount(1);
+    await page.locator('input[name="wickets_at_10"]').fill("2");
+  }
+  await expect(page.getByTestId("tryit-error")).toHaveText("");
+  await expect(page.locator('[data-testid=tryit-fields] input[aria-invalid="true"]')).toHaveCount(0);
+});
+
+test("every number field has a whole-number step, a minimum and a maximum, and the browser refuses a value past the maximum (issue 1)", async ({ page }) => {
+  await open(page);
+  const inputs = await page.locator("[data-testid=tryit-fields] input[type=number]").evaluateAll((els) =>
+    els.map((e) => { const i = e as HTMLInputElement; return { name: i.name, min: i.min, max: i.max, step: i.step }; }));
+  expect(inputs.length).toBeGreaterThan(0);
+  for (const i of inputs) {
+    expect(i.step, i.name).toBe("1");
+    expect(i.min, i.name).not.toBe("");
+    expect(i.max, i.name).not.toBe("");
+    expect(Number(i.max), i.name).toBeGreaterThan(Number(i.min));
+  }
+  const runs = page.locator('input[name="runs_at_10"]');
+  if (await runs.count()) {
+    await runs.evaluate((e) => { (e as HTMLInputElement).value = "1000000136"; });
+    expect(await runs.evaluate((e) => (e as HTMLInputElement).validity.rangeOverflow)).toBe(true);
+    await runs.fill("171");
+    expect(await runs.evaluate((e) => (e as HTMLInputElement).validity.valid)).toBe(true);
   }
 });
 

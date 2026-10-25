@@ -6,7 +6,8 @@
    "description": "Runs the batting side had scored after 10 overs.",
    "unit": "runs",
    "bounds": {
-    "min": 0
+    "min": 0,
+    "max": 250
    },
    "source": {
     "measured": true
@@ -37,7 +38,8 @@
    "description": "Runs scored in the powerplay, overs 1 to 6.",
    "unit": "runs",
    "bounds": {
-    "min": 0
+    "min": 0,
+    "max": 150
    },
    "source": {
     "measured": true
@@ -68,7 +70,8 @@
    "description": "Runs scored in overs 7 to 10, the stretch just after the powerplay.",
    "unit": "runs",
    "bounds": {
-    "min": 0
+    "min": 0,
+    "max": 120
    },
    "source": {
     "measured": true
@@ -100,7 +103,7 @@
    "unit": "fours",
    "bounds": {
     "min": 0,
-    "max": 60
+    "max": 40
    },
    "source": {
     "measured": true
@@ -116,7 +119,7 @@
    "unit": "sixes",
    "bounds": {
     "min": 0,
-    "max": 60
+    "max": 40
    },
    "source": {
     "measured": true
@@ -132,7 +135,7 @@
    "unit": "balls",
    "bounds": {
     "min": 0,
-    "max": 80
+    "max": 60
    },
    "source": {
     "measured": true
@@ -148,7 +151,7 @@
    "unit": "runs",
    "bounds": {
     "min": 0,
-    "max": 60
+    "max": 40
    },
    "source": {
     "measured": true
@@ -163,7 +166,8 @@
    "description": "Runs scored by the pair at the crease since the last wicket fell, as the 10th over ended.",
    "unit": "runs",
    "bounds": {
-    "min": 0
+    "min": 0,
+    "max": 250
    },
    "source": {
     "measured": true
@@ -179,7 +183,7 @@
    "unit": "balls",
    "bounds": {
     "min": 0,
-    "max": 80
+    "max": 60
    },
    "source": {
     "measured": true
@@ -213,7 +217,8 @@
    "description": "Runs at 10 overs multiplied by wickets in hand. It is high only when a side is scoring fast and still has plenty of wickets to attack with.",
    "unit": "runs x wickets",
    "bounds": {
-    "min": 0
+    "min": 0,
+    "max": 2500
    },
    "source": {
     "product": [

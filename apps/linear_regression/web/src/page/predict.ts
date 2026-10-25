@@ -52,28 +52,36 @@ export function fieldsFor(features: string[], catalogue: Catalogue): Field[] {
 
 export type Entered = Record<string, number | string | undefined>;
 
-export function validate(entered: Entered, fields: Field[]): string[] {
-  const errors: string[] = [];
+/** One thing wrong with what was entered, and the field to mark for it. */
+export interface Problem { field: string; message: string }
+
+export function problems(entered: Entered, fields: Field[]): Problem[] {
+  const found: Problem[] = [];
+  const add = (field: string, message: string) => found.push({ field, message });
   for (const f of fields) {
     const v = entered[f.id];
     if (f.kind === "choice") {
-      if (!f.options.some((o) => o.value === v)) errors.push(`${f.label}: choose one.`);
+      if (!f.options.some((o) => o.value === v)) add(f.id, `${f.label}: choose one.`);
       continue;
     }
-    if (v === undefined || typeof v !== "number" || Number.isNaN(v)) errors.push(`${f.label}: enter a number.`);
-    else if (!Number.isInteger(v)) errors.push(`${f.label} must be a whole number.`);
-    else if (v < f.min) errors.push(f.min === 0 ? `${f.label} cannot be negative.` : `${f.label} must be at least ${f.min}.`);
-    else if (f.max !== undefined && v > f.max) errors.push(`${f.label} must be between ${f.min} and ${f.max}.`);
+    if (v === undefined || typeof v !== "number" || Number.isNaN(v)) add(f.id, `${f.label}: enter a number.`);
+    else if (!Number.isInteger(v)) add(f.id, `${f.label} must be a whole number.`);
+    else if (v < f.min) add(f.id, f.min === 0 ? `${f.label} cannot be negative.` : `${f.label} must be at least ${f.min}.`);
+    else if (f.max !== undefined && v > f.max) add(f.id, `${f.label} must be between ${f.min} and ${f.max}.`);
   }
-  if (errors.length) return errors;
+  if (found.length) return found;
   const runs = entered.runs_at_10 as number;
   if (typeof entered.powerplay_runs === "number" && entered.powerplay_runs > runs) {
-    errors.push("Powerplay runs cannot be more than the runs at 10 overs.");
+    add("powerplay_runs", "Powerplay runs cannot be more than the runs at 10 overs.");
   }
   if (typeof entered.runs_overs_7_10 === "number" && entered.runs_overs_7_10 > runs) {
-    errors.push("Runs in overs 7 to 10 cannot be more than the runs at 10 overs.");
+    add("runs_overs_7_10", "Runs in overs 7 to 10 cannot be more than the runs at 10 overs.");
   }
-  return errors;
+  return found;
+}
+
+export function validate(entered: Entered, fields: Field[]): string[] {
+  return problems(entered, fields).map((p) => p.message);
 }
 
 /** Every feature value for the model: the measurements as entered, plus the derived ones from the recipes. */

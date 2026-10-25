@@ -3,7 +3,7 @@
 import { bareShortTerm, cap, methodModel } from "./terms";
 import { loadCatalogue } from "./catalogue";
 import { h } from "./dom";
-import { featureValues, fieldsFor, predict, projection, validate, type Catalogue, type Entered, type Field, type Model } from "./predict";
+import { featureValues, fieldsFor, predict, problems, projection, type Catalogue, type Entered, type Field, type Model } from "./predict";
 
 /** The model the form predicts with, and how to name it: "the agent's model" or "the brute-force search's model". */
 export interface TryModel extends Model { source: "agent" | "search" }
@@ -42,6 +42,30 @@ export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void 
   form.addEventListener("input", remember);
   form.addEventListener("change", remember);
 
+  /** The last value of each number field that was within its range, so a keystroke or paste past the maximum can be taken back (issues 2 and 9). */
+  const lastGood = new Map<string, string>();
+  form.addEventListener("input", (ev) => {
+    const el = ev.target as HTMLInputElement | null;
+    if (!el || el.type !== "number") return;
+    const max = el.max === "" ? Infinity : Number(el.max);
+    if (el.value !== "" && Number(el.value) > max) {
+      el.value = lastGood.get(el.name) ?? "";
+      typed.set(el.name, el.value);
+    } else lastGood.set(el.name, el.value);
+  }, true);
+
+  /** Mark the fields that are wrong (a red border and aria-invalid) and say why, one short line each. Nothing marked when nothing is wrong. */
+  const show = (found: { field: string; message: string }[]) => {
+    for (const el of form.querySelectorAll<HTMLElement>("[name]")) {
+      if (found.some((p) => p.field === el.getAttribute("name"))) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid");
+    }
+    err.replaceChildren(...found.map((p) => h("span", { class: "error-line" }, p.message)));
+  };
+  /** Once a message is showing, it follows what is typed: fixed fields drop out of it and it clears when nothing is left (issue 3). */
+  const refresh = () => { if (err.textContent) show(model && catalogue ? problems(read(), fields) : []); };
+  form.addEventListener("input", refresh);
+  form.addEventListener("change", refresh);
+
   const control = (f: Field): HTMLElement => {
     if (f.kind === "choice") {
       const select = h("select", { name: f.id, "data-testid": `tryit-${f.id}` },
@@ -50,11 +74,11 @@ export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void 
       if (kept !== undefined && f.options.some((o) => o.value === kept)) select.value = kept;
       return h("label", {}, f.label, select);
     }
-    const attrs: Record<string, string> = { name: f.id, type: "number", inputmode: "numeric", min: String(f.min) };
+    const attrs: Record<string, string> = { name: f.id, type: "number", inputmode: "numeric", step: "1", min: String(f.min) };
     if (f.max !== undefined) attrs.max = String(f.max);
     const input = h("input", attrs);
     const kept = typed.get(f.id);
-    if (kept !== undefined) input.value = kept;
+    if (kept !== undefined) { input.value = kept; lastGood.set(f.id, kept); }
     return h("label", {}, f.label, input);
   };
 
@@ -74,12 +98,12 @@ export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void 
   form.addEventListener("submit", (ev) => {
     ev.preventDefault();
     out.hidden = true;
-    err.textContent = "";
+    show([]);
     if (!model || !catalogue) return;
     const entered = read();
-    const problems = validate(entered, fields);
-    if (problems.length) {
-      err.textContent = problems.join(" ");
+    const found = problems(entered, fields);
+    if (found.length) {
+      show(found);
       return;
     }
     const mine = predict(model, featureValues(entered, catalogue));
@@ -99,7 +123,7 @@ export function setupTryIt(root: HTMLElement): (model: TryModel | null) => void 
     shown = key;
     model = m;
     out.hidden = true;
-    err.textContent = "";
+    show([]);
     submit.disabled = true;
     hint.hidden = !!m;
     whose.textContent = m ? `Predicting with ${modelName(m.source)}.` : "";

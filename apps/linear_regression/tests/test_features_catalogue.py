@@ -34,6 +34,23 @@ def test_every_candidate_has_wording_a_unit_and_bounds():
         assert "min" in f["bounds"], f["id"]
 
 
+def test_every_feature_has_a_possible_range_that_holds_all_the_data():
+    """Issue 1: every numeric input has a min and a max, a max above anything in the data, and balls-based features stop at the 60 balls of 10 overs."""
+    from linreg.data_loading import load_innings
+    data = load_innings()
+    for f in features.CATALOGUE:
+        lo, hi = f["bounds"]["min"], f["bounds"].get("max")
+        assert hi is not None and lo < hi, f["id"]
+        if f["id"] in data.columns:
+            assert lo <= data[f["id"]].min() and data[f["id"]].max() <= hi, f["id"]
+        if f["unit"] == "balls":
+            assert hi <= 60, f["id"]
+    by_id = {f["id"]: f["bounds"] for f in features.CATALOGUE}
+    assert by_id["runs_at_10"] == {"min": 0, "max": 250}
+    assert by_id["dot_balls_at_10"]["max"] == by_id["balls_since_last_wicket"]["max"] == 60
+    assert by_id["fours_at_10"]["max"] == by_id["sixes_at_10"]["max"] == 40
+
+
 def test_the_set_size_limit_is_eight():
     assert SET_LIMIT == 8
 

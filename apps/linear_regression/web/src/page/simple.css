@@ -139,6 +139,8 @@
 .try-card form .btn { border: 2px solid var(--band-accent); }
 .try-card form .btn:disabled { opacity: .5; cursor: default; }
 .try-card .error { color: #ffb4ab; font-weight: 600; }
+.try-card .error-line { display: block; }
+.try-card form input[aria-invalid="true"] { border-color: #ffb4ab; box-shadow: 0 0 0 1px #ffb4ab; }
 .try-card .compare { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 8px; }
 .try-card .compare .big { display: block; font-size: 2.75rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .try-card .compare > div:first-child .big { color: #7ee2a8; }
