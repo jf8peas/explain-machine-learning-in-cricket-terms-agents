@@ -81,7 +81,7 @@
 .round-row .reason::before { content: "“"; } .round-row .reason::after { content: "”"; }
 .round-result { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
 .round-result .score { font-size: 1.5rem; line-height: 1; font-variant-numeric: tabular-nums; }
-.status-tag { padding: 1px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; border: 1.5px solid var(--border); background: var(--bg); }
+.status-tag { padding: 1px 10px; border-radius: 14px; font-size: .75rem; font-weight: 700; border: 1.5px solid var(--border); background: var(--bg); }
 .status-tag.status-new_best, .status-tag.status-first_score { border-color: var(--win); color: var(--win); background: var(--win-bg); }
 .status-tag.status-rejected, .status-tag.status-failed { border-color: var(--lose); color: var(--lose); background: var(--lose-bg); }
 .status-tag.status-finished { border-style: dashed; }
@@ -99,6 +99,11 @@
   .round-n { grid-column: 1 / -1; padding: 0; }
   .round-main { grid-column: 1; grid-row: 2; }
   .round-result { grid-column: 2; grid-row: 2; }
+}
+/* A rejected or stopped round says why in a sentence (issue 8): it goes under the idea and the quote, across the row, not in a column beside them */
+.round-row.status-rejected .round-result, .round-row.status-failed .round-result { grid-column: 2 / -1; grid-row: 2; align-items: flex-start; text-align: left; }
+@media (max-width: 560px) {
+  .round-row.status-rejected .round-result, .round-row.status-failed .round-result { grid-column: 1 / -1; grid-row: 3; }
 }
 /* Phones (issue 7): the idea and the quote get the whole row; the score and the status sit on their own line under them, not in a column beside them */
 @media (max-width: 480px) {

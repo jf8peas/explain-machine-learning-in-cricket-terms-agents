@@ -45,9 +45,10 @@ h3 { font-size: 1rem; margin: 16px 0 6px; }
 .about-link.switch[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 @media (max-width: 559px) {
   .breadcrumb .crumb-site, .breadcrumb .crumb-sep, .breadcrumb .crumb-page { display: none; }
-  .about-link { justify-content: center; width: 44px; padding: 0; }
-  .about-link .label, .about-link .external { display: none; }
-  .about-link.switch { padding: 0; }
+  /* the header's links shrink to icons; the footer's keep their words (issue 10) */
+  .about-nav .about-link { justify-content: center; width: 44px; padding: 0; }
+  .about-nav .about-link .label, .about-nav .about-link .external { display: none; }
+  .about-nav .about-link.switch { padding: 0; }
 }
 
 /* The VALIDATION and TEST pills (feature 016), used on the result tabs and the Under the hood page */
