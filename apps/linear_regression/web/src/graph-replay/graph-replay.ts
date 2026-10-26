@@ -86,6 +86,7 @@ export class GraphReplay extends HTMLElement {
           </label>
         </div>
         <div class="status" role="status" aria-live="polite" data-testid="status"></div>
+        <p class="here" data-testid="here" hidden></p>
         <div class="main">
           <div class="graph"><div class="rows" role="group" aria-label="The agent's steps, in rows" data-testid="graph" data-diagram></div></div>
           <section class="panel legend" data-testid="legend" aria-labelledby="h-legend" hidden></section>
@@ -460,6 +461,10 @@ export class GraphReplay extends HTMLElement {
   private updatePanels() {
     const b = this.buf;
     const ev = this.$("#event");
+    // the highlighted step in the rows and the path is the replay's position, not a stage filter: say so
+    const here = this.$(".here");
+    here.hidden = b.cursor < 0;
+    here.textContent = b.cursor < 0 ? "" : `Showing step ${b.events[b.cursor].step} of ${b.finished ? b.events.length : "…"}`;
     if (b.cursor < 0) {
       ev.innerHTML = `<p>Nothing has run yet.</p>`;
       this.$("#state").innerHTML = `<p>The graph's state fills in as each step finishes.</p>`;
@@ -467,7 +472,7 @@ export class GraphReplay extends HTMLElement {
     }
     const e = b.events[b.cursor];
     const actors = this.drawn?.actors;
-    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> ${actors?.get(e.node) === "llm" ? '<span class="actor-pill" data-testid="event-actor">language model step</span>' : actors?.get(e.node) === "code" ? '<span class="actor-pill code" data-testid="event-actor">code step</span>' : ""} <span>· step ${e.step} of ${b.finished ? b.events.length : "…"}</span></p>${this.stageLine(e.node)}<p data-testid="event-summary">${esc(e.summary)}</p>`;
+    ev.innerHTML = `<p><span class="node-name" data-testid="event-node">${esc(e.node)}</span> ${actors?.get(e.node) === "llm" ? '<span class="actor-pill" data-testid="event-actor">language model step</span>' : actors?.get(e.node) === "code" ? '<span class="actor-pill code" data-testid="event-actor">code step</span>' : ""}</p>${this.stageLine(e.node)}<p data-testid="event-summary">${esc(e.summary)}</p>`;
     const state = b.stateAt();
     const changed = new Set(b.changedKeysAt());
     this.$("#state").innerHTML = Object.entries(state).map(([k, v]) => {

@@ -44,6 +44,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: center; }
 .status { min-height: 1.4em; color: var(--gr-muted); margin-bottom: 6px; }
 .status.error { color: var(--gr-error); font-weight: 600; }
+.here { margin: 0 0 6px; color: var(--gr-muted); font-size: .875rem; }
 .main {
   display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px;
   grid-template-areas: "rows legend" "rows side";
@@ -160,13 +161,13 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 .item-rows dt { color: var(--gr-muted); } .item-rows dd { margin: 0; font-weight: 600; text-align: right; }
 .item-panel a { color: var(--gr-accent); margin-right: 12px; }
 /* a page can show just the rows and the legend (no run controls) */
-:host([view="structure"]) .toolbar, :host([view="structure"]) .status, :host([view="structure"]) .path,
+:host([view="structure"]) .toolbar, :host([view="structure"]) .status, :host([view="structure"]) .here, :host([view="structure"]) .path,
 :host([view="structure"]) .side { display: none; }
 :host([view="structure"]) .wrap { border: 0; padding: 0; background: none; }
 :host([view="structure"]) .legend-note { display: none; }
 /* the main page's run view: the rows, and the legend when it is not hidden; the run controls, the event and state panels and the path
    come back when the page removes the compact attribute (Show me everything, after a run) */
-:host([compact]) .toolbar, :host([compact]) .status, :host([compact]) .path,
+:host([compact]) .toolbar, :host([compact]) .status, :host([compact]) .here, :host([compact]) .path,
 :host([compact]) .event-panel, :host([compact]) .state-panel { display: none; }
 :host([compact]) .wrap { border: 0; padding: 0; background: none; }
 /* with the legend and the side panels away the rows have the whole width */

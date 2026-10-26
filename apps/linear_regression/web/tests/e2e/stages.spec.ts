@@ -199,6 +199,21 @@ test("selecting a stage moves the replay to its first reached step, so the Event
   await expect(page.getByTestId("event-node")).toHaveText("propose_features");
 });
 
+test("a label says which step the highlight marks, and choosing All leaves the replay on it (issue 16)", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page);
+  const here = page.getByTestId("here");
+  await legendStage(page, "split").click();
+  await expect(here).toBeVisible();
+  await expect(here).toContainText("Showing step");
+  const text = await here.textContent();
+  await page.getByTestId("legend-all").click();
+  await expect(here).toHaveText(text ?? "");
+  await expect(page.getByTestId("event-node")).toHaveText("split");
+  await page.getByTestId("step").click();
+  await expect(here).not.toHaveText(text ?? "");
+});
+
 test("selecting a stage with no step reached yet leaves the replay where it is", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await openIdle(page);
