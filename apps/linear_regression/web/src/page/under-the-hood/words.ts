@@ -28,10 +28,22 @@ export function fillWords(root: ParentNode): void {
   }
 }
 
-/** A link to #brute-force lands on the definition even though its words arrive after the page: bring it into view and focus it. */
+/** A link to #brute-force lands on the definition even though its words (and the graph above it) arrive after the page: bring it into view and focus
+ *  it, then do it again when the graph has been drawn or the page has loaded, because those push the definition down. Once the visitor scrolls, touches
+ *  or presses a key the page is theirs and it is left alone (issue 11). */
 export function followDefinitionLink(): void {
   if (window.location.hash !== "#brute-force") return;
-  const target = document.getElementById("brute-force");
-  target?.scrollIntoView({ block: "center" });
-  target?.focus({ preventScroll: true });
+  const go = () => {
+    const target = document.getElementById("brute-force");
+    target?.scrollIntoView({ block: "center" });
+    target?.focus({ preventScroll: true });
+  };
+  go();
+  let moved = false;
+  const stop = () => { moved = true; };
+  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) window.addEventListener(type, stop, { once: true, passive: true });
+  const again = () => { if (!moved && window.location.hash === "#brute-force") go(); };
+  document.querySelector("graph-replay")?.addEventListener("structureready", again, { once: true });
+  window.addEventListener("load", again, { once: true });
+  window.setTimeout(again, 2000);   // a slow connection that neither event covers
 }
