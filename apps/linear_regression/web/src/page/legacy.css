@@ -81,9 +81,9 @@ li.setup-chip { padding: 0 8px; border: 1px solid var(--border); border-radius: 
 .exam-tick:last-child { transform: translateX(-100%); }
 .exam-tick:first-child { transform: none; }
 .reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.reason { min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-.reason h4 { margin: 0 0 6px; font-size: 1.05rem; }
-.reason p { margin: 0; line-height: 1.5; }
+.reasons .reason { min-width: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.reasons .reason h4 { margin: 0 0 6px; font-size: 1.05rem; }
+.reasons .reason p { margin: 0; line-height: 1.5; }
 .close { display: flex; flex-direction: column; gap: 14px; }
 .close-key { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .875rem; color: var(--muted); }
 .close-key-item { display: inline-flex; align-items: center; gap: 6px; }

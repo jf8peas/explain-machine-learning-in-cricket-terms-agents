@@ -100,6 +100,12 @@
   .round-main { grid-column: 1; grid-row: 2; }
   .round-result { grid-column: 2; grid-row: 2; }
 }
+/* Phones (issue 7): the idea and the quote get the whole row; the score and the status sit on their own line under them, not in a column beside them */
+@media (max-width: 480px) {
+  .round-row { grid-template-columns: minmax(0, 1fr); }
+  .round-main { grid-column: 1; grid-row: 2; }
+  .round-result { grid-column: 1; grid-row: 3; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px 10px; text-align: left; }
+}
 
 /* ---- the problem ---- */
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; list-style: none; margin: 14px 0 6px; padding: 0; }
