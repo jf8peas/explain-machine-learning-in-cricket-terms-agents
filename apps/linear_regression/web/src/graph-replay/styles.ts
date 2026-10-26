@@ -131,6 +131,7 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
 .legend-notes-all { margin: 0 0 6px; font-size: 12px; padding: 3px 10px; }
 .legend-stage[aria-pressed="true"] { background: var(--gr-accent-soft); border-color: var(--stage-colour); box-shadow: inset 0 0 0 2px var(--stage-colour); }
 .legend-all { margin-bottom: 6px; }
+.legend-all[aria-pressed="true"] { background: var(--gr-accent-soft); border-color: var(--gr-accent); box-shadow: inset 0 0 0 2px var(--gr-accent); font-weight: 700; }
 .legend-unassigned { margin: 0 0 8px; padding: 4px 8px; border: 1px dashed var(--gr-muted); border-radius: 6px; font-size: 12.5px; color: var(--gr-muted); }
 .legend-detail { display: none; margin: 6px 0; }
 .legend-note { margin: 8px 0 0; font-size: 13px; color: var(--gr-muted); }
@@ -178,5 +179,10 @@ label { color: var(--gr-muted); display: inline-flex; gap: 6px; align-items: cen
   summary { display: flex; align-items: center; }
   .stage-line-note-box > summary { display: inline-flex; }
 }
+/* the disclosure arrow is drawn here, not by the browser, so it is the same on every screen (the phone's flex summaries lose the native one) */
+.raw > summary, .path > summary, .stage-line-note-box > summary { list-style: none; }
+.raw > summary::-webkit-details-marker, .path > summary::-webkit-details-marker, .stage-line-note-box > summary::-webkit-details-marker { display: none; }
+.raw > summary::before, .path > summary::before, .stage-line-note-box > summary::before { content: "▸"; display: inline-block; margin-right: 6px; text-decoration: none; }
+.raw[open] > summary::before, .path[open] > summary::before, .stage-line-note-box[open] > summary::before { content: "▾"; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 `;

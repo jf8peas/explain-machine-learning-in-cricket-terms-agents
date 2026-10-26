@@ -249,7 +249,8 @@ test("selecting a stage highlights its nodes and dims the rest; again, or All, c
   await expect(node(page, "fit_model")).toHaveClass(/dim/);
   await page.getByTestId("legend-all").click();                              // All clears
   await expect(dimmed(page)).toHaveCount(0);
-  await expect(page.locator("graph-replay [aria-pressed=\"true\"]")).toHaveCount(0);
+  await expect(page.locator("graph-replay [aria-pressed=\"true\"]")).toHaveCount(1);        // only All is pressed (issue 13)
+  await expect(page.getByTestId("legend-all")).toHaveAttribute("aria-pressed", "true");
 });
 
 test("the legend works by keyboard and announces the selection", async ({ page }) => {

@@ -35,6 +35,8 @@ export interface ReplayChangeDetail {
   failedNode: string | null;
 }
 
+const SHOW_VALUES = "Show every value", HIDE_VALUES = "Hide every value";
+
 const esc = (s: unknown) =>
   String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 
@@ -90,7 +92,7 @@ export class GraphReplay extends HTMLElement {
           <div class="side">
             <section class="panel item-panel" data-testid="item-panel" aria-labelledby="h-item" aria-live="polite" hidden></section>
             <section class="panel event-panel" aria-labelledby="h-event"><h3 id="h-event">Event</h3><div id="event" data-testid="event" aria-live="polite"></div></section>
-            <section class="panel state-panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state" data-region="state"><summary>Show every value</summary><div class="state" id="state" data-testid="state"></div></details></section>
+            <section class="panel state-panel" aria-labelledby="h-state"><h3 id="h-state">Graph state</h3><details class="raw" data-testid="raw-state" data-region="state"><summary>${SHOW_VALUES}</summary><div class="state" id="state" data-testid="state"></div></details></section>
           </div>
         </div>
         <details class="path" data-testid="path"><summary>Path taken</summary><ol class="timeline" aria-label="Path taken" data-testid="timeline"></ol></details>
@@ -98,6 +100,9 @@ export class GraphReplay extends HTMLElement {
     this.applyInterval();
     this.shadowRoot!.addEventListener("click", this.onClick);
     this.shadowRoot!.addEventListener("change", this.onChange);
+    // the state panel's disclosure says what it will do: "Show every value" when closed, "Hide every value" when open
+    const raw = this.$(".raw") as HTMLDetailsElement;
+    raw.addEventListener("toggle", () => { (raw.querySelector("summary") as HTMLElement).textContent = raw.open ? HIDE_VALUES : SHOW_VALUES; });
     window.addEventListener("keydown", this.onKey);
     void this.loadStructure();
     this.update();

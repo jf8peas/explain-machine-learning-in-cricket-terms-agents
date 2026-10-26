@@ -28,9 +28,14 @@ export function fillWords(root: ParentNode): void {
   }
 }
 
+/** True once the visitor has scrolled, touched or pressed a key. Watched from the moment this file loads, before the page's data has arrived, so a
+ *  visitor who moves on while it loads is not pulled back to the definition afterwards (issue 11). */
+let visitorMoved = false;
+for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) window.addEventListener(type, () => { visitorMoved = true; }, { once: true, passive: true });
+
 /** A link to #brute-force lands on the definition even though its words (and the graph above it) arrive after the page: bring it into view and focus
- *  it, then do it again when the graph has been drawn or the page has loaded, because those push the definition down. Once the visitor scrolls, touches
- *  or presses a key the page is theirs and it is left alone (issue 11). */
+ *  it, then do it again when the graph has been drawn or the page has loaded, because those push the definition down. Once the visitor has moved the
+ *  page it is left alone. */
 export function followDefinitionLink(): void {
   if (window.location.hash !== "#brute-force") return;
   const go = () => {
@@ -38,11 +43,8 @@ export function followDefinitionLink(): void {
     target?.scrollIntoView({ block: "center" });
     target?.focus({ preventScroll: true });
   };
-  go();
-  let moved = false;
-  const stop = () => { moved = true; };
-  for (const type of ["wheel", "touchstart", "keydown", "pointerdown"]) window.addEventListener(type, stop, { once: true, passive: true });
-  const again = () => { if (!moved && window.location.hash === "#brute-force") go(); };
+  const again = () => { if (!visitorMoved && window.location.hash === "#brute-force") go(); };
+  again();
   document.querySelector("graph-replay")?.addEventListener("structureready", again, { once: true });
   window.addEventListener("load", again, { once: true });
   window.setTimeout(again, 2000);   // a slow connection that neither event covers

@@ -69,7 +69,7 @@ export class Legend {
       }
       list.append(item);
     }
-    this.all = el("button", { type: "button", class: "legend-all", "data-testid": "legend-all" }, "All");
+    this.all = el("button", { type: "button", class: "legend-all", "data-testid": "legend-all", "aria-pressed": String(this.selectedId === null) }, "All");
     this.all.addEventListener("click", () => this.select(null));
     this.detail = el("p", { class: "legend-detail", "data-testid": "legend-detail" });
     this.live = el("div", { class: "sr-only", role: "status", "aria-live": "polite", "data-testid": "legend-live" });
@@ -114,6 +114,7 @@ export class Legend {
   select(id: string | null) {
     this.selectedId = id;
     for (const [sid, b] of this.buttons) b.setAttribute("aria-pressed", String(sid === id));
+    this.all.setAttribute("aria-pressed", String(id === null));     // All is the selection when no stage is
     this.showDetail();
     const stages = this.opts.stages;
     const i = id === null ? -1 : stages.findIndex((s) => s.id === id);
@@ -125,7 +126,8 @@ export class Legend {
   private showDetail() {
     const stages = this.opts.stages;
     const i = this.selectedId === null ? -1 : stages.findIndex((s) => s.id === this.selectedId);
-    if (i < 0) { this.detail.textContent = "Select a stage."; return; }
+    // short on purpose: this line shows with Show me everything on a phone, where the page is close to its word limit (feature 022)
+    if (i < 0) { this.detail.textContent = `All ${stages.length} stages shown. Pick a number to read one.`; return; }
     const note = this.opts.notes?.stages?.[stages[i].id];
     this.detail.textContent = `${i + 1}. ${stages[i].name}: ${stages[i].question}${note ? ` ${note}` : ""}`;
   }
