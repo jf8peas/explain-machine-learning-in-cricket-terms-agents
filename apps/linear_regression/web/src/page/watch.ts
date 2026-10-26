@@ -263,9 +263,15 @@ export function setupWatch(root: HTMLElement, deps: WatchDeps): Watch {
 
   return {
     render,
+    /** Scroll to the player, then focus the AI picker once the page has stopped moving, so a phone's own picker opens where the select now is (issue 6). */
     focusPicker() {
+      const before = window.scrollY;
       root.scrollIntoView({ block: "start" });
-      player.focusSelect();
+      if (window.scrollY === before || !("onscrollend" in window)) { requestAnimationFrame(() => player.focusSelect()); return; }
+      let done = false;
+      const focus = () => { if (done) return; done = true; clearTimeout(fallback); window.removeEventListener("scrollend", focus); player.focusSelect(); };
+      const fallback = window.setTimeout(focus, 400);   // a browser that never reports the end of the scroll
+      window.addEventListener("scrollend", focus, { once: true });
     },
   };
 }

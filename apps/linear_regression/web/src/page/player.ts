@@ -66,7 +66,7 @@ export function buildPlayer(fetchModels: () => Promise<ModelsResponse | null> = 
     chosen: () => ({ url: runUrl(picked()?.choice ?? null), name: picked()?.name ?? "the default model" }),
     onPlay: (handler) => play.addEventListener("click", handler),
     onWatchAgain: (handler) => again.addEventListener("click", handler),
-    focusSelect: () => select.focus(),
+    focusSelect: () => select.focus({ preventScroll: true }),   // the page has already been scrolled to the section; focusing must not scroll it again
     render(state, doing, kind) {
       const b = buttons(state);
       play.textContent = b.play.label;
