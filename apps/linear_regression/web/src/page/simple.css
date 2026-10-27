@@ -209,6 +209,11 @@
 .player-controls { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(80, 90, 220, .08); border: 1px solid rgba(80, 90, 220, .45); }
 .player-controls .field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; }
 .player-controls select { font: inherit; font-size: 1rem; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); max-width: 100%; }
+/* The open list of a dropdown is drawn by the browser from the option's own colours, so each option names a text and a background that go together (issue 20):
+   the dark panels' translucent fields would otherwise leave light text on the browser's white list. */
+.try-card form select option { background: var(--band-bg); color: var(--band-text); }
+.live-panel select option, .player-controls select option { background: var(--bg); color: var(--text); }
+.on-dark { color-scheme: dark; }
 .player-controls .model-note { margin: 0; font-size: .875rem; }
 .player-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .player-actions .btn { min-height: 48px; }
