@@ -67,7 +67,7 @@
 .player > .commentary { margin-top: 10px; }
 .live-panel { background: rgba(80, 90, 220, .08); border: 1px solid rgba(80, 90, 220, .45); border-style: solid; }
 .live-panel .field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; }
-.live-panel select { font: inherit; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+.live-panel select { font: inherit; font-size: 1rem; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
 .model-note { margin: 6px 0 0; font-size: .875rem; }
 .variation-note { margin: 10px 0; font-size: .9rem; }
 .live-actions { margin: 10px 0 0; }
@@ -146,7 +146,8 @@
 .try-card .muted { color: var(--band-muted); }
 .try-card form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 10px 0; }
 .try-card form label { display: flex; flex-direction: column; font-size: .875rem; color: var(--band-muted); gap: 4px; }
-.try-card form input, .try-card form select { font: inherit; min-height: 44px; width: 9.5em; padding: 0 10px; border: 1px solid var(--band-line); border-radius: 8px; background: rgba(255, 255, 255, .08); color: var(--band-text); }
+/* 16px, not the label's 14px: iOS Safari zooms the page when a field is smaller (issue 19); the width keeps its old size */
+.try-card form input, .try-card form select { font: inherit; font-size: 1rem; min-height: 44px; width: calc(9.5 * .875rem); padding: 0 10px; border: 1px solid var(--band-line); border-radius: 8px; background: rgba(255, 255, 255, .08); color: var(--band-text); }
 .try-card form .btn { border: 2px solid var(--band-accent); }
 .try-card form .btn:disabled { opacity: .5; cursor: default; }
 .try-card .error { color: #ffb4ab; font-weight: 600; }
@@ -207,7 +208,7 @@
 /* the player: the picker, the buttons, the lines under them */
 .player-controls { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(80, 90, 220, .08); border: 1px solid rgba(80, 90, 220, .45); }
 .player-controls .field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; }
-.player-controls select { font: inherit; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); max-width: 100%; }
+.player-controls select { font: inherit; font-size: 1rem; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); max-width: 100%; }
 .player-controls .model-note { margin: 0; font-size: .875rem; }
 .player-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .player-actions .btn { min-height: 48px; }
