@@ -1,6 +1,6 @@
 // The page's one run state (feature 022, app-specific, pure): where the reader's current run is (idle, running, finished or failed) and
 // the visit's last run that reached its final test. Everything that depends on a run reads it: the button, the status line, the graph's
-// ring, "Right now", and every lock (verdict, Your turn, the run-dependent Scorebook cards). Nothing is stored: a reload is a new state.
+// ring, "Right now", and every lock (verdict, Your turn, the run-dependent Scorebook cards). Nothing is stored except for a visit to another page and back (run-store.ts): a reload is a new state.
 import { foldState, type StepEvent } from "../graph-replay/buffer";
 import { term } from "./terms";
 

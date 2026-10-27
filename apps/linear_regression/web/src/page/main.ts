@@ -1,6 +1,6 @@
 // The main page (feature 022, app-specific): the reader states the goal, presses play, watches the graph and sees the result when their
 // run finishes. This file holds the page's one run state and wires the sections to it; each section has its own module. Nothing about
-// a run is stored: a reload starts idle.
+// a run is kept only while the reader visits another page of the app and comes back (run-store.ts); a reload starts idle.
 import "./legacy.css";
 import "./commentary.css";
 import "./simple.css";
@@ -14,6 +14,7 @@ import { renderProblem } from "./problem";
 import { loadReference } from "./reference";
 import type { Reference } from "./reference-types";
 import { initialRunState, lock, resultStrip, type RunState } from "./run-state";
+import { saveRun, takeSavedRun } from "./run-store";
 import { setupScorebook } from "./scorebook";
 import { agentModel, setupTryIt } from "./tryit";
 import { renderVerdict } from "./verdict";
@@ -23,7 +24,9 @@ const section = (id: string) => document.getElementById(id) as HTMLElement;
 
 setupHeader();
 
-let run: RunState = initialRunState();
+// coming back from another page (Under the hood, say) finds the last finished run as it was left
+const saved = takeSavedRun();
+let run: RunState = saved ? { phase: "finished", current: saved, last: saved, message: null, before: null } : initialRunState();
 let reference: Reference | null = null;
 let hero: Hero | null = null;
 
@@ -34,6 +37,8 @@ tryRoot.before(tryLocked);
 
 const scorebook = setupScorebook(section("scorebook"), () => run.last);
 const watch = setupWatch(section("watch"), { state: () => run, set });
+if (saved) watch.showFinished(saved.events);
+window.addEventListener("pagehide", () => saveRun(run.last));
 
 /** What the verdict section was last drawn from, so it is redrawn only when its content changes (a toggle the reader opened stays open). */
 let drawnVerdict: { last: unknown; key: string } | null = null;

@@ -37,6 +37,8 @@ export interface Watch {
   render(state: RunState): void;
   /** Move the reader to the picker: scroll to it and focus the select. */
   focusPicker(): void;
+  /** Put a finished run on the graph at its last step without playing it (the run kept while the reader was on another page). */
+  showFinished(events: StepEvent[]): void;
 }
 
 const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -273,6 +275,11 @@ export function setupWatch(root: HTMLElement, deps: WatchDeps): Watch {
 
   return {
     render,
+    /** Put a finished run on the graph at its last step, without playing it: the run kept while the reader was on another page. */
+    showFinished(events: StepEvent[]) {
+      const show = () => { replay.loadRun(events); replay.showEnd(); };
+      if (replay.isReady) show(); else replay.addEventListener("structureready", show, { once: true });
+    },
     /** Scroll to the player, then focus the AI picker once the page has stopped moving, so a phone's own picker opens where the select now is (issue 6). */
     focusPicker() {
       const before = window.scrollY;
