@@ -127,7 +127,7 @@ describe("the explanations", () => {
 // ---------------- feature 020: the counts and the gate's limits, from the structure, the catalogue and the models list ----------------
 
 const structure = JSON.parse(readFileSync("tests/fixtures/linreg-structure.json", "utf8"));
-const catalogue = { features: Array.from({ length: 19 }, (_, i) => ({ id: `f${i}` })) };
+const catalogue = { features: Array.from({ length: 19 }, (_, i) => ({ id: `f${i}`, source: i < 14 ? { measured: true } : { product: ["a", "b"] } })) };
 const models = { run: { per_hour: 5, per_day: 300, deadline_seconds: 80 } };
 
 describe("the counted facts and the gate's limits", () => {
@@ -141,6 +141,16 @@ describe("the counted facts and the gate's limits", () => {
 
   it("count the clues from the catalogue", () => {
     expect(figures.clues).toBe("19");
+  });
+
+  it("count the measured and worked-out clues for the two headings", () => {
+    expect(figures.measuredWord).toBe("Fourteen");
+    expect(figures.derivedWord).toBe("Five");
+  });
+
+  it("count the check seasons from the reference", () => {
+    expect(figures.checkSeasonsWord).toBe("Three");
+    expect(buildFigures(data, { ...reference, check_seasons: null }).checkSeasonsWord).toBeUndefined();
   });
 
   it("read the gate's limits from the models list", () => {

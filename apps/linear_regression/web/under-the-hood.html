@@ -97,7 +97,7 @@
         <span class="commentary-label">Commentary</span>
         <div class="cards two">
           <div class="card">
-            <h4>Fourteen measured at the end of over 10</h4>
+            <h4><span data-figure="measuredWord">na</span> measured at the end of over 10</h4>
             <ul class="chips">
               <li>Runs at 10 overs</li><li>Wickets at 10 overs</li><li>Powerplay runs</li><li>Powerplay wickets</li>
               <li>Runs in overs 7 to 10</li><li>Wickets in overs 7 to 10</li><li>Fours hit</li><li>Sixes hit</li>
@@ -106,7 +106,7 @@
             </ul>
           </div>
           <div class="card">
-            <h4>Five worked out from those</h4>
+            <h4><span data-figure="derivedWord">na</span> worked out from those</h4>
             <ul class="chips">
               <li>Wickets in hand</li><li>Runs at 10 overs × wickets in hand</li><li>IPL (0/1) and BBL (0/1)</li><li>Both teams full members</li>
             </ul>
@@ -158,7 +158,7 @@
           </table>
         </div>
         <p>FastAPI turns ordinary Python functions into web addresses and streams results as they happen.</p>
-        <p data-figure-group="gate-limits" data-testid="gate-limits"><strong>The gate's limits:</strong> one run at a time, <span data-figure="perHour">na</span> an hour per visitor and <span data-figure="perDay">na</span> a day for the site, and a run may take up to <span data-figure="deadline">na</span> seconds.</p>
+        <p data-figure-group="gate-limits" data-testid="gate-limits"><strong>The gate's limits:</strong> one run at a time and <span data-figure="perHour">na</span> an hour per visitor, <span data-figure="perDay">na</span> a day for the site, and a run may take up to <span data-figure="deadline">na</span> seconds.</p>
       </div>
     </section>
 
@@ -172,7 +172,7 @@
         <div data-region="definition" data-testid="brute-force-commentary"><p data-definition="brute_force_technical">not available right now</p><p data-definition="brute_force_honest">not available right now</p></div>
         <div class="cards" data-testid="stage-cards">
           <div class="card" data-testid="stage-card-1"><h3>1 · Prepare the data</h3><p>load_data checks the data first. <span data-figure-group="stage1-ok">All well: <span data-figure="totalInnings">na</span> innings, <span data-figure="dateRange">na</span>.</span> If not, it says what and the run ends.</p></div>
-          <div class="card" data-testid="stage-card-2"><h3>2 · Split the data</h3><p>Three seasons to choose with, one to test. Each season is predicted only from earlier ones, never at random. The test season is read once.</p></div>
+          <div class="card" data-testid="stage-card-2"><h3>2 · Split the data</h3><p><span data-figure="checkSeasonsWord">na</span> seasons to choose with, one to test. Each season is predicted only from earlier ones, never at random. The test season is read once.</p></div>
           <div class="card" data-testid="stage-card-3"><h3>3 · Understand the data</h3><p>Summary statistics from before the test brief the AI agent. Nothing is fitted here.</p></div>
           <div class="card" data-testid="stage-card-4"><h3>4 · Frame the problem</h3><p data-figure-group="reference-bar">The bar, on <span data-figure="refInnings">na</span> past innings (<span data-figure="refFirstYear">na</span> to <span data-figure="refLastYear">na</span>): average-total guess <span data-figure="knowNothingMiss">na</span> runs out, broadcaster's projection <span data-figure="tvMiss">na</span>.</p><p data-figure-group="tv-bias">The broadcaster guesses <span data-figure="tvBias">na</span> runs <span data-figure="tvBiasWords">na</span> on average. The goal is to beat it by at least <span data-figure="goalMargin">na</span> runs.</p></div>
           <div class="card" data-testid="stage-card-5-6"><h3>5–6 · Choose and fit</h3><p>An idea is four choices: clues, seasons, recency weighting and innings. The agent proposes up to six; the brute-force search tries every combination of settings. Code scores each on the three check seasons.</p></div>
@@ -202,7 +202,7 @@
       <h2 id="h-ship">One folder, one Vercel project, app 1 of 8.</h2>
       <div class="cards three">
         <div class="card"><h3>The code</h3><p>One folder holds the API, agent, data, page and tests.</p></div>
-        <div class="card"><h3>Deployment</h3><p>One Vercel project with a 90-second limit per run. The model key stays on the server.</p></div>
+        <div class="card"><h3>Deployment</h3><p>One Vercel project. Vercel ends any request after 90 seconds, so a run always stops itself first. The model key stays on the server.</p></div>
         <div class="card"><h3>The bigger site</h3><p>App 1 of 8 for Explain Machine Learning in Cricket Terms.</p></div>
       </div>
     </section>

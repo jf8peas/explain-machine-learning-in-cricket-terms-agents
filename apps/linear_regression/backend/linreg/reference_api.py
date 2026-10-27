@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from . import accuracy_text, hero_text, settings
+from . import accuracy_text, hero_text, settings, setup_settings
 from .accuracy import accuracy, display
 from .data_loading import DataError, load_innings
 from .evaluation import broadcaster_projection, know_nothing_guess
@@ -70,6 +70,7 @@ def build_reference(path: str | Path | None = None) -> dict[str, Any]:
         "message": None,
         "goal_card": hero_text.goal_card(goal()["margin_runs"], projected["average_miss"], training, test),
         "test": test,
+        "check_seasons": len(setup_settings.CHECK_OFFSETS),
         **reference_terms(),
     }
 
@@ -88,7 +89,8 @@ def _unavailable() -> dict[str, Any]:
     return {"goal": goal(), "methods": method_defs(), "training": None, "figures": None, "gap": None,
             "finding": None, "words": None, "sentences": None, "meter": None, "average_total": None, "example": None,
             "hero": None, "message": NOT_LOADED,
-            "goal_card": hero_text.goal_card(goal()["margin_runs"]), "test": None, **reference_terms()}
+            "goal_card": hero_text.goal_card(goal()["margin_runs"]), "test": None,
+            "check_seasons": len(setup_settings.CHECK_OFFSETS), **reference_terms()}
 
 
 def create_router(data_path: str | Path | None = None) -> APIRouter:

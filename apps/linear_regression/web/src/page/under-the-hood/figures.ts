@@ -14,10 +14,11 @@ export interface ReferenceResponse extends TermsPayload {
   training?: { first_year?: number; last_year?: number; innings?: number } | null;
   figures?: { know_nothing?: Method | null; broadcaster?: Method | null } | null;
   goal?: { margin_runs?: number } | null;
+  check_seasons?: number | null;
 }
 
 export interface StructureResponse { nodes?: { kind?: string; actor?: string }[] }
-export interface CatalogueResponse { features?: unknown[] }
+export interface CatalogueResponse { features?: { source?: { measured?: boolean } | Record<string, unknown> }[] }
 export interface ModelsResponse { run?: { per_hour?: number; per_day?: number; deadline_seconds?: number } }
 /** What the page reads besides the data and the reference. Any of them may be missing. */
 export interface Extras { structure?: StructureResponse | null; catalogue?: CatalogueResponse | null; models?: ModelsResponse | null }
@@ -43,6 +44,9 @@ export interface LiveFigures {
   llmSteps?: string;
   stepsWord?: string;
   clues?: string;
+  measuredWord?: string;
+  derivedWord?: string;
+  checkSeasonsWord?: string;
   perHour?: string;
   perDay?: string;
   deadline?: string;
@@ -54,7 +58,7 @@ export interface LiveFigures {
 export const TEXT_KEYS = [
   "totalInnings", "dateRange", "downloaded", "testPopulation", "excludedTotal", "refInnings", "refFirstYear",
   "refLastYear", "knowNothingMiss", "tvMiss", "tvBias", "tvBiasWords", "goalMargin", "agentSteps", "llmSteps", "stepsWord",
-  "clues", "perHour", "perDay", "deadline",
+  "clues", "measuredWord", "derivedWord", "checkSeasonsWord", "perHour", "perDay", "deadline",
 ] as const;
 export type TextKey = (typeof TEXT_KEYS)[number];
 
@@ -142,7 +146,15 @@ export function buildFigures(data?: DataResponse | null, reference?: ReferenceRe
     out.stepsWord = numberWord(steps.length);
   }
   const clues = extras.catalogue?.features;
-  if (Array.isArray(clues) && clues.length > 0) out.clues = String(clues.length);
+  if (Array.isArray(clues) && clues.length > 0) {
+    out.clues = String(clues.length);
+    // the two headings over the clue lists: measured from the ball-by-ball data, or worked out from a recipe
+    const measured = clues.filter((c) => (c?.source as { measured?: boolean } | undefined)?.measured === true).length;
+    if (measured > 0) out.measuredWord = numberWord(measured);
+    if (clues.length - measured > 0) out.derivedWord = numberWord(clues.length - measured);
+  }
+  const checkSeasons = reference?.check_seasons;
+  if (isNumber(checkSeasons) && checkSeasons > 0) out.checkSeasonsWord = numberWord(checkSeasons);
   const run = extras.models?.run;
   if (run && isNumber(run.per_hour)) out.perHour = String(run.per_hour);
   if (run && isNumber(run.per_day)) out.perDay = String(run.per_day);

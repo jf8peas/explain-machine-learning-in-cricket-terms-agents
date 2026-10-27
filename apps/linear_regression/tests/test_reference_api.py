@@ -40,7 +40,7 @@ def independent(path=DEFAULT_PATH):
 def test_the_response_has_the_goal_the_four_methods_the_training_years_and_both_references():
     body = client.get("/api/reference").json()
     assert set(body) == {"goal", "methods", "training", "figures", "gap", "finding", "words", "sentences", "meter", "message",
-                         "average_total", "example", "hero", "goal_card", "test", "terms", "definitions", "banned", "terms_version"}
+                         "average_total", "example", "hero", "goal_card", "test", "check_seasons", "terms", "definitions", "banned", "terms_version"}
     assert body["goal"] == goal()
     assert body["methods"] == method_defs()
     assert set(body["figures"]) == {"know_nothing", "broadcaster"}

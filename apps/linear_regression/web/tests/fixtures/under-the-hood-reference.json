@@ -192,6 +192,7 @@
     "year": 2026,
     "innings": 171
   },
+  "check_seasons": 3,
   "terms": [
     {
       "id": "agent",

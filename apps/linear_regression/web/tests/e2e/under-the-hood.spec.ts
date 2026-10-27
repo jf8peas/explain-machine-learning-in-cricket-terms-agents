@@ -281,7 +281,7 @@ test("with /api/data failing the text stays and only the data figures show the p
   await expect(page.locator('[data-figure-group="population"]')).toHaveText(GROUP_PLACEHOLDER);
   await expect(page.locator('[data-figure-group="reference-bar"]')).not.toHaveText(GROUP_PLACEHOLDER);
   await expect(page.getByTestId("fact-steps")).not.toHaveText(PLACEHOLDER);
-  await expect(page.locator("section#shipping")).toContainText("90-second limit");
+  await expect(page.locator("section#shipping")).toContainText("after 90 seconds");
 });
 
 test("with /api/reference failing the reference sentences are replaced whole and the data figures still fill", async ({ page }) => {
