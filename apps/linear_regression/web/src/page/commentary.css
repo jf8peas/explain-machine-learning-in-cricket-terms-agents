@@ -9,6 +9,8 @@ body[data-view="everything"] .commentary, .commentary[data-open] { display: bloc
   background: none; color: var(--accent); font: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; }
 .toggle:hover { background: var(--surface); }
 .toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* with "Show me everything" on every panel is already open and cannot be closed, so its toggle (still exposed as expanded) is not shown: a button that does nothing is not offered (issue 21) */
+body[data-view="everything"] [data-commentary-toggle] { display: none; }
 .toggle::after { content: "↓"; }
 .toggle[aria-expanded="true"]::after { content: "↑"; }
 /* in a dark band (the hero) the same panel in the dark palette */
