@@ -234,6 +234,15 @@ export function setupWatch(root: HTMLElement, deps: WatchDeps): Watch {
     }
   });
 
+  /** Pressing Play brings the graph into view once, if its top is off screen (issue 18). Instant, never smooth, and the focus stays on the button. */
+  const showRunGraph = () => {
+    const graph = root.querySelector<HTMLElement>('[data-testid="run-graph"]');
+    if (!graph) return;
+    const top = graph.getBoundingClientRect().top;
+    if (top >= 0 && top <= window.innerHeight - 120) return;
+    graph.scrollIntoView({ block: "start", behavior: "instant" as ScrollBehavior });
+  };
+
   // ---- buttons
   player.onPlay(() => {
     if (!replay.isReady) { deps.set({ ...deps.state(), message: "The graph is still loading. Try again in a moment." }); return; }
@@ -242,6 +251,7 @@ export function setupWatch(root: HTMLElement, deps: WatchDeps): Watch {
     announce = { cursor: -1, spoken: new Set() };
     deps.set(press(deps.state(), choice.name));
     replay.startLive(choice.url);
+    showRunGraph();
   });
 
   player.onWatchAgain(() => {
